@@ -1,0 +1,37 @@
+{
+  "name": "@mj-biz-apps/issues-core-entities-server",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Server-side entity subclasses for BizApps Issues — lifecycle hooks for Issue, IssueComment, etc. (stamp ResolvedAt/ClosedAt, fire IssueType action hooks).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsc && tsc-alias -f",
+    "test": "echo \"No tests configured yet\""
+  },
+  "author": "MemberJunction.com",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@mj-biz-apps/issues-entities": "1.0.0",
+    "@mj-biz-apps/issues-core": "1.0.0"
+  },
+  "peerDependencies": {
+    "@memberjunction/core": "^5.33.0",
+    "@memberjunction/core-entities": "^5.33.0",
+    "@memberjunction/global": "^5.33.0",
+    "@memberjunction/sqlserver-dataprovider": "^5.33.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MemberJunction/bizapps-issues"
+  }
+}

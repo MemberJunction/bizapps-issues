@@ -1,0 +1,15 @@
+.DS_Store
+.cache/
+node_modules/
+.turbo/
+.angular/
+codegen.output.log
+migrations/codegen/
+dist/
+SQL Scripts/
+Schema Files/
+install.config.json
+.env
+report.html
+report.json
+metadata/sql_logging
