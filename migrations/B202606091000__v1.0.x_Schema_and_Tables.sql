@@ -274,6 +274,12 @@ BEGIN
 END;
 GO
 
+-- Grant EXECUTE to the MJ runtime roles (CodeGen does this automatically for its
+-- generated CRUD procs; custom procs must grant explicitly). Called on the Issue
+-- insert path, so grant to both roles like a create proc.
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spAssignNextIssueNumber] TO [cdp_Developer], [cdp_Integration];
+GO
+
 -- =============================================================================
 -- 5. EXTENDED PROPERTIES (MS_Description) — schema, tables, and every column
 -- =============================================================================

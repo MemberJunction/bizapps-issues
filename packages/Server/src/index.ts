@@ -13,9 +13,9 @@ import '@mj-biz-apps/issues-actions';
 // Core services
 import '@mj-biz-apps/issues-core';
 
-// Server-side entity subclasses — must come after issues-entities so
-// @RegisterClass auto-increment gives these higher priority
-import '@mj-biz-apps/issues-core-entities-server';
+// Server-side entity subclasses — must come after issues-entities so the
+// priority-2 @RegisterClass registrations win over the priority-1 client entities.
+import { LoadBizAppsIssuesEntitiesServer } from '@mj-biz-apps/issues-core-entities-server';
 
 // Import generated GraphQL resolvers
 import './generated/generated.js';
@@ -40,7 +40,9 @@ export const RESOLVER_PATHS = [resolve(__dirname, 'generated/generated.{js,ts}')
  * module is fully evaluated.
  */
 export function LoadBizAppsIssuesServer(): void {
-  // Static imports above ensure all classes are registered.
-  // This function exists as the startupExport entry point for DynamicPackageLoader.
+  // Static imports above ensure entities/actions/core/resolvers are registered.
+  // Explicitly load the server-side entity subclasses so their priority-2
+  // @RegisterClass registrations (e.g. IssueEntityServer) fire and win.
+  LoadBizAppsIssuesEntitiesServer();
   void CLASS_REGISTRATIONS;
 }
