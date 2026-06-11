@@ -101,6 +101,7 @@ GO
 ---------------------------------------------------------------------------
 CREATE TABLE ${flyway:defaultSchema}.Issue (
     ID UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+    IssueNumber NVARCHAR(50) NULL,
     Title NVARCHAR(500) NOT NULL,
     Description NVARCHAR(MAX) NULL,
     IssueTypeID UNIQUEIDENTIFIER NOT NULL,
@@ -118,6 +119,7 @@ CREATE TABLE ${flyway:defaultSchema}.Issue (
     ClosedAt DATETIMEOFFSET NULL,
     CreatedByPersonID UNIQUEIDENTIFIER NULL,
     CONSTRAINT PK_Issue PRIMARY KEY (ID),
+    CONSTRAINT UQ_Issue_IssueNumber UNIQUE (IssueNumber),
     CONSTRAINT CK_Issue_Severity CHECK (Severity IN ('Low', 'Medium', 'High', 'Critical')),
     CONSTRAINT CK_Issue_Priority CHECK (Priority IN ('Low', 'Medium', 'High', 'Critical')),
     -- Polymorphic columns are all-or-nothing: an entity reference without a
@@ -147,6 +149,20 @@ CREATE TABLE ${flyway:defaultSchema}.IssueComment (
     Source NVARCHAR(20) NOT NULL DEFAULT 'internal',
     CONSTRAINT PK_IssueComment PRIMARY KEY (ID),
     CONSTRAINT CK_IssueComment_Source CHECK (Source IN ('internal', 'email', 'external'))
+);
+GO
+
+---------------------------------------------------------------------------
+-- 2.5 IssueNumberSequence — per-scope gap-free counter backing the
+--     human-readable Issue.IssueNumber. ScopeCode is the NORMALIZED
+--     (trimmed/uppercased) AppScope, or 'ISS' when an issue has no AppScope.
+--     Maintained ONLY by spAssignNextIssueNumber — never write directly.
+---------------------------------------------------------------------------
+CREATE TABLE ${flyway:defaultSchema}.IssueNumberSequence (
+    ScopeCode NVARCHAR(50) NOT NULL,
+    NextSequenceNumber INT NOT NULL DEFAULT 1,
+    CONSTRAINT PK_IssueNumberSequence PRIMARY KEY (ScopeCode),
+    CONSTRAINT CK_IssueNumberSequence_NextSeq CHECK (NextSequenceNumber > 0)
 );
 GO
 
@@ -214,7 +230,52 @@ ALTER TABLE ${flyway:defaultSchema}.IssueComment
 GO
 
 -- =============================================================================
--- 4. EXTENDED PROPERTIES (MS_Description) — schema, tables, and every column
+-- 4. STORED PROCEDURES — custom business logic (NOT CRUD; CodeGen owns spCreate/
+--    spUpdate/spDelete). Hand-written here, mirroring bizapps-accounting's
+--    spAssignNextBatchNumber pattern.
+-- =============================================================================
+
+---------------------------------------------------------------------------
+-- 4.1 spAssignNextIssueNumber — assigns the next human-readable IssueNumber
+--     for a scope. Normalizes scope (trim/UPPER, null/blank → 'ISS'),
+--     atomically increments the per-scope counter under UPDLOCK/HOLDLOCK, and
+--     returns the formatted unpadded {SCOPE}-{seq} (e.g. MJC-42). Called from
+--     IssueEntityServer.Save() on insert. A number is consumed when this runs;
+--     if the subsequent insert rolls back the number is skipped (standard
+--     sequence behavior — unique + monotonic, occasional cosmetic gaps accepted).
+---------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE ${flyway:defaultSchema}.spAssignNextIssueNumber
+    @AppScope NVARCHAR(255) = NULL,
+    @IssueNumber NVARCHAR(50) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @Scope NVARCHAR(50) = NULLIF(LTRIM(RTRIM(UPPER(@AppScope))), N'');
+    IF @Scope IS NULL SET @Scope = N'ISS';
+
+    DECLARE @Seq INT;
+
+    BEGIN TRAN;
+        UPDATE ${flyway:defaultSchema}.IssueNumberSequence WITH (UPDLOCK, HOLDLOCK)
+            SET @Seq = NextSequenceNumber, NextSequenceNumber = NextSequenceNumber + 1
+            WHERE ScopeCode = @Scope;
+
+        IF @@ROWCOUNT = 0
+        BEGIN
+            INSERT ${flyway:defaultSchema}.IssueNumberSequence (ScopeCode, NextSequenceNumber)
+                VALUES (@Scope, 2);
+            SET @Seq = 1;
+        END
+    COMMIT;
+
+    SET @IssueNumber = @Scope + N'-' + CAST(@Seq AS NVARCHAR(20));   -- unpadded, e.g. MJC-42
+END;
+GO
+
+-- =============================================================================
+-- 5. EXTENDED PROPERTIES (MS_Description) — schema, tables, and every column
 -- =============================================================================
 
 -- Schema
@@ -223,7 +284,7 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'BizApps Issues
 GO
 
 ---------------------------------------------------------------------------
--- 4.1 IssueType
+-- 5.1 IssueType
 ---------------------------------------------------------------------------
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Lifecycle automation for a class of issue (Bug, Feature Request, Question, Feedback). Mirrors the bizapps-tasks TaskType action-hook pattern: On*ActionID columns point at core [Action] records fired at the matching lifecycle event.',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueType';
@@ -252,7 +313,7 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Whether this i
 GO
 
 ---------------------------------------------------------------------------
--- 4.2 IssueStatus
+-- 5.2 IssueStatus
 ---------------------------------------------------------------------------
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Workflow state an Issue can be in (New, Triaged, In Progress, Resolved, Closed, ...). Seeded via metadata sync, not in this migration. Drives board columns.',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueStatus';
@@ -273,12 +334,14 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Hex (or token)
 GO
 
 ---------------------------------------------------------------------------
--- 4.3 Issue
+-- 5.3 Issue
 ---------------------------------------------------------------------------
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'The core case / ticket / feedback record. Carries reporter, polymorphic assignee (Person or AI Agent), and a polymorphic source (any record the issue is about). Spawns bizapps-tasks Tasks for the actual work via TaskLink.',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'Issue';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Unique identifier (UUID).',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'Issue', @level2type = N'COLUMN', @level2name = N'ID';
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Human-readable case identifier, format {SCOPE}-{seq} (e.g. ''MJC-42''), where SCOPE is the normalized (trim/UPPER) AppScope or ''ISS'' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.',
+    @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'Issue', @level2type = N'COLUMN', @level2name = N'IssueNumber';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Short, one-line summary of the issue.',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'Issue', @level2type = N'COLUMN', @level2name = N'Title';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Full description / body of the issue (Markdown or plain text).',
@@ -314,7 +377,7 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'The Person who
 GO
 
 ---------------------------------------------------------------------------
--- 4.4 IssueComment
+-- 5.4 IssueComment
 ---------------------------------------------------------------------------
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Threaded discussion entry on an Issue. Author is a Person when internal; AuthorEmail carries the address for email / external sources.',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueComment';
@@ -330,6 +393,17 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Email of the c
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueComment', @level2type = N'COLUMN', @level2name = N'AuthorEmail';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Origin of the comment: ''internal'' (in-app), ''email'' (email reply), or ''external'' (reserved for v1.1 provider sync).',
     @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueComment', @level2type = N'COLUMN', @level2name = N'Source';
+GO
+
+---------------------------------------------------------------------------
+-- 5.5 IssueNumberSequence
+---------------------------------------------------------------------------
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Per-scope gap-free counter backing the human-readable Issue.IssueNumber. One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.',
+    @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueNumberSequence';
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'The normalized (trim/UPPER) AppScope this counter is for, or ''ISS'' when an issue has no AppScope. Primary key.',
+    @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueNumberSequence', @level2type = N'COLUMN', @level2name = N'ScopeCode';
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.',
+    @level0type = N'SCHEMA', @level0name = N'${flyway:defaultSchema}', @level1type = N'TABLE', @level1name = N'IssueNumberSequence', @level2type = N'COLUMN', @level2name = N'NextSequenceNumber';
 GO
 
 
@@ -396,7 +470,26 @@ GO
 
 
 
-/*----------------------------------------------CODEGEN-----------------------------------------*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*---------------------------------------CODEGEN-----------------------------------*/
 /* SQL generated to create new entity MJ_BizApps_Issues: Issue Types */
 
       INSERT INTO [${mjSchema}].[Entity] (
@@ -423,7 +516,7 @@ GO
          , [__mj_UpdatedAt]
       )
       VALUES (
-         '850e81f1-4918-4621-ae33-f5143f76e848',
+         'b08fb976-cc72-4dac-b950-a5c86dd04267',
          'MJ_BizApps_Issues: Issue Types',
          'Issue Types',
          'Lifecycle automation for a class of issue (Bug, Feature Request, Question, Feedback). Mirrors the bizapps-tasks TaskType action-hook pattern: On*ActionID columns point at core [Action] records fired at the matching lifecycle event.',
@@ -448,42 +541,42 @@ GO
 
 /* SQL generated to create new application ${flyway:defaultSchema} */
 INSERT INTO [${mjSchema}].[Application] (ID, Name, Description, SchemaAutoAddNewEntities, Path, AutoUpdatePath)
-                       VALUES ('6fec12ca-2e04-47ba-89dd-3ba59075be0a', '${flyway:defaultSchema}', 'Generated for schema', '${flyway:defaultSchema}', 'mjbizappsissues', 1);
+                       VALUES ('7cc8c510-249d-4a54-a96d-198be952ef11', '${flyway:defaultSchema}', 'Generated for schema', '${flyway:defaultSchema}', 'mjbizappsissues', 1);
 
 /* Adding role UI to application ${flyway:defaultSchema} */
 INSERT INTO [${mjSchema}].[ApplicationRole]
                                  ([ApplicationID], [RoleID], [CanAccess], [CanAdmin]) VALUES
-                                 ('6fec12ca-2e04-47ba-89dd-3ba59075be0a', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0);
+                                 ('7cc8c510-249d-4a54-a96d-198be952ef11', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0);
 
 /* Adding role Developer to application ${flyway:defaultSchema} */
 INSERT INTO [${mjSchema}].[ApplicationRole]
                                  ([ApplicationID], [RoleID], [CanAccess], [CanAdmin]) VALUES
-                                 ('6fec12ca-2e04-47ba-89dd-3ba59075be0a', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1);
+                                 ('7cc8c510-249d-4a54-a96d-198be952ef11', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1);
 
 /* Adding role Integration to application ${flyway:defaultSchema} */
 INSERT INTO [${mjSchema}].[ApplicationRole]
                                  ([ApplicationID], [RoleID], [CanAccess], [CanAdmin]) VALUES
-                                 ('6fec12ca-2e04-47ba-89dd-3ba59075be0a', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0);
+                                 ('7cc8c510-249d-4a54-a96d-198be952ef11', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0);
 
-/* SQL generated to add new entity MJ_BizApps_Issues: Issue Types to application ID: '6fec12ca-2e04-47ba-89dd-3ba59075be0a' */
+/* SQL generated to add new entity MJ_BizApps_Issues: Issue Types to application ID: '7cc8c510-249d-4a54-a96d-198be952ef11' */
 INSERT INTO [${mjSchema}].[ApplicationEntity]
                                        ([ApplicationID], [EntityID], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                       ('6fec12ca-2e04-47ba-89dd-3ba59075be0a', '850e81f1-4918-4621-ae33-f5143f76e848', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '6fec12ca-2e04-47ba-89dd-3ba59075be0a'), GETUTCDATE(), GETUTCDATE());
+                                       ('7cc8c510-249d-4a54-a96d-198be952ef11', 'b08fb976-cc72-4dac-b950-a5c86dd04267', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '7cc8c510-249d-4a54-a96d-198be952ef11'), GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Types for role UI */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('850e81f1-4918-4621-ae33-f5143f76e848', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
+                                                   ('b08fb976-cc72-4dac-b950-a5c86dd04267', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Types for role Developer */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('850e81f1-4918-4621-ae33-f5143f76e848', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('b08fb976-cc72-4dac-b950-a5c86dd04267', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Types for role Integration */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('850e81f1-4918-4621-ae33-f5143f76e848', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('b08fb976-cc72-4dac-b950-a5c86dd04267', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to create new entity MJ_BizApps_Issues: Issue Status */
 
@@ -511,7 +604,7 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , [__mj_UpdatedAt]
       )
       VALUES (
-         '04858fb3-6827-4f81-ba45-5fe46b4fb69e',
+         '07e2bd79-ba8a-4b9c-8d45-4ea3a9922de4',
          'MJ_BizApps_Issues: Issue Status',
          'Issue Status',
          'Workflow state an Issue can be in (New, Triaged, In Progress, Resolved, Closed, ...). Seeded via metadata sync, not in this migration. Drives board columns.',
@@ -534,25 +627,25 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , GETUTCDATE()
       );
 
-/* SQL generated to add new entity MJ_BizApps_Issues: Issue Status to application ID: '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A' */
+/* SQL generated to add new entity MJ_BizApps_Issues: Issue Status to application ID: '7CC8C510-249D-4A54-A96D-198BE952EF11' */
 INSERT INTO [${mjSchema}].[ApplicationEntity]
                                        ([ApplicationID], [EntityID], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                       ('6FEC12CA-2E04-47BA-89DD-3BA59075BE0A', '04858fb3-6827-4f81-ba45-5fe46b4fb69e', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A'), GETUTCDATE(), GETUTCDATE());
+                                       ('7CC8C510-249D-4A54-A96D-198BE952EF11', '07e2bd79-ba8a-4b9c-8d45-4ea3a9922de4', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '7CC8C510-249D-4A54-A96D-198BE952EF11'), GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Status for role UI */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('04858fb3-6827-4f81-ba45-5fe46b4fb69e', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
+                                                   ('07e2bd79-ba8a-4b9c-8d45-4ea3a9922de4', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Status for role Developer */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('04858fb3-6827-4f81-ba45-5fe46b4fb69e', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('07e2bd79-ba8a-4b9c-8d45-4ea3a9922de4', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Status for role Integration */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('04858fb3-6827-4f81-ba45-5fe46b4fb69e', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('07e2bd79-ba8a-4b9c-8d45-4ea3a9922de4', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to create new entity MJ_BizApps_Issues: Issues */
 
@@ -580,7 +673,7 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , [__mj_UpdatedAt]
       )
       VALUES (
-         'b6aad5f4-938c-441e-a2a7-27b0dbae61d1',
+         '65e7dad5-9930-4140-9a38-2184eb0097da',
          'MJ_BizApps_Issues: Issues',
          'Issues',
          'The core case / ticket / feedback record. Carries reporter, polymorphic assignee (Person or AI Agent), and a polymorphic source (any record the issue is about). Spawns bizapps-tasks Tasks for the actual work via TaskLink.',
@@ -603,25 +696,25 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , GETUTCDATE()
       );
 
-/* SQL generated to add new entity MJ_BizApps_Issues: Issues to application ID: '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A' */
+/* SQL generated to add new entity MJ_BizApps_Issues: Issues to application ID: '7CC8C510-249D-4A54-A96D-198BE952EF11' */
 INSERT INTO [${mjSchema}].[ApplicationEntity]
                                        ([ApplicationID], [EntityID], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                       ('6FEC12CA-2E04-47BA-89DD-3BA59075BE0A', 'b6aad5f4-938c-441e-a2a7-27b0dbae61d1', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A'), GETUTCDATE(), GETUTCDATE());
+                                       ('7CC8C510-249D-4A54-A96D-198BE952EF11', '65e7dad5-9930-4140-9a38-2184eb0097da', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '7CC8C510-249D-4A54-A96D-198BE952EF11'), GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issues for role UI */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('b6aad5f4-938c-441e-a2a7-27b0dbae61d1', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
+                                                   ('65e7dad5-9930-4140-9a38-2184eb0097da', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issues for role Developer */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('b6aad5f4-938c-441e-a2a7-27b0dbae61d1', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('65e7dad5-9930-4140-9a38-2184eb0097da', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issues for role Integration */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('b6aad5f4-938c-441e-a2a7-27b0dbae61d1', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('65e7dad5-9930-4140-9a38-2184eb0097da', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to create new entity MJ_BizApps_Issues: Issue Comments */
 
@@ -649,7 +742,7 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , [__mj_UpdatedAt]
       )
       VALUES (
-         'a36ca73a-5a42-4001-897a-8d2aed23f7d7',
+         '7124a46d-ea35-4c8b-bbbb-f19287ed0f9b',
          'MJ_BizApps_Issues: Issue Comments',
          'Issue Comments',
          'Threaded discussion entry on an Issue. Author is a Person when internal; AuthorEmail carries the address for email / external sources.',
@@ -672,25 +765,94 @@ INSERT INTO [${mjSchema}].[EntityPermission]
          , GETUTCDATE()
       );
 
-/* SQL generated to add new entity MJ_BizApps_Issues: Issue Comments to application ID: '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A' */
+/* SQL generated to add new entity MJ_BizApps_Issues: Issue Comments to application ID: '7CC8C510-249D-4A54-A96D-198BE952EF11' */
 INSERT INTO [${mjSchema}].[ApplicationEntity]
                                        ([ApplicationID], [EntityID], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                       ('6FEC12CA-2E04-47BA-89DD-3BA59075BE0A', 'a36ca73a-5a42-4001-897a-8d2aed23f7d7', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '6FEC12CA-2E04-47BA-89DD-3BA59075BE0A'), GETUTCDATE(), GETUTCDATE());
+                                       ('7CC8C510-249D-4A54-A96D-198BE952EF11', '7124a46d-ea35-4c8b-bbbb-f19287ed0f9b', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '7CC8C510-249D-4A54-A96D-198BE952EF11'), GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Comments for role UI */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('a36ca73a-5a42-4001-897a-8d2aed23f7d7', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
+                                                   ('7124a46d-ea35-4c8b-bbbb-f19287ed0f9b', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Comments for role Developer */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('a36ca73a-5a42-4001-897a-8d2aed23f7d7', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('7124a46d-ea35-4c8b-bbbb-f19287ed0f9b', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Comments for role Integration */
 INSERT INTO [${mjSchema}].[EntityPermission]
                                                    ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
-                                                   ('a36ca73a-5a42-4001-897a-8d2aed23f7d7', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+                                                   ('7124a46d-ea35-4c8b-bbbb-f19287ed0f9b', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+
+/* SQL generated to create new entity MJ_BizApps_Issues: Issue Number Sequences */
+
+      INSERT INTO [${mjSchema}].[Entity] (
+         [ID],
+         [Name],
+         [DisplayName],
+         [Description],
+         [NameSuffix],
+         [BaseTable],
+         [BaseView],
+         [SchemaName],
+         [IncludeInAPI],
+         [AllowUserSearchAPI],
+         [AllowCaching]
+         , [TrackRecordChanges]
+         , [AuditRecordAccess]
+         , [AuditViewRuns]
+         , [AllowAllRowsAPI]
+         , [AllowCreateAPI]
+         , [AllowUpdateAPI]
+         , [AllowDeleteAPI]
+         , [UserViewMaxRows]
+         , [__mj_CreatedAt]
+         , [__mj_UpdatedAt]
+      )
+      VALUES (
+         '595e3981-ee66-4b41-8579-2255a0c7610c',
+         'MJ_BizApps_Issues: Issue Number Sequences',
+         'Issue Number Sequences',
+         'Per-scope gap-free counter backing the human-readable Issue.IssueNumber. One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.',
+         NULL,
+         'IssueNumberSequence',
+         'vwIssueNumberSequences',
+         '${flyway:defaultSchema}',
+         1,
+         1,
+         0
+         , 1
+         , 0
+         , 0
+         , 0
+         , 1
+         , 1
+         , 1
+         , 1000
+         , GETUTCDATE()
+         , GETUTCDATE()
+      );
+
+/* SQL generated to add new entity MJ_BizApps_Issues: Issue Number Sequences to application ID: '7CC8C510-249D-4A54-A96D-198BE952EF11' */
+INSERT INTO [${mjSchema}].[ApplicationEntity]
+                                       ([ApplicationID], [EntityID], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
+                                       ('7CC8C510-249D-4A54-A96D-198BE952EF11', '595e3981-ee66-4b41-8579-2255a0c7610c', (SELECT COALESCE(MAX([Sequence]),0)+1 FROM [${mjSchema}].[ApplicationEntity] WHERE [ApplicationID] = '7CC8C510-249D-4A54-A96D-198BE952EF11'), GETUTCDATE(), GETUTCDATE());
+
+/* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Number Sequences for role UI */
+INSERT INTO [${mjSchema}].[EntityPermission]
+                                                   ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
+                                                   ('595e3981-ee66-4b41-8579-2255a0c7610c', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 0, 0, 0, GETUTCDATE(), GETUTCDATE());
+
+/* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Number Sequences for role Developer */
+INSERT INTO [${mjSchema}].[EntityPermission]
+                                                   ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
+                                                   ('595e3981-ee66-4b41-8579-2255a0c7610c', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
+
+/* SQL generated to add new permission for entity MJ_BizApps_Issues: Issue Number Sequences for role Integration */
+INSERT INTO [${mjSchema}].[EntityPermission]
+                                                   ([EntityID], [RoleID], [CanRead], [CanCreate], [CanUpdate], [CanDelete], [__mj_CreatedAt], [__mj_UpdatedAt]) VALUES
+                                                   ('595e3981-ee66-4b41-8579-2255a0c7610c', 'DFAFCCEC-6A37-EF11-86D4-000D3A4E707E', 1, 1, 1, 1, GETUTCDATE(), GETUTCDATE());
 
 /* SQL text to update existing entities from schema */
 EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks';
@@ -727,6 +889,38 @@ GO
 ALTER TABLE [${flyway:defaultSchema}].[Issue] ADD CONSTRAINT [DF___mj_BizAppsIssues_Issue___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
 GO
 
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ADD [__mj_CreatedAt] DATETIMEOFFSET NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+UPDATE [${flyway:defaultSchema}].[IssueNumberSequence] SET [__mj_CreatedAt] = GETUTCDATE() WHERE [__mj_CreatedAt] IS NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ALTER COLUMN [__mj_CreatedAt] DATETIMEOFFSET NOT NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueNumberSequence___mj_CreatedAt] DEFAULT GETUTCDATE() FOR [__mj_CreatedAt];
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ADD [__mj_UpdatedAt] DATETIMEOFFSET NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+UPDATE [${flyway:defaultSchema}].[IssueNumberSequence] SET [__mj_UpdatedAt] = GETUTCDATE() WHERE [__mj_UpdatedAt] IS NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ALTER COLUMN [__mj_UpdatedAt] DATETIMEOFFSET NOT NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueNumberSequence */
+ALTER TABLE [${flyway:defaultSchema}].[IssueNumberSequence] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueNumberSequence___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
+GO
+
 /* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueStatus */
 ALTER TABLE [${flyway:defaultSchema}].[IssueStatus] ADD [__mj_CreatedAt] DATETIMEOFFSET NULL;
 GO
@@ -757,38 +951,6 @@ GO
 
 /* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueStatus */
 ALTER TABLE [${flyway:defaultSchema}].[IssueStatus] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueStatus___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
-GO
-
-/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD [__mj_CreatedAt] DATETIMEOFFSET NULL;
-GO
-
-/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
-UPDATE [${flyway:defaultSchema}].[IssueComment] SET [__mj_CreatedAt] = GETUTCDATE() WHERE [__mj_CreatedAt] IS NULL;
-GO
-
-/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ALTER COLUMN [__mj_CreatedAt] DATETIMEOFFSET NOT NULL;
-GO
-
-/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueComment___mj_CreatedAt] DEFAULT GETUTCDATE() FOR [__mj_CreatedAt];
-GO
-
-/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD [__mj_UpdatedAt] DATETIMEOFFSET NULL;
-GO
-
-/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
-UPDATE [${flyway:defaultSchema}].[IssueComment] SET [__mj_UpdatedAt] = GETUTCDATE() WHERE [__mj_UpdatedAt] IS NULL;
-GO
-
-/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ALTER COLUMN [__mj_UpdatedAt] DATETIMEOFFSET NOT NULL;
-GO
-
-/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
-ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueComment___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
 GO
 
 /* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueType */
@@ -823,9 +985,41 @@ GO
 ALTER TABLE [${flyway:defaultSchema}].[IssueType] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueType___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
 GO
 
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD [__mj_CreatedAt] DATETIMEOFFSET NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
+UPDATE [${flyway:defaultSchema}].[IssueComment] SET [__mj_CreatedAt] = GETUTCDATE() WHERE [__mj_CreatedAt] IS NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ALTER COLUMN [__mj_CreatedAt] DATETIMEOFFSET NOT NULL;
+GO
+
+/* SQL text to add special date field __mj_CreatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueComment___mj_CreatedAt] DEFAULT GETUTCDATE() FOR [__mj_CreatedAt];
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD [__mj_UpdatedAt] DATETIMEOFFSET NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
+UPDATE [${flyway:defaultSchema}].[IssueComment] SET [__mj_UpdatedAt] = GETUTCDATE() WHERE [__mj_UpdatedAt] IS NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ALTER COLUMN [__mj_UpdatedAt] DATETIMEOFFSET NOT NULL;
+GO
+
+/* SQL text to add special date field __mj_UpdatedAt to entity ${flyway:defaultSchema}.IssueComment */
+ALTER TABLE [${flyway:defaultSchema}].[IssueComment] ADD CONSTRAINT [DF___mj_BizAppsIssues_IssueComment___mj_UpdatedAt] DEFAULT GETUTCDATE() FOR [__mj_UpdatedAt];
+GO
+
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '71f6fe9d-311b-4980-9ddd-a067744f70e1' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'd3cf7eac-3527-47dd-87dd-da8744cda808' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -858,8 +1052,8 @@ GO
          )
          VALUES
          (
-            '71f6fe9d-311b-4980-9ddd-a067744f70e1',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
+            'd3cf7eac-3527-47dd-87dd-da8744cda808',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
             100001,
             'ID',
             'ID',
@@ -890,7 +1084,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '07777ede-0a39-4983-a1a6-fe1d05b82570' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'Title')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'adddcc67-6c31-4e40-8c22-aaaf2e9eb165' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'IssueNumber')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -923,9 +1117,74 @@ GO
          )
          VALUES
          (
-            '07777ede-0a39-4983-a1a6-fe1d05b82570',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
+            'adddcc67-6c31-4e40-8c22-aaaf2e9eb165',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
             100002,
+            'IssueNumber',
+            'Issue Number',
+            'Human-readable case identifier, format {SCOPE}-{seq} (e.g. ''MJC-42''), where SCOPE is the normalized (trim/UPPER) AppScope or ''ISS'' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.',
+            'nvarchar',
+            100,
+            0,
+            0,
+            1,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'fbda77b7-3edb-4d32-a7d4-06fe401457be' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'Title')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            'fbda77b7-3edb-4d32-a7d4-06fe401457be',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100003,
             'Title',
             'Title',
             'Short, one-line summary of the issue.',
@@ -955,7 +1214,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '1ef894ee-1e09-44c5-a2b5-e43fb5917c1d' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'Description')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '1ce66015-9e1b-4e20-be02-922d1d91a619' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'Description')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -988,9 +1247,9 @@ GO
          )
          VALUES
          (
-            '1ef894ee-1e09-44c5-a2b5-e43fb5917c1d',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100003,
+            '1ce66015-9e1b-4e20-be02-922d1d91a619',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100004,
             'Description',
             'Description',
             'Full description / body of the issue (Markdown or plain text).',
@@ -1020,7 +1279,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e6fffaa5-6b25-4022-a558-77e3bda590d7' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'IssueTypeID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e4408976-8a26-42d6-9b2d-81216476ad9c' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'IssueTypeID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1053,9 +1312,9 @@ GO
          )
          VALUES
          (
-            'e6fffaa5-6b25-4022-a558-77e3bda590d7',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100004,
+            'e4408976-8a26-42d6-9b2d-81216476ad9c',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100005,
             'IssueTypeID',
             'Issue Type ID',
             'The IssueType classifying this issue. Drives lifecycle action hooks and the default spawned task type.',
@@ -1069,7 +1328,7 @@ GO
             1,
             0,
             0,
-            '850E81F1-4918-4621-AE33-F5143F76E848',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267',
             'ID',
             0,
             0,
@@ -1085,7 +1344,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '746b9e26-50d4-4619-b849-f050b07c0129' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'StatusID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '2963d2bc-0473-47a0-be0a-0e1bd925928b' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'StatusID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1118,9 +1377,9 @@ GO
          )
          VALUES
          (
-            '746b9e26-50d4-4619-b849-f050b07c0129',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100005,
+            '2963d2bc-0473-47a0-be0a-0e1bd925928b',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100006,
             'StatusID',
             'Status ID',
             'Current workflow status of the issue.',
@@ -1134,7 +1393,7 @@ GO
             1,
             0,
             0,
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4',
             'ID',
             0,
             0,
@@ -1150,7 +1409,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e0748301-99c6-4e68-895e-b99fcc00446a' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'Severity')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '99c48bc4-c15e-440a-a577-ec5ba8f9e48b' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'Severity')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1183,9 +1442,9 @@ GO
          )
          VALUES
          (
-            'e0748301-99c6-4e68-895e-b99fcc00446a',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100006,
+            '99c48bc4-c15e-440a-a577-ec5ba8f9e48b',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100007,
             'Severity',
             'Severity',
             'Impact of the issue (how bad it is): Low, Medium, High, Critical. Distinct from Priority.',
@@ -1215,7 +1474,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '406b0511-2e42-462e-b5ed-7e8a97627928' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'Priority')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7c48ec27-0691-4ce9-b990-f554caf50864' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'Priority')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1248,9 +1507,9 @@ GO
          )
          VALUES
          (
-            '406b0511-2e42-462e-b5ed-7e8a97627928',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100007,
+            '7c48ec27-0691-4ce9-b990-f554caf50864',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100008,
             'Priority',
             'Priority',
             'Scheduling priority (how soon to address it): Low, Medium, High, Critical. Distinct from Severity.',
@@ -1280,7 +1539,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '2987cfe2-3d5f-4231-8fca-67edc6adc509' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ReporterPersonID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '06ed94d8-4607-4061-888e-788ffafca023' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ReporterPersonID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1313,9 +1572,9 @@ GO
          )
          VALUES
          (
-            '2987cfe2-3d5f-4231-8fca-67edc6adc509',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100008,
+            '06ed94d8-4607-4061-888e-788ffafca023',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100009,
             'ReporterPersonID',
             'Reporter Person ID',
             'The Person who raised the issue, when known internally. NULL for external/anonymous reporters (use ReporterEmail).',
@@ -1345,7 +1604,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e7d9dbfe-51de-4216-9d37-95cc26de6e74' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ReporterEmail')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '65c94b3c-a5bf-4d2d-bbff-289a0c041047' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ReporterEmail')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1378,9 +1637,9 @@ GO
          )
          VALUES
          (
-            'e7d9dbfe-51de-4216-9d37-95cc26de6e74',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100009,
+            '65c94b3c-a5bf-4d2d-bbff-289a0c041047',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100010,
             'ReporterEmail',
             'Reporter Email',
             'Email of the reporter, used when there is no linked Person (external feedback, email-in).',
@@ -1410,7 +1669,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'abd84563-0aa9-4f3f-8498-1ef98134ad0e' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'AssigneeEntityID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5d649c62-6589-43f0-affd-e3f9e3268cc8' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'AssigneeEntityID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1443,9 +1702,9 @@ GO
          )
          VALUES
          (
-            'abd84563-0aa9-4f3f-8498-1ef98134ad0e',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100010,
+            '5d649c62-6589-43f0-affd-e3f9e3268cc8',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100011,
             'AssigneeEntityID',
             'Assignee Entity ID',
             'Polymorphic assignee: the core Entity of the assignee (e.g. a Person entity or an AI Agent entity). Paired with AssigneeRecordID.',
@@ -1475,7 +1734,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5a128f28-ecf6-43e6-adb1-5f3d2a1b9901' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'AssigneeRecordID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '24653d3b-faed-4a91-bd7f-8c903b8ad018' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'AssigneeRecordID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1508,9 +1767,9 @@ GO
          )
          VALUES
          (
-            '5a128f28-ecf6-43e6-adb1-5f3d2a1b9901',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100011,
+            '24653d3b-faed-4a91-bd7f-8c903b8ad018',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100012,
             'AssigneeRecordID',
             'Assignee Record ID',
             'Polymorphic assignee: the primary key (as string) of the assignee record within AssigneeEntityID.',
@@ -1540,7 +1799,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e0f04d98-ec61-4713-bd51-8cfdf8650792' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'SourceEntityID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9d602c66-9fb5-4514-9ed6-7b530012ae3a' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'SourceEntityID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1573,9 +1832,9 @@ GO
          )
          VALUES
          (
-            'e0f04d98-ec61-4713-bd51-8cfdf8650792',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100012,
+            '9d602c66-9fb5-4514-9ed6-7b530012ae3a',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100013,
             'SourceEntityID',
             'Source Entity ID',
             'Polymorphic source: the core Entity of the record this issue is about (what the feedback concerns). Paired with SourceRecordID.',
@@ -1605,7 +1864,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '88288fb0-3981-45e3-9256-7b79e8065712' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'SourceRecordID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5e4d5272-5f71-4e7f-99b0-f0d9de5c3641' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'SourceRecordID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1638,9 +1897,9 @@ GO
          )
          VALUES
          (
-            '88288fb0-3981-45e3-9256-7b79e8065712',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100013,
+            '5e4d5272-5f71-4e7f-99b0-f0d9de5c3641',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100014,
             'SourceRecordID',
             'Source Record ID',
             'Polymorphic source: the primary key (as string) of the source record within SourceEntityID.',
@@ -1670,7 +1929,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '12b873b4-a829-42e0-b0c7-93e10385c080' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'AppScope')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'bdc175d9-3f7b-4818-af86-801d821b9276' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'AppScope')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1703,9 +1962,9 @@ GO
          )
          VALUES
          (
-            '12b873b4-a829-42e0-b0c7-93e10385c080',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100014,
+            'bdc175d9-3f7b-4818-af86-801d821b9276',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100015,
             'AppScope',
             'App Scope',
             'Which app / product this issue belongs to (free-text scope tag, e.g. ''MJC'', ''Explorer'').',
@@ -1735,7 +1994,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e7875bda-e884-486b-bf86-6e9f9e11584c' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ResolvedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'd50b709a-c90f-4771-abef-9a108002a341' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ResolvedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1768,9 +2027,9 @@ GO
          )
          VALUES
          (
-            'e7875bda-e884-486b-bf86-6e9f9e11584c',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100015,
+            'd50b709a-c90f-4771-abef-9a108002a341',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100016,
             'ResolvedAt',
             'Resolved At',
             'Timestamp the issue was resolved (entered a resolved state). NULL while unresolved.',
@@ -1800,7 +2059,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '6d798d40-cd0a-424a-aa86-676853402251' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ClosedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9ab132e0-fb1a-410a-a736-ddfbb0388f7e' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ClosedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1833,9 +2092,9 @@ GO
          )
          VALUES
          (
-            '6d798d40-cd0a-424a-aa86-676853402251',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100016,
+            '9ab132e0-fb1a-410a-a736-ddfbb0388f7e',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100017,
             'ClosedAt',
             'Closed At',
             'Timestamp the issue was closed (entered a terminal state). NULL while open.',
@@ -1865,7 +2124,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e26b3c93-9b7b-464a-8db1-eec94e99c319' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'CreatedByPersonID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '2bdfb21a-baf7-482d-98c5-4dfd03ff45ee' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'CreatedByPersonID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1898,9 +2157,9 @@ GO
          )
          VALUES
          (
-            'e26b3c93-9b7b-464a-8db1-eec94e99c319',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100017,
+            '2bdfb21a-baf7-482d-98c5-4dfd03ff45ee',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100018,
             'CreatedByPersonID',
             'Created By Person ID',
             'The Person who created the issue record in the system (may differ from the reporter).',
@@ -1930,7 +2189,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9cba23d6-c49e-4026-a47a-f0b56e62b939' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = '__mj_CreatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'd6995810-5f0a-4775-8e81-9bd304dca9e0' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = '__mj_CreatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -1963,9 +2222,9 @@ GO
          )
          VALUES
          (
-            '9cba23d6-c49e-4026-a47a-f0b56e62b939',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100018,
+            'd6995810-5f0a-4775-8e81-9bd304dca9e0',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100019,
             '__mj_CreatedAt',
             'Created At',
             NULL,
@@ -1995,7 +2254,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b2bac0ea-64e1-4d44-a63c-0f6a82f4d5ad' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = '__mj_UpdatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '77f34775-1c61-4921-ac99-045d0a20b9bf' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = '__mj_UpdatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2028,9 +2287,9 @@ GO
          )
          VALUES
          (
-            'b2bac0ea-64e1-4d44-a63c-0f6a82f4d5ad',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100019,
+            '77f34775-1c61-4921-ac99-045d0a20b9bf',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100020,
             '__mj_UpdatedAt',
             'Updated At',
             NULL,
@@ -2060,7 +2319,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e1e7f572-5a6b-44e8-b434-0a179a36a579' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'ID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '3737e78f-3cab-49cf-ab9e-635da764e876' OR (EntityID = '595E3981-EE66-4B41-8579-2255A0C7610C' AND Name = 'ScopeCode')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2093,8 +2352,268 @@ GO
          )
          VALUES
          (
-            'e1e7f572-5a6b-44e8-b434-0a179a36a579',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '3737e78f-3cab-49cf-ab9e-635da764e876',
+            '595E3981-EE66-4B41-8579-2255A0C7610C', -- Entity: MJ_BizApps_Issues: Issue Number Sequences
+            100001,
+            'ScopeCode',
+            'Scope Code',
+            'The normalized (trim/UPPER) AppScope this counter is for, or ''ISS'' when an issue has no AppScope. Primary key.',
+            'nvarchar',
+            100,
+            0,
+            0,
+            0,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '219d0d34-f277-4222-b9a1-f5a9f155abca' OR (EntityID = '595E3981-EE66-4B41-8579-2255A0C7610C' AND Name = 'NextSequenceNumber')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '219d0d34-f277-4222-b9a1-f5a9f155abca',
+            '595E3981-EE66-4B41-8579-2255A0C7610C', -- Entity: MJ_BizApps_Issues: Issue Number Sequences
+            100002,
+            'NextSequenceNumber',
+            'Next Sequence Number',
+            'The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.',
+            'int',
+            4,
+            10,
+            0,
+            0,
+            '(1)',
+            0,
+            1,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'ee76be39-ba96-4c56-849b-d92c27504b43' OR (EntityID = '595E3981-EE66-4B41-8579-2255A0C7610C' AND Name = '__mj_CreatedAt')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            'ee76be39-ba96-4c56-849b-d92c27504b43',
+            '595E3981-EE66-4B41-8579-2255A0C7610C', -- Entity: MJ_BizApps_Issues: Issue Number Sequences
+            100003,
+            '__mj_CreatedAt',
+            'Created At',
+            NULL,
+            'datetimeoffset',
+            10,
+            34,
+            7,
+            0,
+            'getutcdate()',
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '30118bfc-fe8a-4fe4-903c-79184edce894' OR (EntityID = '595E3981-EE66-4B41-8579-2255A0C7610C' AND Name = '__mj_UpdatedAt')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '30118bfc-fe8a-4fe4-903c-79184edce894',
+            '595E3981-EE66-4B41-8579-2255A0C7610C', -- Entity: MJ_BizApps_Issues: Issue Number Sequences
+            100004,
+            '__mj_UpdatedAt',
+            'Updated At',
+            NULL,
+            'datetimeoffset',
+            10,
+            34,
+            7,
+            0,
+            'getutcdate()',
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '53331d4b-d295-4df9-a97b-9f63bce62e71' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'ID')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '53331d4b-d295-4df9-a97b-9f63bce62e71',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100001,
             'ID',
             'ID',
@@ -2125,7 +2644,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '06623ea1-2b07-45f7-8ff3-adca8f2c4cd1' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'Name')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '71b2f634-7594-490a-9bfd-d130b8193c5e' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'Name')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2158,8 +2677,8 @@ GO
          )
          VALUES
          (
-            '06623ea1-2b07-45f7-8ff3-adca8f2c4cd1',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '71b2f634-7594-490a-9bfd-d130b8193c5e',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100002,
             'Name',
             'Name',
@@ -2190,7 +2709,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7c26d943-6e4e-45ae-942f-94e3d8387cc7' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'Description')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9487b754-90b9-42f9-ae1c-b59b0becfb2c' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'Description')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2223,8 +2742,8 @@ GO
          )
          VALUES
          (
-            '7c26d943-6e4e-45ae-942f-94e3d8387cc7',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '9487b754-90b9-42f9-ae1c-b59b0becfb2c',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100003,
             'Description',
             'Description',
@@ -2255,7 +2774,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '134e0015-2bb3-44aa-9771-59b147e9b97f' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'Sequence')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'da13598b-b481-48a7-969d-ac8cc80af61a' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'Sequence')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2288,8 +2807,8 @@ GO
          )
          VALUES
          (
-            '134e0015-2bb3-44aa-9771-59b147e9b97f',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            'da13598b-b481-48a7-969d-ac8cc80af61a',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100004,
             'Sequence',
             'Sequence',
@@ -2320,7 +2839,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'c2033924-ee22-4437-a604-ecde7ba5f1e1' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'IsDefault')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e66776d3-0318-4c92-b30a-373fb4d64d9d' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'IsDefault')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2353,8 +2872,8 @@ GO
          )
          VALUES
          (
-            'c2033924-ee22-4437-a604-ecde7ba5f1e1',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            'e66776d3-0318-4c92-b30a-373fb4d64d9d',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100005,
             'IsDefault',
             'Is Default',
@@ -2385,7 +2904,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e3719598-cb97-4862-b074-69d94022abc1' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'IsTerminal')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '04aa5244-2c13-4768-826b-94f72805efd5' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'IsTerminal')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2418,8 +2937,8 @@ GO
          )
          VALUES
          (
-            'e3719598-cb97-4862-b074-69d94022abc1',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '04aa5244-2c13-4768-826b-94f72805efd5',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100006,
             'IsTerminal',
             'Is Terminal',
@@ -2450,7 +2969,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '61b08f55-b801-4b80-b79a-4838f602ac84' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = 'ColorCode')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '796866ab-7cae-4ce7-9e17-2b7a38e86639' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = 'ColorCode')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2483,8 +3002,8 @@ GO
          )
          VALUES
          (
-            '61b08f55-b801-4b80-b79a-4838f602ac84',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '796866ab-7cae-4ce7-9e17-2b7a38e86639',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100007,
             'ColorCode',
             'Color Code',
@@ -2515,7 +3034,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '130b9909-963a-4a79-88c8-09561d3e7ffd' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = '__mj_CreatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '29e0d51a-6e88-44f6-b2c5-6156bc4fafca' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = '__mj_CreatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2548,8 +3067,8 @@ GO
          )
          VALUES
          (
-            '130b9909-963a-4a79-88c8-09561d3e7ffd',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            '29e0d51a-6e88-44f6-b2c5-6156bc4fafca',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100008,
             '__mj_CreatedAt',
             'Created At',
@@ -2580,7 +3099,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '3e19d7bf-1b59-4e54-a186-c1cb8d85abc7' OR (EntityID = '04858FB3-6827-4F81-BA45-5FE46B4FB69E' AND Name = '__mj_UpdatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a40692e4-de3e-41bf-acbd-d1cb45d4d1ab' OR (EntityID = '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4' AND Name = '__mj_UpdatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2613,8 +3132,8 @@ GO
          )
          VALUES
          (
-            '3e19d7bf-1b59-4e54-a186-c1cb8d85abc7',
-            '04858FB3-6827-4F81-BA45-5FE46B4FB69E', -- Entity: MJ_BizApps_Issues: Issue Status
+            'a40692e4-de3e-41bf-acbd-d1cb45d4d1ab',
+            '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', -- Entity: MJ_BizApps_Issues: Issue Status
             100009,
             '__mj_UpdatedAt',
             'Updated At',
@@ -2645,7 +3164,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '68d3eb31-5ace-4e90-b5f5-57d405bc8034' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'ID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e6f9e9bb-4c8a-45b7-94db-452b255dc1a1' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'ID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2678,8 +3197,8 @@ GO
          )
          VALUES
          (
-            '68d3eb31-5ace-4e90-b5f5-57d405bc8034',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
+            'e6f9e9bb-4c8a-45b7-94db-452b255dc1a1',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100001,
             'ID',
             'ID',
@@ -2710,7 +3229,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '68af80d5-6d2f-46ca-9dbd-6244617aa2eb' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'IssueID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '1b4a00a6-7843-49c4-93f3-d5c13272070b' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'Name')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -2743,528 +3262,8 @@ GO
          )
          VALUES
          (
-            '68af80d5-6d2f-46ca-9dbd-6244617aa2eb',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100002,
-            'IssueID',
-            'Issue ID',
-            'The Issue this comment belongs to.',
-            'uniqueidentifier',
-            16,
-            0,
-            0,
-            0,
-            NULL,
-            0,
-            1,
-            0,
-            0,
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1',
-            'ID',
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '3a9f41b8-0478-439f-80bd-b68c2d8c9c9c' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'Body')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '3a9f41b8-0478-439f-80bd-b68c2d8c9c9c',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100003,
-            'Body',
-            'Body',
-            'Comment body (Markdown or plain text).',
-            'nvarchar',
-            -1,
-            0,
-            0,
-            0,
-            NULL,
-            0,
-            1,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7f55d890-e1ca-41b4-b56e-1f87d2e517f6' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'AuthorPersonID')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '7f55d890-e1ca-41b4-b56e-1f87d2e517f6',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100004,
-            'AuthorPersonID',
-            'Author Person ID',
-            'The Person who authored the comment, when internal. NULL for email/external authors (use AuthorEmail).',
-            'uniqueidentifier',
-            16,
-            0,
-            0,
-            1,
-            NULL,
-            0,
-            1,
-            0,
-            0,
-            '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F',
-            'ID',
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a26e1507-6c80-4ff5-96ed-ddd95581aa8c' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'AuthorEmail')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            'a26e1507-6c80-4ff5-96ed-ddd95581aa8c',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100005,
-            'AuthorEmail',
-            'Author Email',
-            'Email of the comment author, used when there is no linked Person.',
-            'nvarchar',
-            640,
-            0,
-            0,
-            1,
-            NULL,
-            0,
-            1,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '6252dcf1-b0d7-4108-8e80-506814f0ecb8' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'Source')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '6252dcf1-b0d7-4108-8e80-506814f0ecb8',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100006,
-            'Source',
-            'Source',
-            'Origin of the comment: ''internal'' (in-app), ''email'' (email reply), or ''external'' (reserved for v1.1 provider sync).',
-            'nvarchar',
-            40,
-            0,
-            0,
-            0,
-            'internal',
-            0,
-            1,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '85c450e7-f7ca-4668-98ab-5336954e695f' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = '__mj_CreatedAt')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '85c450e7-f7ca-4668-98ab-5336954e695f',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100007,
-            '__mj_CreatedAt',
-            'Created At',
-            NULL,
-            'datetimeoffset',
-            10,
-            34,
-            7,
-            0,
-            'getutcdate()',
-            0,
-            0,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5150052f-93de-42e7-8f22-cef41ccf9e63' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = '__mj_UpdatedAt')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '5150052f-93de-42e7-8f22-cef41ccf9e63',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100008,
-            '__mj_UpdatedAt',
-            'Updated At',
-            NULL,
-            'datetimeoffset',
-            10,
-            34,
-            7,
-            0,
-            'getutcdate()',
-            0,
-            0,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '3c89a64b-3e0b-4e72-9085-909a1818c6e0' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'ID')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            '3c89a64b-3e0b-4e72-9085-909a1818c6e0',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
-            100001,
-            'ID',
-            'ID',
-            'Unique identifier (UUID).',
-            'uniqueidentifier',
-            16,
-            0,
-            0,
-            0,
-            'newsequentialid()',
-            0,
-            0,
-            0,
-            0,
-            NULL,
-            NULL,
-            0,
-            1,
-            0,
-            0,
-            1,
-            1,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'ad22030a-fd4d-40dc-a647-bc0b0e839e85' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'Name')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            'ad22030a-fd4d-40dc-a647-bc0b0e839e85',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '1b4a00a6-7843-49c4-93f3-d5c13272070b',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100002,
             'Name',
             'Name',
@@ -3295,7 +3294,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'c684f0b6-c025-4db1-abaf-029f991b8bd5' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'Description')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '0e58fdbe-c30e-41c9-abc2-51de6b1bd2d6' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'Description')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3328,8 +3327,8 @@ GO
          )
          VALUES
          (
-            'c684f0b6-c025-4db1-abaf-029f991b8bd5',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '0e58fdbe-c30e-41c9-abc2-51de6b1bd2d6',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100003,
             'Description',
             'Description',
@@ -3360,7 +3359,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5c6e96b3-0aa7-4d9b-b803-ac764788ed3b' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'IconClass')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f06f4ff7-111b-407b-99f0-0b551c656f43' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'IconClass')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3393,8 +3392,8 @@ GO
          )
          VALUES
          (
-            '5c6e96b3-0aa7-4d9b-b803-ac764788ed3b',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'f06f4ff7-111b-407b-99f0-0b551c656f43',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100004,
             'IconClass',
             'Icon Class',
@@ -3425,7 +3424,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '78993679-f837-45c2-868d-f37bfbeeed7a' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'DefaultPriority')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'efb68536-dc99-4f27-a77a-bf23a026ea67' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'DefaultPriority')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3458,8 +3457,8 @@ GO
          )
          VALUES
          (
-            '78993679-f837-45c2-868d-f37bfbeeed7a',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'efb68536-dc99-4f27-a77a-bf23a026ea67',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100005,
             'DefaultPriority',
             'Default Priority',
@@ -3490,7 +3489,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7c1afaf7-aa86-4004-8807-c2d6da9764a8' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'DefaultTaskTypeID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '6c0b349f-4042-42b6-b8f9-b9d4a681de80' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'DefaultTaskTypeID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3523,8 +3522,8 @@ GO
          )
          VALUES
          (
-            '7c1afaf7-aa86-4004-8807-c2d6da9764a8',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '6c0b349f-4042-42b6-b8f9-b9d4a681de80',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100006,
             'DefaultTaskTypeID',
             'Default Task Type ID',
@@ -3555,7 +3554,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '2e69c90c-93cb-49c0-8852-0790ae26dd3a' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnCreateActionID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '86b9ec44-d8da-4540-9638-db50f4d92bc4' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnCreateActionID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3588,8 +3587,8 @@ GO
          )
          VALUES
          (
-            '2e69c90c-93cb-49c0-8852-0790ae26dd3a',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '86b9ec44-d8da-4540-9638-db50f4d92bc4',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100007,
             'OnCreateActionID',
             'On Create Action ID',
@@ -3620,7 +3619,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9af0f216-6901-471a-81c6-e16e4e7134b7' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnStatusChangeActionID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7d858a44-3534-468d-9e48-be4c8dc93052' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnStatusChangeActionID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3653,8 +3652,8 @@ GO
          )
          VALUES
          (
-            '9af0f216-6901-471a-81c6-e16e4e7134b7',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '7d858a44-3534-468d-9e48-be4c8dc93052',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100008,
             'OnStatusChangeActionID',
             'On Status Change Action ID',
@@ -3685,7 +3684,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b4fa118c-58be-4860-8688-c56234bd14ff' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnAssignActionID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'ae7027e2-994b-45ec-9f35-220a7664ab85' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnAssignActionID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3718,8 +3717,8 @@ GO
          )
          VALUES
          (
-            'b4fa118c-58be-4860-8688-c56234bd14ff',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'ae7027e2-994b-45ec-9f35-220a7664ab85',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100009,
             'OnAssignActionID',
             'On Assign Action ID',
@@ -3750,7 +3749,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a79b29c1-56b0-4e22-8514-a4225209bdcc' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnCloseActionID')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '569d75f7-f081-4bc2-8990-321b8b9d92b6' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnCloseActionID')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3783,8 +3782,8 @@ GO
          )
          VALUES
          (
-            'a79b29c1-56b0-4e22-8514-a4225209bdcc',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '569d75f7-f081-4bc2-8990-321b8b9d92b6',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100010,
             'OnCloseActionID',
             'On Close Action ID',
@@ -3815,7 +3814,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'bce45a21-cc11-4db9-ab59-afc334bfee10' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'IsActive')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '4fea107e-b189-4bad-85a6-7ecfabbf9b15' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'IsActive')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3848,8 +3847,8 @@ GO
          )
          VALUES
          (
-            'bce45a21-cc11-4db9-ab59-afc334bfee10',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '4fea107e-b189-4bad-85a6-7ecfabbf9b15',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100011,
             'IsActive',
             'Is Active',
@@ -3880,7 +3879,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '1277f5be-d6f8-4040-bcaf-d50b77512978' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = '__mj_CreatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e8f4cc38-d394-442e-a438-e30e70f07a5d' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = '__mj_CreatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3913,8 +3912,8 @@ GO
          )
          VALUES
          (
-            '1277f5be-d6f8-4040-bcaf-d50b77512978',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'e8f4cc38-d394-442e-a438-e30e70f07a5d',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100012,
             '__mj_CreatedAt',
             'Created At',
@@ -3945,7 +3944,7 @@ GO
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '835e0dda-0f3f-4888-9c97-8e34f3f77de3' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = '__mj_UpdatedAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f09b3838-633a-4b51-88ca-5ab6e5e0af5d' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = '__mj_UpdatedAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -3978,9 +3977,529 @@ GO
          )
          VALUES
          (
-            '835e0dda-0f3f-4888-9c97-8e34f3f77de3',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'f09b3838-633a-4b51-88ca-5ab6e5e0af5d',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100013,
+            '__mj_UpdatedAt',
+            'Updated At',
+            NULL,
+            'datetimeoffset',
+            10,
+            34,
+            7,
+            0,
+            'getutcdate()',
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '56419321-e23c-44ae-92e5-60060382f4fa' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'ID')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '56419321-e23c-44ae-92e5-60060382f4fa',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100001,
+            'ID',
+            'ID',
+            'Unique identifier (UUID).',
+            'uniqueidentifier',
+            16,
+            0,
+            0,
+            0,
+            'newsequentialid()',
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'bb65e98f-c7c3-41bc-a268-5added0d5f5f' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'IssueID')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            'bb65e98f-c7c3-41bc-a268-5added0d5f5f',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100002,
+            'IssueID',
+            'Issue ID',
+            'The Issue this comment belongs to.',
+            'uniqueidentifier',
+            16,
+            0,
+            0,
+            0,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA',
+            'ID',
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '4fb78308-1867-468d-916a-8118960e8c55' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'Body')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '4fb78308-1867-468d-916a-8118960e8c55',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100003,
+            'Body',
+            'Body',
+            'Comment body (Markdown or plain text).',
+            'nvarchar',
+            -1,
+            0,
+            0,
+            0,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '31762b00-ece7-4760-ac10-b11d53793fbc' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'AuthorPersonID')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '31762b00-ece7-4760-ac10-b11d53793fbc',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100004,
+            'AuthorPersonID',
+            'Author Person ID',
+            'The Person who authored the comment, when internal. NULL for email/external authors (use AuthorEmail).',
+            'uniqueidentifier',
+            16,
+            0,
+            0,
+            1,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F',
+            'ID',
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '0b6ee56c-7364-491f-bc0b-de8b0d69d271' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'AuthorEmail')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '0b6ee56c-7364-491f-bc0b-de8b0d69d271',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100005,
+            'AuthorEmail',
+            'Author Email',
+            'Email of the comment author, used when there is no linked Person.',
+            'nvarchar',
+            640,
+            0,
+            0,
+            1,
+            NULL,
+            0,
+            1,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '89d0ecae-49f6-4730-b9e4-1f0cfe373571' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'Source')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '89d0ecae-49f6-4730-b9e4-1f0cfe373571',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100006,
+            'Source',
+            'Source',
+            'Origin of the comment: ''internal'' (in-app), ''email'' (email reply), or ''external'' (reserved for v1.1 provider sync).',
+            'nvarchar',
+            40,
+            0,
+            0,
+            0,
+            'internal',
+            0,
+            1,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'ef200acb-07a0-44be-9c7a-d14f4a72dcd2' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = '__mj_CreatedAt')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            'ef200acb-07a0-44be-9c7a-d14f4a72dcd2',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100007,
+            '__mj_CreatedAt',
+            'Created At',
+            NULL,
+            'datetimeoffset',
+            10,
+            34,
+            7,
+            0,
+            'getutcdate()',
+            0,
+            0,
+            0,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '84fda08a-9365-4e56-8129-9808d2de19cd' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = '__mj_UpdatedAt')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            '84fda08a-9365-4e56-8129-9808d2de19cd',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100008,
             '__mj_UpdatedAt',
             'Updated At',
             NULL,
@@ -4014,225 +4533,225 @@ EXEC [${mjSchema}].[spUpdateExistingEntityFieldsFromSchema] @ExcludedSchemaNames
 /* SQL text to set default column width where needed */
 EXEC [${mjSchema}].[spSetDefaultColumnWidthWhereNeeded] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks';
 
-/* SQL text to insert entity field value with ID 46f64eaf-5ea9-410d-bcf9-fc67164dea8c */
+/* SQL text to insert entity field value with ID f4da53b8-1f68-4b47-9fed-9b1c6b994e2e */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('46f64eaf-5ea9-410d-bcf9-fc67164dea8c', '78993679-F837-45C2-868D-F37BFBEEED7A', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
+                                       ('f4da53b8-1f68-4b47-9fed-9b1c6b994e2e', 'EFB68536-DC99-4F27-A77A-BF23A026EA67', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 9302270a-f1a7-4ed0-9188-92457f978c21 */
+/* SQL text to insert entity field value with ID b270a0e0-c7be-4501-b286-86cc2e283687 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('9302270a-f1a7-4ed0-9188-92457f978c21', '78993679-F837-45C2-868D-F37BFBEEED7A', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
+                                       ('b270a0e0-c7be-4501-b286-86cc2e283687', 'EFB68536-DC99-4F27-A77A-BF23A026EA67', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID b9092695-4636-4cdb-8379-c29c0ccafb4a */
+/* SQL text to insert entity field value with ID 813067f5-4b0e-40a6-b520-a2a3aa625a5f */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('b9092695-4636-4cdb-8379-c29c0ccafb4a', '78993679-F837-45C2-868D-F37BFBEEED7A', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
+                                       ('813067f5-4b0e-40a6-b520-a2a3aa625a5f', 'EFB68536-DC99-4F27-A77A-BF23A026EA67', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID a3dca863-2d1d-487e-ab59-765105468cf1 */
+/* SQL text to insert entity field value with ID 65f40fc7-4e6a-47e0-b9b7-fb50af4ba974 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('a3dca863-2d1d-487e-ab59-765105468cf1', '78993679-F837-45C2-868D-F37BFBEEED7A', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
+                                       ('65f40fc7-4e6a-47e0-b9b7-fb50af4ba974', 'EFB68536-DC99-4F27-A77A-BF23A026EA67', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to update ValueListType for entity field ID 78993679-F837-45C2-868D-F37BFBEEED7A */
-UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='78993679-F837-45C2-868D-F37BFBEEED7A';
+/* SQL text to update ValueListType for entity field ID EFB68536-DC99-4F27-A77A-BF23A026EA67 */
+UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='EFB68536-DC99-4F27-A77A-BF23A026EA67';
 
-/* SQL text to insert entity field value with ID c3497c70-08c7-4d28-a951-f888ec22bf58 */
+/* SQL text to insert entity field value with ID ca6fc02c-b8cb-4d23-beea-e6723b62819c */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('c3497c70-08c7-4d28-a951-f888ec22bf58', 'E0748301-99C6-4E68-895E-B99FCC00446A', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
+                                       ('ca6fc02c-b8cb-4d23-beea-e6723b62819c', '99C48BC4-C15E-440A-A577-EC5BA8F9E48B', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 3988caed-7284-4d1d-bfaf-dd456bd386f5 */
+/* SQL text to insert entity field value with ID fab9481d-7b62-43a9-b877-de9e64384e9b */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('3988caed-7284-4d1d-bfaf-dd456bd386f5', 'E0748301-99C6-4E68-895E-B99FCC00446A', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
+                                       ('fab9481d-7b62-43a9-b877-de9e64384e9b', '99C48BC4-C15E-440A-A577-EC5BA8F9E48B', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 299ea72e-fa41-48bb-baeb-86728e26ead5 */
+/* SQL text to insert entity field value with ID 6df6d410-ec3b-4bb8-a516-7e1503239c95 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('299ea72e-fa41-48bb-baeb-86728e26ead5', 'E0748301-99C6-4E68-895E-B99FCC00446A', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
+                                       ('6df6d410-ec3b-4bb8-a516-7e1503239c95', '99C48BC4-C15E-440A-A577-EC5BA8F9E48B', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 0d9b3a22-23a3-40f4-b2c3-0358df5c6f02 */
+/* SQL text to insert entity field value with ID e2894566-56a3-447a-862d-991ef022c901 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('0d9b3a22-23a3-40f4-b2c3-0358df5c6f02', 'E0748301-99C6-4E68-895E-B99FCC00446A', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
+                                       ('e2894566-56a3-447a-862d-991ef022c901', '99C48BC4-C15E-440A-A577-EC5BA8F9E48B', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to update ValueListType for entity field ID E0748301-99C6-4E68-895E-B99FCC00446A */
-UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='E0748301-99C6-4E68-895E-B99FCC00446A';
+/* SQL text to update ValueListType for entity field ID 99C48BC4-C15E-440A-A577-EC5BA8F9E48B */
+UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='99C48BC4-C15E-440A-A577-EC5BA8F9E48B';
 
-/* SQL text to insert entity field value with ID 41536732-4c0b-4a9e-8590-2218441729de */
+/* SQL text to insert entity field value with ID 5528e199-3685-4c18-9111-5317317eef89 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('41536732-4c0b-4a9e-8590-2218441729de', '406B0511-2E42-462E-B5ED-7E8A97627928', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
+                                       ('5528e199-3685-4c18-9111-5317317eef89', '7C48EC27-0691-4CE9-B990-F554CAF50864', 1, 'Critical', 'Critical', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID fef9824c-2088-4565-aecc-773993848c06 */
+/* SQL text to insert entity field value with ID 841e073d-a57c-4955-8564-c0ada179919b */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('fef9824c-2088-4565-aecc-773993848c06', '406B0511-2E42-462E-B5ED-7E8A97627928', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
+                                       ('841e073d-a57c-4955-8564-c0ada179919b', '7C48EC27-0691-4CE9-B990-F554CAF50864', 2, 'High', 'High', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 46c5a7b8-1af6-43ef-90e2-6aa765a86452 */
+/* SQL text to insert entity field value with ID f597c29a-597c-401a-81dd-121b5d78fa3c */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('46c5a7b8-1af6-43ef-90e2-6aa765a86452', '406B0511-2E42-462E-B5ED-7E8A97627928', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
+                                       ('f597c29a-597c-401a-81dd-121b5d78fa3c', '7C48EC27-0691-4CE9-B990-F554CAF50864', 3, 'Low', 'Low', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 16c0454a-b997-48ca-b869-2060140a5f81 */
+/* SQL text to insert entity field value with ID 736dc174-b083-4377-9095-536851653c53 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('16c0454a-b997-48ca-b869-2060140a5f81', '406B0511-2E42-462E-B5ED-7E8A97627928', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
+                                       ('736dc174-b083-4377-9095-536851653c53', '7C48EC27-0691-4CE9-B990-F554CAF50864', 4, 'Medium', 'Medium', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to update ValueListType for entity field ID 406B0511-2E42-462E-B5ED-7E8A97627928 */
-UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='406B0511-2E42-462E-B5ED-7E8A97627928';
+/* SQL text to update ValueListType for entity field ID 7C48EC27-0691-4CE9-B990-F554CAF50864 */
+UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='7C48EC27-0691-4CE9-B990-F554CAF50864';
 
-/* SQL text to insert entity field value with ID 8aa7465c-5c39-4853-a65d-b19492d7649c */
+/* SQL text to insert entity field value with ID e875c064-3d9d-407e-a4e5-c27c1f793206 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('8aa7465c-5c39-4853-a65d-b19492d7649c', '6252DCF1-B0D7-4108-8E80-506814F0ECB8', 1, 'email', 'email', GETUTCDATE(), GETUTCDATE());
+                                       ('e875c064-3d9d-407e-a4e5-c27c1f793206', '89D0ECAE-49F6-4730-B9E4-1F0CFE373571', 1, 'email', 'email', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 2c09a922-63a3-4ff5-a371-8b4fa4210a3c */
+/* SQL text to insert entity field value with ID d954ba16-f348-4746-a7a7-5273c3ef3834 */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('2c09a922-63a3-4ff5-a371-8b4fa4210a3c', '6252DCF1-B0D7-4108-8E80-506814F0ECB8', 2, 'external', 'external', GETUTCDATE(), GETUTCDATE());
+                                       ('d954ba16-f348-4746-a7a7-5273c3ef3834', '89D0ECAE-49F6-4730-B9E4-1F0CFE373571', 2, 'external', 'external', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to insert entity field value with ID 63d9ff9a-d54b-4234-9b72-ea5354f53790 */
+/* SQL text to insert entity field value with ID cb674c9d-5dc8-42b4-b37b-59cb1cc1a81c */
 INSERT INTO [${mjSchema}].[EntityFieldValue]
                                        ([ID], [EntityFieldID], [Sequence], [Value], [Code], [__mj_CreatedAt], [__mj_UpdatedAt])
                                     VALUES
-                                       ('63d9ff9a-d54b-4234-9b72-ea5354f53790', '6252DCF1-B0D7-4108-8E80-506814F0ECB8', 3, 'internal', 'internal', GETUTCDATE(), GETUTCDATE());
+                                       ('cb674c9d-5dc8-42b4-b37b-59cb1cc1a81c', '89D0ECAE-49F6-4730-B9E4-1F0CFE373571', 3, 'internal', 'internal', GETUTCDATE(), GETUTCDATE());
 
-/* SQL text to update ValueListType for entity field ID 6252DCF1-B0D7-4108-8E80-506814F0ECB8 */
-UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='6252DCF1-B0D7-4108-8E80-506814F0ECB8';
+/* SQL text to update ValueListType for entity field ID 89D0ECAE-49F6-4730-B9E4-1F0CFE373571 */
+UPDATE [${mjSchema}].[EntityField] SET ValueListType='List' WHERE ID='89D0ECAE-49F6-4730-B9E4-1F0CFE373571';
 
 
 /* Create Entity Relationship: MJ_BizApps_Issues: Issues -> MJ_BizApps_Issues: Issue Comments (One To Many via IssueID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'b713c6c8-ec03-410e-8216-3310e261777d'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'cae6eb89-1cb9-4391-81d9-124bbac74644'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('b713c6c8-ec03-410e-8216-3310e261777d', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'A36CA73A-5A42-4001-897A-8D2AED23F7D7', 'IssueID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('cae6eb89-1cb9-4391-81d9-124bbac74644', '65E7DAD5-9930-4140-9A38-2184EB0097DA', '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', 'IssueID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
    END;
                     
 /* Create Entity Relationship: MJ_BizApps_Issues: Issue Status -> MJ_BizApps_Issues: Issues (One To Many via StatusID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'ead3e256-ea2b-4cc5-be5b-c58329097e1c'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '74a84bb4-67d9-4e29-89a2-0818b142b9ec'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('ead3e256-ea2b-4cc5-be5b-c58329097e1c', '04858FB3-6827-4F81-BA45-5FE46B4FB69E', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'StatusID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
-   END;
-                    
-/* Create Entity Relationship: MJ: Entities -> MJ_BizApps_Issues: Issues (One To Many via AssigneeEntityID) */
-   IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'bfac5b0f-26b2-4073-a0a8-14f595532a98'
-   )
-   BEGIN
-      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('bfac5b0f-26b2-4073-a0a8-14f595532a98', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'AssigneeEntityID', 'One To Many', 1, 1, 66, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('74a84bb4-67d9-4e29-89a2-0818b142b9ec', '07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'StatusID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
    END;
                     
 /* Create Entity Relationship: MJ: Entities -> MJ_BizApps_Issues: Issues (One To Many via SourceEntityID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'f78dc82e-1d58-480a-8b8a-5a18735a563f'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'd3c32ecd-b2f2-4cc5-8878-b62e6d4b5945'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('f78dc82e-1d58-480a-8b8a-5a18735a563f', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'SourceEntityID', 'One To Many', 1, 1, 67, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('d3c32ecd-b2f2-4cc5-8878-b62e6d4b5945', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'SourceEntityID', 'One To Many', 1, 1, 66, GETUTCDATE(), GETUTCDATE())
    END;
                     
-/* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnCloseActionID) */
+/* Create Entity Relationship: MJ: Entities -> MJ_BizApps_Issues: Issues (One To Many via AssigneeEntityID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '935cb99f-6115-4d92-86ae-05f50df800ca'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '6c76d6fc-300b-408d-81bc-055f26e11997'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('935cb99f-6115-4d92-86ae-05f50df800ca', '38248F34-2837-EF11-86D4-6045BDEE16E6', '850E81F1-4918-4621-AE33-F5143F76E848', 'OnCloseActionID', 'One To Many', 1, 1, 18, GETUTCDATE(), GETUTCDATE())
-   END;
-                    
-/* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnAssignActionID) */
-   IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '73d82aac-0d85-4f9d-8f3a-e51ee6a77385'
-   )
-   BEGIN
-      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('73d82aac-0d85-4f9d-8f3a-e51ee6a77385', '38248F34-2837-EF11-86D4-6045BDEE16E6', '850E81F1-4918-4621-AE33-F5143F76E848', 'OnAssignActionID', 'One To Many', 1, 1, 19, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('6c76d6fc-300b-408d-81bc-055f26e11997', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'AssigneeEntityID', 'One To Many', 1, 1, 67, GETUTCDATE(), GETUTCDATE())
    END;
                     
 /* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnStatusChangeActionID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '95e94c93-767f-4012-8d12-f3828e0090fd'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '409edb50-0922-498b-95f5-3078b69ce6a9'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('95e94c93-767f-4012-8d12-f3828e0090fd', '38248F34-2837-EF11-86D4-6045BDEE16E6', '850E81F1-4918-4621-AE33-F5143F76E848', 'OnStatusChangeActionID', 'One To Many', 1, 1, 20, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('409edb50-0922-498b-95f5-3078b69ce6a9', '38248F34-2837-EF11-86D4-6045BDEE16E6', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', 'OnStatusChangeActionID', 'One To Many', 1, 1, 18, GETUTCDATE(), GETUTCDATE())
    END;
                     
 /* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnCreateActionID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'f18b3477-02f4-4199-866d-c5b6794d4fda'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '2bca9ab1-1522-4ded-9ac7-73691b84cfd2'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('f18b3477-02f4-4199-866d-c5b6794d4fda', '38248F34-2837-EF11-86D4-6045BDEE16E6', '850E81F1-4918-4621-AE33-F5143F76E848', 'OnCreateActionID', 'One To Many', 1, 1, 21, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('2bca9ab1-1522-4ded-9ac7-73691b84cfd2', '38248F34-2837-EF11-86D4-6045BDEE16E6', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', 'OnCreateActionID', 'One To Many', 1, 1, 19, GETUTCDATE(), GETUTCDATE())
    END;
                     
-/* Create Entity Relationship: MJ_BizApps_Tasks: Task Types -> MJ_BizApps_Issues: Issue Types (One To Many via DefaultTaskTypeID) */
+/* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnAssignActionID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'fa103773-76e2-4533-8d27-2f72bde306c0'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '5bf4718b-8311-4eec-a0c0-e31a80533301'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('fa103773-76e2-4533-8d27-2f72bde306c0', '1E30141A-826F-4278-BAA9-BBE14D29E606', '850E81F1-4918-4621-AE33-F5143F76E848', 'DefaultTaskTypeID', 'One To Many', 1, 1, 4, GETUTCDATE(), GETUTCDATE())
-   END;
-
-
-/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issues (One To Many via CreatedByPersonID) */
-   IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'ff44bbe4-11e9-4cef-8fe7-2f9e7b06429f'
-   )
-   BEGIN
-      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('ff44bbe4-11e9-4cef-8fe7-2f9e7b06429f', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'CreatedByPersonID', 'One To Many', 1, 1, 8, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('5bf4718b-8311-4eec-a0c0-e31a80533301', '38248F34-2837-EF11-86D4-6045BDEE16E6', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', 'OnAssignActionID', 'One To Many', 1, 1, 20, GETUTCDATE(), GETUTCDATE())
    END;
                     
-/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issues (One To Many via ReporterPersonID) */
+/* Create Entity Relationship: MJ: Actions -> MJ_BizApps_Issues: Issue Types (One To Many via OnCloseActionID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '9f0dfa93-ddd5-4ebc-aa16-7b9d476d91e2'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '78969fa0-3215-4fff-8316-83954d959dd6'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('9f0dfa93-ddd5-4ebc-aa16-7b9d476d91e2', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'ReporterPersonID', 'One To Many', 1, 1, 9, GETUTCDATE(), GETUTCDATE())
-   END;
-                    
-/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issue Comments (One To Many via AuthorPersonID) */
-   IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'ea3f99fa-b5f7-4b2e-9f23-358ab705d5c1'
-   )
-   BEGIN
-      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('ea3f99fa-b5f7-4b2e-9f23-358ab705d5c1', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', 'A36CA73A-5A42-4001-897A-8D2AED23F7D7', 'AuthorPersonID', 'One To Many', 1, 1, 10, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('78969fa0-3215-4fff-8316-83954d959dd6', '38248F34-2837-EF11-86D4-6045BDEE16E6', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', 'OnCloseActionID', 'One To Many', 1, 1, 21, GETUTCDATE(), GETUTCDATE())
    END;
                     
 /* Create Entity Relationship: MJ_BizApps_Issues: Issue Types -> MJ_BizApps_Issues: Issues (One To Many via IssueTypeID) */
    IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'd09673ee-5e75-4f06-95fa-b0a23001f612'
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '04d5ab9f-1427-4a04-8113-217200288689'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
-                    VALUES ('d09673ee-5e75-4f06-95fa-b0a23001f612', '850E81F1-4918-4621-AE33-F5143F76E848', 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', 'IssueTypeID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
+                    VALUES ('04d5ab9f-1427-4a04-8113-217200288689', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'IssueTypeID', 'One To Many', 1, 1, 1, GETUTCDATE(), GETUTCDATE())
+   END;
+
+
+/* Create Entity Relationship: MJ_BizApps_Tasks: Task Types -> MJ_BizApps_Issues: Issue Types (One To Many via DefaultTaskTypeID) */
+   IF NOT EXISTS (
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = 'bbb1c55f-49e2-48ad-9e4a-666ee656741b'
+   )
+   BEGIN
+      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
+                    VALUES ('bbb1c55f-49e2-48ad-9e4a-666ee656741b', '1E30141A-826F-4278-BAA9-BBE14D29E606', 'B08FB976-CC72-4DAC-B950-A5C86DD04267', 'DefaultTaskTypeID', 'One To Many', 1, 1, 4, GETUTCDATE(), GETUTCDATE())
+   END;
+                    
+/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issue Comments (One To Many via AuthorPersonID) */
+   IF NOT EXISTS (
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '2c0b564a-d076-4591-9687-f62fefbb3f75'
+   )
+   BEGIN
+      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
+                    VALUES ('2c0b564a-d076-4591-9687-f62fefbb3f75', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', 'AuthorPersonID', 'One To Many', 1, 1, 8, GETUTCDATE(), GETUTCDATE())
+   END;
+                    
+/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issues (One To Many via ReporterPersonID) */
+   IF NOT EXISTS (
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '1ce94364-82a1-44ef-8feb-0f8785691ab4'
+   )
+   BEGIN
+      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
+                    VALUES ('1ce94364-82a1-44ef-8feb-0f8785691ab4', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'ReporterPersonID', 'One To Many', 1, 1, 9, GETUTCDATE(), GETUTCDATE())
+   END;
+                    
+/* Create Entity Relationship: MJ_BizApps_Common: People -> MJ_BizApps_Issues: Issues (One To Many via CreatedByPersonID) */
+   IF NOT EXISTS (
+      SELECT 1 FROM [${mjSchema}].[EntityRelationship] WHERE [ID] = '50190acd-091e-41d6-8738-aeabcc020ddb'
+   )
+   BEGIN
+      INSERT INTO [${mjSchema}].[EntityRelationship] ([ID], [EntityID], [RelatedEntityID], [RelatedEntityJoinField], [Type], [BundleInAPI], [DisplayInForm], [Sequence], [__mj_CreatedAt], [__mj_UpdatedAt])
+                    VALUES ('50190acd-091e-41d6-8738-aeabcc020ddb', '7A94ADA9-7880-4FAE-97D8-DB0E934C3F5F', '65E7DAD5-9930-4140-9A38-2184EB0097DA', 'CreatedByPersonID', 'One To Many', 1, 1, 10, GETUTCDATE(), GETUTCDATE())
    END;
 
 /* SQL text to sync schema info from database schemas */
@@ -4265,8 +4784,18 @@ IF NOT EXISTS (
 )
 CREATE INDEX IDX_AUTO_MJ_FKEY_IssueComment_AuthorPersonID ON [${flyway:defaultSchema}].[IssueComment] ([AuthorPersonID]);
 
-/* SQL text to update entity field related entity name field map for entity field ID 7F55D890-E1CA-41B4-B56E-1F87D2E517F6 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='7F55D890-E1CA-41B4-B56E-1F87D2E517F6', @RelatedEntityNameFieldMap='AuthorPerson';
+/* SQL text to update entity field related entity name field map for entity field ID 31762B00-ECE7-4760-AC10-B11D53793FBC */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='31762B00-ECE7-4760-AC10-B11D53793FBC', @RelatedEntityNameFieldMap='AuthorPerson';
+
+/* Index for Foreign Keys for IssueNumberSequence */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: Index for Foreign Keys
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------;
 
 /* Index for Foreign Keys for IssueStatus */
 -----------------------------------------------------------------
@@ -4332,8 +4861,8 @@ IF NOT EXISTS (
 )
 CREATE INDEX IDX_AUTO_MJ_FKEY_IssueType_OnCloseActionID ON [${flyway:defaultSchema}].[IssueType] ([OnCloseActionID]);
 
-/* SQL text to update entity field related entity name field map for entity field ID 7C1AFAF7-AA86-4004-8807-C2D6DA9764A8 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='7C1AFAF7-AA86-4004-8807-C2D6DA9764A8', @RelatedEntityNameFieldMap='DefaultTaskType';
+/* SQL text to update entity field related entity name field map for entity field ID 6C0B349F-4042-42B6-B8F9-B9D4A681DE80 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='6C0B349F-4042-42B6-B8F9-B9D4A681DE80', @RelatedEntityNameFieldMap='DefaultTaskType';
 
 /* Index for Foreign Keys for Issue */
 -----------------------------------------------------------------
@@ -4398,8 +4927,171 @@ IF NOT EXISTS (
 )
 CREATE INDEX IDX_AUTO_MJ_FKEY_Issue_CreatedByPersonID ON [${flyway:defaultSchema}].[Issue] ([CreatedByPersonID]);
 
-/* SQL text to update entity field related entity name field map for entity field ID E6FFFAA5-6B25-4022-A558-77E3BDA590D7 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='E6FFFAA5-6B25-4022-A558-77E3BDA590D7', @RelatedEntityNameFieldMap='IssueType';
+/* SQL text to update entity field related entity name field map for entity field ID E4408976-8A26-42D6-9B2D-81216476AD9C */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='E4408976-8A26-42D6-9B2D-81216476AD9C', @RelatedEntityNameFieldMap='IssueType';
+
+/* Base View SQL for MJ_BizApps_Issues: Issue Number Sequences */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: vwIssueNumberSequences
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------
+
+------------------------------------------------------------
+----- BASE VIEW FOR ENTITY:      MJ_BizApps_Issues: Issue Number Sequences
+-----               SCHEMA:      ${flyway:defaultSchema}
+-----               BASE TABLE:  IssueNumberSequence
+-----               PRIMARY KEY: ScopeCode
+------------------------------------------------------------
+IF OBJECT_ID('[${flyway:defaultSchema}].[vwIssueNumberSequences]', 'V') IS NOT NULL
+    DROP VIEW [${flyway:defaultSchema}].[vwIssueNumberSequences];
+GO
+
+CREATE VIEW [${flyway:defaultSchema}].[vwIssueNumberSequences]
+AS
+SELECT
+    i.*
+FROM
+    [${flyway:defaultSchema}].[IssueNumberSequence] AS i
+GO
+GRANT SELECT ON [${flyway:defaultSchema}].[vwIssueNumberSequences] TO [cdp_UI], [cdp_Developer], [cdp_Integration];
+
+/* Base View Permissions SQL for MJ_BizApps_Issues: Issue Number Sequences */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: Permissions for vwIssueNumberSequences
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------
+
+GRANT SELECT ON [${flyway:defaultSchema}].[vwIssueNumberSequences] TO [cdp_UI], [cdp_Developer], [cdp_Integration];
+
+/* spCreate SQL for MJ_BizApps_Issues: Issue Number Sequences */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: spCreateIssueNumberSequence
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------
+
+------------------------------------------------------------
+----- CREATE PROCEDURE FOR IssueNumberSequence
+------------------------------------------------------------
+IF OBJECT_ID('[${flyway:defaultSchema}].[spCreateIssueNumberSequence]', 'P') IS NOT NULL
+    DROP PROCEDURE [${flyway:defaultSchema}].[spCreateIssueNumberSequence];
+GO
+
+CREATE PROCEDURE [${flyway:defaultSchema}].[spCreateIssueNumberSequence]
+    @ScopeCode nvarchar(50) = NULL,
+    @NextSequenceNumber int = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO
+    [${flyway:defaultSchema}].[IssueNumberSequence]
+        (
+            [NextSequenceNumber],
+                [ScopeCode]
+        )
+    VALUES
+        (
+            ISNULL(@NextSequenceNumber, 1),
+                @ScopeCode
+        )
+    -- return the new record from the base view, which might have some calculated fields
+    SELECT * FROM [${flyway:defaultSchema}].[vwIssueNumberSequences] WHERE [ScopeCode] = @ScopeCode
+END
+GO
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spCreateIssueNumberSequence] TO [cdp_Developer], [cdp_Integration];
+
+/* spCreate Permissions for MJ_BizApps_Issues: Issue Number Sequences */
+
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spCreateIssueNumberSequence] TO [cdp_Developer], [cdp_Integration];
+
+/* spUpdate SQL for MJ_BizApps_Issues: Issue Number Sequences */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: spUpdateIssueNumberSequence
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------
+
+------------------------------------------------------------
+----- UPDATE PROCEDURE FOR IssueNumberSequence
+------------------------------------------------------------
+IF OBJECT_ID('[${flyway:defaultSchema}].[spUpdateIssueNumberSequence]', 'P') IS NOT NULL
+    DROP PROCEDURE [${flyway:defaultSchema}].[spUpdateIssueNumberSequence];
+GO
+
+CREATE PROCEDURE [${flyway:defaultSchema}].[spUpdateIssueNumberSequence]
+    @ScopeCode nvarchar(50),
+    @NextSequenceNumber int = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE
+        [${flyway:defaultSchema}].[IssueNumberSequence]
+    SET
+        [NextSequenceNumber] = ISNULL(@NextSequenceNumber, [NextSequenceNumber])
+    WHERE
+        [ScopeCode] = @ScopeCode
+
+    -- Check if the update was successful
+    IF @@ROWCOUNT = 0
+        -- Nothing was updated, return no rows, but column structure from base view intact, semantically correct this way.
+        SELECT TOP 0 * FROM [${flyway:defaultSchema}].[vwIssueNumberSequences] WHERE 1=0
+    ELSE
+        -- Return the updated record so the caller can see the updated values and any calculated fields
+        SELECT
+                                        *
+                                    FROM
+                                        [${flyway:defaultSchema}].[vwIssueNumberSequences]
+                                    WHERE
+                                        [ScopeCode] = @ScopeCode
+                                    
+END
+GO
+
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spUpdateIssueNumberSequence] TO [cdp_Developer], [cdp_Integration]
+GO
+
+------------------------------------------------------------
+----- TRIGGER FOR __mj_UpdatedAt field for the IssueNumberSequence table
+------------------------------------------------------------
+IF OBJECT_ID('[${flyway:defaultSchema}].[trgUpdateIssueNumberSequence]', 'TR') IS NOT NULL
+    DROP TRIGGER [${flyway:defaultSchema}].[trgUpdateIssueNumberSequence];
+GO
+CREATE TRIGGER [${flyway:defaultSchema}].trgUpdateIssueNumberSequence
+ON [${flyway:defaultSchema}].[IssueNumberSequence]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE
+        [${flyway:defaultSchema}].[IssueNumberSequence]
+    SET
+        __mj_UpdatedAt = GETUTCDATE()
+    FROM
+        [${flyway:defaultSchema}].[IssueNumberSequence] AS _organicTable
+    INNER JOIN
+        INSERTED AS I ON
+        _organicTable.[ScopeCode] = I.[ScopeCode];
+END;
+GO
+
+/* spUpdate Permissions for MJ_BizApps_Issues: Issue Number Sequences */
+
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spUpdateIssueNumberSequence] TO [cdp_Developer], [cdp_Integration];
 
 /* Base View SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
@@ -4620,6 +5312,48 @@ GO
 /* spUpdate Permissions for MJ_BizApps_Issues: Issue Status */
 
 GRANT EXECUTE ON [${flyway:defaultSchema}].[spUpdateIssueStatus] TO [cdp_Developer], [cdp_Integration];
+
+/* spDelete SQL for MJ_BizApps_Issues: Issue Number Sequences */
+-----------------------------------------------------------------
+-- SQL Code Generation
+-- Entity: MJ_BizApps_Issues: Issue Number Sequences
+-- Item: spDeleteIssueNumberSequence
+--
+-- This was generated by the MemberJunction CodeGen tool.
+-- This file should NOT be edited by hand.
+-----------------------------------------------------------------
+
+------------------------------------------------------------
+----- DELETE PROCEDURE FOR IssueNumberSequence
+------------------------------------------------------------
+IF OBJECT_ID('[${flyway:defaultSchema}].[spDeleteIssueNumberSequence]', 'P') IS NOT NULL
+    DROP PROCEDURE [${flyway:defaultSchema}].[spDeleteIssueNumberSequence];
+GO
+
+CREATE PROCEDURE [${flyway:defaultSchema}].[spDeleteIssueNumberSequence]
+    @ScopeCode nvarchar(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM
+        [${flyway:defaultSchema}].[IssueNumberSequence]
+    WHERE
+        [ScopeCode] = @ScopeCode
+
+
+    -- Check if the delete was successful
+    IF @@ROWCOUNT = 0
+        SELECT NULL AS [ScopeCode] -- Return NULL for all primary key fields to indicate no record was deleted
+    ELSE
+        SELECT @ScopeCode AS [ScopeCode] -- Return the primary key values to indicate we successfully deleted the record
+END
+GO
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueNumberSequence] TO [cdp_Developer], [cdp_Integration];
+
+/* spDelete Permissions for MJ_BizApps_Issues: Issue Number Sequences */
+
+GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueNumberSequence] TO [cdp_Developer], [cdp_Integration];
 
 /* spDelete SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
@@ -4923,26 +5657,29 @@ GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueComment] TO [cdp_Develo
 
 GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueComment] TO [cdp_Developer], [cdp_Integration];
 
-/* SQL text to update entity field related entity name field map for entity field ID 2E69C90C-93CB-49C0-8852-0790AE26DD3A */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='2E69C90C-93CB-49C0-8852-0790AE26DD3A', @RelatedEntityNameFieldMap='OnCreateAction';
+/* SQL text to update entity field related entity name field map for entity field ID 86B9EC44-D8DA-4540-9638-DB50F4D92BC4 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='86B9EC44-D8DA-4540-9638-DB50F4D92BC4', @RelatedEntityNameFieldMap='OnCreateAction';
 
-/* SQL text to update entity field related entity name field map for entity field ID 746B9E26-50D4-4619-B849-F050B07C0129 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='746B9E26-50D4-4619-B849-F050B07C0129', @RelatedEntityNameFieldMap='Status';
+/* SQL text to update entity field related entity name field map for entity field ID 7D858A44-3534-468D-9E48-BE4C8DC93052 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='7D858A44-3534-468D-9E48-BE4C8DC93052', @RelatedEntityNameFieldMap='OnStatusChangeAction';
 
-/* SQL text to update entity field related entity name field map for entity field ID 9AF0F216-6901-471A-81C6-E16E4E7134B7 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='9AF0F216-6901-471A-81C6-E16E4E7134B7', @RelatedEntityNameFieldMap='OnStatusChangeAction';
+/* SQL text to update entity field related entity name field map for entity field ID 2963D2BC-0473-47A0-BE0A-0E1BD925928B */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='2963D2BC-0473-47A0-BE0A-0E1BD925928B', @RelatedEntityNameFieldMap='Status';
 
-/* SQL text to update entity field related entity name field map for entity field ID 2987CFE2-3D5F-4231-8FCA-67EDC6ADC509 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='2987CFE2-3D5F-4231-8FCA-67EDC6ADC509', @RelatedEntityNameFieldMap='ReporterPerson';
+/* SQL text to update entity field related entity name field map for entity field ID AE7027E2-994B-45EC-9F35-220A7664AB85 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='AE7027E2-994B-45EC-9F35-220A7664AB85', @RelatedEntityNameFieldMap='OnAssignAction';
 
-/* SQL text to update entity field related entity name field map for entity field ID B4FA118C-58BE-4860-8688-C56234BD14FF */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='B4FA118C-58BE-4860-8688-C56234BD14FF', @RelatedEntityNameFieldMap='OnAssignAction';
+/* SQL text to update entity field related entity name field map for entity field ID 06ED94D8-4607-4061-888E-788FFAFCA023 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='06ED94D8-4607-4061-888E-788FFAFCA023', @RelatedEntityNameFieldMap='ReporterPerson';
 
-/* SQL text to update entity field related entity name field map for entity field ID ABD84563-0AA9-4F3F-8498-1EF98134AD0E */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='ABD84563-0AA9-4F3F-8498-1EF98134AD0E', @RelatedEntityNameFieldMap='AssigneeEntity';
+/* SQL text to update entity field related entity name field map for entity field ID 5D649C62-6589-43F0-AFFD-E3F9E3268CC8 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='5D649C62-6589-43F0-AFFD-E3F9E3268CC8', @RelatedEntityNameFieldMap='AssigneeEntity';
 
-/* SQL text to update entity field related entity name field map for entity field ID A79B29C1-56B0-4E22-8514-A4225209BDCC */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='A79B29C1-56B0-4E22-8514-A4225209BDCC', @RelatedEntityNameFieldMap='OnCloseAction';
+/* SQL text to update entity field related entity name field map for entity field ID 569D75F7-F081-4BC2-8990-321B8B9D92B6 */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='569D75F7-F081-4BC2-8990-321B8B9D92B6', @RelatedEntityNameFieldMap='OnCloseAction';
+
+/* SQL text to update entity field related entity name field map for entity field ID 9D602C66-9FB5-4514-9ED6-7B530012AE3A */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='9D602C66-9FB5-4514-9ED6-7B530012AE3A', @RelatedEntityNameFieldMap='SourceEntity';
 
 /* Base View SQL for MJ_BizApps_Issues: Issue Types */
 -----------------------------------------------------------------
@@ -5269,11 +6006,8 @@ GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueType] TO [cdp_Developer
 
 GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssueType] TO [cdp_Developer], [cdp_Integration];
 
-/* SQL text to update entity field related entity name field map for entity field ID E0F04D98-EC61-4713-BD51-8CFDF8650792 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='E0F04D98-EC61-4713-BD51-8CFDF8650792', @RelatedEntityNameFieldMap='SourceEntity';
-
-/* SQL text to update entity field related entity name field map for entity field ID E26B3C93-9B7B-464A-8DB1-EEC94E99C319 */
-EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='E26B3C93-9B7B-464A-8DB1-EEC94E99C319', @RelatedEntityNameFieldMap='CreatedByPerson';
+/* SQL text to update entity field related entity name field map for entity field ID 2BDFB21A-BAF7-482D-98C5-4DFD03FF45EE */
+EXEC [${mjSchema}].[spUpdateEntityFieldRelatedEntityNameFieldMap] @EntityFieldID='2BDFB21A-BAF7-482D-98C5-4DFD03FF45EE', @RelatedEntityNameFieldMap='CreatedByPerson';
 
 /* Base View SQL for MJ_BizApps_Issues: Issues */
 -----------------------------------------------------------------
@@ -5365,6 +6099,8 @@ GO
 
 CREATE PROCEDURE [${flyway:defaultSchema}].[spCreateIssue]
     @ID uniqueidentifier = NULL,
+    @IssueNumber_Clear bit = 0,
+    @IssueNumber nvarchar(50) = NULL,
     @Title nvarchar(500),
     @Description_Clear bit = 0,
     @Description nvarchar(MAX) = NULL,
@@ -5403,6 +6139,7 @@ BEGIN
         INSERT INTO [${flyway:defaultSchema}].[Issue]
             (
                 [ID],
+                [IssueNumber],
                 [Title],
                 [Description],
                 [IssueTypeID],
@@ -5424,6 +6161,7 @@ BEGIN
         VALUES
             (
                 @ID,
+                CASE WHEN @IssueNumber_Clear = 1 THEN NULL ELSE ISNULL(@IssueNumber, NULL) END,
                 @Title,
                 CASE WHEN @Description_Clear = 1 THEN NULL ELSE ISNULL(@Description, NULL) END,
                 @IssueTypeID,
@@ -5447,6 +6185,7 @@ BEGIN
         -- No value provided, let database use its default (e.g., NEWSEQUENTIALID())
         INSERT INTO [${flyway:defaultSchema}].[Issue]
             (
+                [IssueNumber],
                 [Title],
                 [Description],
                 [IssueTypeID],
@@ -5467,6 +6206,7 @@ BEGIN
         OUTPUT INSERTED.[ID] INTO @InsertedRow
         VALUES
             (
+                CASE WHEN @IssueNumber_Clear = 1 THEN NULL ELSE ISNULL(@IssueNumber, NULL) END,
                 @Title,
                 CASE WHEN @Description_Clear = 1 THEN NULL ELSE ISNULL(@Description, NULL) END,
                 @IssueTypeID,
@@ -5514,6 +6254,8 @@ GO
 
 CREATE PROCEDURE [${flyway:defaultSchema}].[spUpdateIssue]
     @ID uniqueidentifier,
+    @IssueNumber_Clear bit = 0,
+    @IssueNumber nvarchar(50) = NULL,
     @Title nvarchar(500) = NULL,
     @Description_Clear bit = 0,
     @Description nvarchar(MAX) = NULL,
@@ -5547,6 +6289,7 @@ BEGIN
     UPDATE
         [${flyway:defaultSchema}].[Issue]
     SET
+        [IssueNumber] = CASE WHEN @IssueNumber_Clear = 1 THEN NULL ELSE ISNULL(@IssueNumber, [IssueNumber]) END,
         [Title] = ISNULL(@Title, [Title]),
         [Description] = CASE WHEN @Description_Clear = 1 THEN NULL ELSE ISNULL(@Description, [Description]) END,
         [IssueTypeID] = ISNULL(@IssueTypeID, [IssueTypeID]),
@@ -5655,12 +6398,12 @@ GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssue] TO [cdp_Developer], [
 
 GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssue] TO [cdp_Developer], [cdp_Integration];
 
-/* SQL text to delete unneeded entity fields (4 scoped entities) */
-EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks', @EntityIDs='850E81F1-4918-4621-AE33-F5143F76E848,04858FB3-6827-4F81-BA45-5FE46B4FB69E,B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1,A36CA73A-5A42-4001-897A-8D2AED23F7D7';
+/* SQL text to delete unneeded entity fields (5 scoped entities) */
+EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks', @EntityIDs='B08FB976-CC72-4DAC-B950-A5C86DD04267,07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4,65E7DAD5-9930-4140-9A38-2184EB0097DA,7124A46D-EA35-4C8B-BBBB-F19287ED0F9B,595E3981-EE66-4B41-8579-2255A0C7610C';
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'febce0ae-971c-4681-8269-1eac104458b1' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'IssueType')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a0e546ec-bea3-46e0-b5e9-21c9f6a31ae3' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'IssueType')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -5693,9 +6436,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            'febce0ae-971c-4681-8269-1eac104458b1',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100039,
+            'a0e546ec-bea3-46e0-b5e9-21c9f6a31ae3',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100041,
             'IssueType',
             'Issue Type',
             NULL,
@@ -5725,7 +6468,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '59a52f4b-aef9-4f17-9c7e-7e3130701267' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'Status')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9111e30e-76a3-4582-ac5c-06a7b9ac530e' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'Status')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -5758,9 +6501,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '59a52f4b-aef9-4f17-9c7e-7e3130701267',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100040,
+            '9111e30e-76a3-4582-ac5c-06a7b9ac530e',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100042,
             'Status',
             'Status',
             NULL,
@@ -5790,7 +6533,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '4d79151d-3797-4fa5-8595-75c6ecf2641d' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'ReporterPerson')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5b543630-4c16-4034-99de-1c4420a9cbd2' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'ReporterPerson')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -5823,9 +6566,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '4d79151d-3797-4fa5-8595-75c6ecf2641d',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100041,
+            '5b543630-4c16-4034-99de-1c4420a9cbd2',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100043,
             'ReporterPerson',
             'Reporter Person',
             NULL,
@@ -5855,7 +6598,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '60fa8e9e-a49a-4155-8d9e-f783982afa5d' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'AssigneeEntity')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '00d07775-578d-4f35-86b6-136b9256fc30' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'AssigneeEntity')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -5888,9 +6631,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '60fa8e9e-a49a-4155-8d9e-f783982afa5d',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100042,
+            '00d07775-578d-4f35-86b6-136b9256fc30',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100044,
             'AssigneeEntity',
             'Assignee Entity',
             NULL,
@@ -5920,7 +6663,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f458312b-9b17-4fcd-9509-0b83dd129f24' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'SourceEntity')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'd0d423b1-0148-4920-a657-5756b13364b6' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'SourceEntity')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -5953,9 +6696,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            'f458312b-9b17-4fcd-9509-0b83dd129f24',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100043,
+            'd0d423b1-0148-4920-a657-5756b13364b6',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100045,
             'SourceEntity',
             'Source Entity',
             NULL,
@@ -5985,7 +6728,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '862b9f75-3f89-4d78-a765-16470952ffe0' OR (EntityID = 'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1' AND Name = 'CreatedByPerson')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '7d7c497f-a10e-4ea5-8daf-50095c9fb635' OR (EntityID = '65E7DAD5-9930-4140-9A38-2184EB0097DA' AND Name = 'CreatedByPerson')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6018,9 +6761,9 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '862b9f75-3f89-4d78-a765-16470952ffe0',
-            'B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1', -- Entity: MJ_BizApps_Issues: Issues
-            100044,
+            '7d7c497f-a10e-4ea5-8daf-50095c9fb635',
+            '65E7DAD5-9930-4140-9A38-2184EB0097DA', -- Entity: MJ_BizApps_Issues: Issues
+            100046,
             'CreatedByPerson',
             'Created By Person',
             NULL,
@@ -6050,7 +6793,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'eec0a26b-9529-4f7a-98c0-029b21c7c0a2' OR (EntityID = 'A36CA73A-5A42-4001-897A-8D2AED23F7D7' AND Name = 'AuthorPerson')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '9ce5a5b6-b87a-47cf-9ffc-34c433780eed' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'DefaultTaskType')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6083,73 +6826,8 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            'eec0a26b-9529-4f7a-98c0-029b21c7c0a2',
-            'A36CA73A-5A42-4001-897A-8D2AED23F7D7', -- Entity: MJ_BizApps_Issues: Issue Comments
-            100017,
-            'AuthorPerson',
-            'Author Person',
-            NULL,
-            'nvarchar',
-            402,
-            0,
-            0,
-            1,
-            NULL,
-            0,
-            0,
-            1,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            'Search',
-            GETUTCDATE(),
-            GETUTCDATE()
-         )
-      END;
-
-/* SQL text to insert new entity field */
-
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'd65669b6-54d3-42fc-9158-ad9356f7164b' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'DefaultTaskType')) BEGIN
-         INSERT INTO [${mjSchema}].[EntityField]
-         (
-            [ID],
-            [EntityID],
-            [Sequence],
-            [Name],
-            [DisplayName],
-            [Description],
-            [Type],
-            [Length],
-            [Precision],
-            [Scale],
-            [AllowsNull],
-            [DefaultValue],
-            [AutoIncrement],
-            [AllowUpdateAPI],
-            [IsVirtual],
-            [IsComputed],
-            [RelatedEntityID],
-            [RelatedEntityFieldName],
-            [IsNameField],
-            [IncludeInUserSearchAPI],
-            [IncludeRelatedEntityNameFieldInBaseView],
-            [DefaultInView],
-            [IsPrimaryKey],
-            [IsUnique],
-            [RelatedEntityDisplayType],
-            [__mj_CreatedAt],
-            [__mj_UpdatedAt]
-         )
-         VALUES
-         (
-            'd65669b6-54d3-42fc-9158-ad9356f7164b',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '9ce5a5b6-b87a-47cf-9ffc-34c433780eed',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100027,
             'DefaultTaskType',
             'Default Task Type',
@@ -6180,7 +6858,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b03ec0cc-07f6-4393-9101-d9f5b8e26d1c' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnCreateAction')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'c8533e9d-5b23-49b4-9789-3f645f4573e4' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnCreateAction')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6213,8 +6891,8 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            'b03ec0cc-07f6-4393-9101-d9f5b8e26d1c',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'c8533e9d-5b23-49b4-9789-3f645f4573e4',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100028,
             'OnCreateAction',
             'On Create Action',
@@ -6245,7 +6923,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '77a546ce-84a1-443b-80b4-8afad8a44a7f' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnStatusChangeAction')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '20b735b3-ec6a-4c5f-9027-2be6d96d9045' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnStatusChangeAction')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6278,8 +6956,8 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '77a546ce-84a1-443b-80b4-8afad8a44a7f',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            '20b735b3-ec6a-4c5f-9027-2be6d96d9045',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100029,
             'OnStatusChangeAction',
             'On Status Change Action',
@@ -6310,7 +6988,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '22e22d5b-4ad7-435c-84bc-ec79ba78a0cb' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnAssignAction')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b82a5655-b11c-4ead-b7c0-cf61786a4101' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnAssignAction')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6343,8 +7021,8 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '22e22d5b-4ad7-435c-84bc-ec79ba78a0cb',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'b82a5655-b11c-4ead-b7c0-cf61786a4101',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100030,
             'OnAssignAction',
             'On Assign Action',
@@ -6375,7 +7053,7 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
 
 /* SQL text to insert new entity field */
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '81c211b4-8636-47a3-9ce4-3bc7867896f6' OR (EntityID = '850E81F1-4918-4621-AE33-F5143F76E848' AND Name = 'OnCloseAction')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b62c4ae2-1148-402c-accc-a4dc7354ddc0' OR (EntityID = 'B08FB976-CC72-4DAC-B950-A5C86DD04267' AND Name = 'OnCloseAction')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -6408,8 +7086,8 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
          VALUES
          (
-            '81c211b4-8636-47a3-9ce4-3bc7867896f6',
-            '850E81F1-4918-4621-AE33-F5143F76E848', -- Entity: MJ_BizApps_Issues: Issue Types
+            'b62c4ae2-1148-402c-accc-a4dc7354ddc0',
+            'B08FB976-CC72-4DAC-B950-A5C86DD04267', -- Entity: MJ_BizApps_Issues: Issue Types
             100031,
             'OnCloseAction',
             'On Close Action',
@@ -6438,8 +7116,73 @@ EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='sys,stag
          )
       END;
 
-/* SQL text to update existing entity fields from schema (4 scoped entities) */
-EXEC [${mjSchema}].[spUpdateExistingEntityFieldsFromSchema] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks', @EntityIDs='850E81F1-4918-4621-AE33-F5143F76E848,04858FB3-6827-4F81-BA45-5FE46B4FB69E,B6AAD5F4-938C-441E-A2A7-27B0DBAE61D1,A36CA73A-5A42-4001-897A-8D2AED23F7D7';
+/* SQL text to insert new entity field */
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f85bce40-59bb-42d8-8bb6-971c6479ba73' OR (EntityID = '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B' AND Name = 'AuthorPerson')) BEGIN
+         INSERT INTO [${mjSchema}].[EntityField]
+         (
+            [ID],
+            [EntityID],
+            [Sequence],
+            [Name],
+            [DisplayName],
+            [Description],
+            [Type],
+            [Length],
+            [Precision],
+            [Scale],
+            [AllowsNull],
+            [DefaultValue],
+            [AutoIncrement],
+            [AllowUpdateAPI],
+            [IsVirtual],
+            [IsComputed],
+            [RelatedEntityID],
+            [RelatedEntityFieldName],
+            [IsNameField],
+            [IncludeInUserSearchAPI],
+            [IncludeRelatedEntityNameFieldInBaseView],
+            [DefaultInView],
+            [IsPrimaryKey],
+            [IsUnique],
+            [RelatedEntityDisplayType],
+            [__mj_CreatedAt],
+            [__mj_UpdatedAt]
+         )
+         VALUES
+         (
+            'f85bce40-59bb-42d8-8bb6-971c6479ba73',
+            '7124A46D-EA35-4C8B-BBBB-F19287ED0F9B', -- Entity: MJ_BizApps_Issues: Issue Comments
+            100017,
+            'AuthorPerson',
+            'Author Person',
+            NULL,
+            'nvarchar',
+            402,
+            0,
+            0,
+            1,
+            NULL,
+            0,
+            0,
+            1,
+            0,
+            NULL,
+            NULL,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'Search',
+            GETUTCDATE(),
+            GETUTCDATE()
+         )
+      END;
+
+/* SQL text to update existing entity fields from schema (5 scoped entities) */
+EXEC [${mjSchema}].[spUpdateExistingEntityFieldsFromSchema] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks', @EntityIDs='B08FB976-CC72-4DAC-B950-A5C86DD04267,07E2BD79-BA8A-4B9C-8D45-4EA3A9922DE4,65E7DAD5-9930-4140-9A38-2184EB0097DA,7124A46D-EA35-4C8B-BBBB-F19287ED0F9B,595E3981-EE66-4B41-8579-2255A0C7610C';
 
 /* SQL text to set default column width where needed */
 EXEC [${mjSchema}].[spSetDefaultColumnWidthWhereNeeded] @ExcludedSchemaNames='sys,staging,dbo,${mjSchema},${mjSchema}_BizAppsCommon,${mjSchema}_BizAppsTasks';

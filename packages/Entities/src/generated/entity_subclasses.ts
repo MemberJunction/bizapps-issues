@@ -70,6 +70,35 @@ export const mjBizAppsIssuesIssueCommentSchema = z.object({
 export type mjBizAppsIssuesIssueCommentEntityType = z.infer<typeof mjBizAppsIssuesIssueCommentSchema>;
 
 /**
+ * zod schema definition for the entity MJ_BizApps_Issues: Issue Number Sequences
+ */
+export const mjBizAppsIssuesIssueNumberSequenceSchema = z.object({
+    ScopeCode: z.string().describe(`
+        * * Field Name: ScopeCode
+        * * Display Name: Scope Code
+        * * SQL Data Type: nvarchar(50)
+        * * Description: The normalized (trim/UPPER) AppScope this counter is for, or 'ISS' when an issue has no AppScope. Primary key.`),
+    NextSequenceNumber: z.number().describe(`
+        * * Field Name: NextSequenceNumber
+        * * Display Name: Next Sequence Number
+        * * SQL Data Type: int
+        * * Default Value: 1
+        * * Description: The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type mjBizAppsIssuesIssueNumberSequenceEntityType = z.infer<typeof mjBizAppsIssuesIssueNumberSequenceSchema>;
+
+/**
  * zod schema definition for the entity MJ_BizApps_Issues: Issue Status
  */
 export const mjBizAppsIssuesIssueStatusSchema = z.object({
@@ -243,6 +272,11 @@ export const mjBizAppsIssuesIssueSchema = z.object({
         * * SQL Data Type: uniqueidentifier
         * * Default Value: newsequentialid()
         * * Description: Unique identifier (UUID).`),
+    IssueNumber: z.string().nullable().describe(`
+        * * Field Name: IssueNumber
+        * * Display Name: Issue Number
+        * * SQL Data Type: nvarchar(50)
+        * * Description: Human-readable case identifier, format {SCOPE}-{seq} (e.g. 'MJC-42'), where SCOPE is the normalized (trim/UPPER) AppScope or 'ISS' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.`),
     Title: z.string().describe(`
         * * Field Name: Title
         * * Display Name: Title
@@ -527,6 +561,85 @@ export class mjBizAppsIssuesIssueCommentEntity extends BaseEntity<mjBizAppsIssue
     */
     get AuthorPerson(): string | null {
         return this.Get('AuthorPerson');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Issues: Issue Number Sequences - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsIssues
+ * * Base Table: IssueNumberSequence
+ * * Base View: vwIssueNumberSequences
+ * * @description Per-scope gap-free counter backing the human-readable Issue.IssueNumber. One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.
+ * * Primary Key: ScopeCode
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Issues: Issue Number Sequences')
+export class mjBizAppsIssuesIssueNumberSequenceEntity extends BaseEntity<mjBizAppsIssuesIssueNumberSequenceEntityType> {
+    /**
+    * Loads the MJ_BizApps_Issues: Issue Number Sequences record from the database
+    * @param ScopeCode: string - primary key value to load the MJ_BizApps_Issues: Issue Number Sequences record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsIssuesIssueNumberSequenceEntity
+    * @method
+    * @override
+    */
+    public async Load(ScopeCode: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ScopeCode', Value: ScopeCode });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ScopeCode
+    * * Display Name: Scope Code
+    * * SQL Data Type: nvarchar(50)
+    * * Description: The normalized (trim/UPPER) AppScope this counter is for, or 'ISS' when an issue has no AppScope. Primary key.
+    */
+    get ScopeCode(): string {
+        return this.Get('ScopeCode');
+    }
+    set ScopeCode(value: string) {
+        this.Set('ScopeCode', value);
+    }
+
+    /**
+    * * Field Name: NextSequenceNumber
+    * * Display Name: Next Sequence Number
+    * * SQL Data Type: int
+    * * Default Value: 1
+    * * Description: The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.
+    */
+    get NextSequenceNumber(): number {
+        return this.Get('NextSequenceNumber');
+    }
+    set NextSequenceNumber(value: number) {
+        this.Set('NextSequenceNumber', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
     }
 }
 
@@ -974,6 +1087,19 @@ export class mjBizAppsIssuesIssueEntity extends BaseEntity<mjBizAppsIssuesIssueE
     }
     set ID(value: string) {
         this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: IssueNumber
+    * * Display Name: Issue Number
+    * * SQL Data Type: nvarchar(50)
+    * * Description: Human-readable case identifier, format {SCOPE}-{seq} (e.g. 'MJC-42'), where SCOPE is the normalized (trim/UPPER) AppScope or 'ISS' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.
+    */
+    get IssueNumber(): string | null {
+        return this.Get('IssueNumber');
+    }
+    set IssueNumber(value: string | null) {
+        this.Set('IssueNumber', value);
     }
 
     /**

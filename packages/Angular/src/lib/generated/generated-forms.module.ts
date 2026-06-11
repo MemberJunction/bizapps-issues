@@ -16,6 +16,7 @@ import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
 
 // Import Generated Components
 import { mjBizAppsIssuesIssueCommentFormComponent } from "./Entities/mjBizAppsIssuesIssueComment/mjbizappsissuesissuecomment.form.component";
+import { mjBizAppsIssuesIssueNumberSequenceFormComponent } from "./Entities/mjBizAppsIssuesIssueNumberSequence/mjbizappsissuesissuenumbersequence.form.component";
 import { mjBizAppsIssuesIssueStatusFormComponent } from "./Entities/mjBizAppsIssuesIssueStatus/mjbizappsissuesissuestatus.form.component";
 import { mjBizAppsIssuesIssueTypeFormComponent } from "./Entities/mjBizAppsIssuesIssueType/mjbizappsissuesissuetype.form.component";
 import { mjBizAppsIssuesIssueFormComponent } from "./Entities/mjBizAppsIssuesIssue/mjbizappsissuesissue.form.component";
@@ -24,6 +25,7 @@ import { mjBizAppsIssuesIssueFormComponent } from "./Entities/mjBizAppsIssuesIss
 @NgModule({
 declarations: [
     mjBizAppsIssuesIssueCommentFormComponent,
+    mjBizAppsIssuesIssueNumberSequenceFormComponent,
     mjBizAppsIssuesIssueStatusFormComponent,
     mjBizAppsIssuesIssueTypeFormComponent,
     mjBizAppsIssuesIssueFormComponent],

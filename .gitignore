@@ -13,3 +13,4 @@ install.config.json
 report.html
 report.json
 metadata/sql_logging
+.playwright-cli/

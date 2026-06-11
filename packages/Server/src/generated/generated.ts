@@ -17,7 +17,7 @@ import { MaxLength } from 'class-validator';
 import * as mj_core_schema_server_object_types from '@memberjunction/server'
 
 
-import { mjBizAppsIssuesIssueCommentEntity, mjBizAppsIssuesIssueStatusEntity, mjBizAppsIssuesIssueTypeEntity, mjBizAppsIssuesIssueEntity } from '@mj-biz-apps/issues-entities';
+import { mjBizAppsIssuesIssueCommentEntity, mjBizAppsIssuesIssueNumberSequenceEntity, mjBizAppsIssuesIssueStatusEntity, mjBizAppsIssuesIssueTypeEntity, mjBizAppsIssuesIssueEntity } from '@mj-biz-apps/issues-entities';
     
 
 //****************************************************************************
@@ -200,6 +200,146 @@ export class mjBizAppsIssuesIssueCommentResolver extends ResolverBase {
         const provider = GetReadWriteProvider(providers);
         const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
         return this.DeleteRecord('MJ_BizApps_Issues: Issue Comments', key, options, provider, userPayload, pubSub);
+    }
+    
+}
+
+//****************************************************************************
+// ENTITY CLASS for MJ_BizApps_Issues: Issue Number Sequences
+//****************************************************************************
+@ObjectType({ description: `Per-scope gap-free counter backing the human-readable Issue.IssueNumber. One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.` })
+export class mjBizAppsIssuesIssueNumberSequence_ {
+    @Field({description: `The normalized (trim/UPPER) AppScope this counter is for, or 'ISS' when an issue has no AppScope. Primary key.`}) 
+    @MaxLength(50)
+    ScopeCode: string;
+        
+    @Field(() => Int, {description: `The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.`}) 
+    NextSequenceNumber: number;
+        
+    @Field() 
+    _mj__CreatedAt: Date;
+        
+    @Field() 
+    _mj__UpdatedAt: Date;
+        
+}
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Issues: Issue Number Sequences
+//****************************************************************************
+@InputType()
+export class CreatemjBizAppsIssuesIssueNumberSequenceInput {
+    @Field({ nullable: true })
+    ScopeCode?: string;
+
+    @Field(() => Int, { nullable: true })
+    NextSequenceNumber?: number;
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Issues: Issue Number Sequences
+//****************************************************************************
+@InputType()
+export class UpdatemjBizAppsIssuesIssueNumberSequenceInput {
+    @Field()
+    ScopeCode: string;
+
+    @Field(() => Int, { nullable: true })
+    NextSequenceNumber?: number;
+
+    @Field(() => [KeyValuePairInput], { nullable: true })
+    OldValues___?: KeyValuePairInput[];
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+//****************************************************************************
+// RESOLVER for MJ_BizApps_Issues: Issue Number Sequences
+//****************************************************************************
+@ObjectType()
+export class RunmjBizAppsIssuesIssueNumberSequenceViewResult {
+    @Field(() => [mjBizAppsIssuesIssueNumberSequence_])
+    Results: mjBizAppsIssuesIssueNumberSequence_[];
+
+    @Field(() => String, {nullable: true})
+    UserViewRunID?: string;
+
+    @Field(() => Int, {nullable: true})
+    RowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    TotalRowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    ExecutionTime: number;
+
+    @Field({nullable: true})
+    ErrorMessage?: string;
+
+    @Field(() => Boolean, {nullable: false})
+    Success: boolean;
+}
+
+@Resolver(mjBizAppsIssuesIssueNumberSequence_)
+export class mjBizAppsIssuesIssueNumberSequenceResolver extends ResolverBase {
+    @Query(() => RunmjBizAppsIssuesIssueNumberSequenceViewResult)
+    async RunmjBizAppsIssuesIssueNumberSequenceViewByID(@Arg('input', () => RunViewByIDInput) input: RunViewByIDInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByIDGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsIssuesIssueNumberSequenceViewResult)
+    async RunmjBizAppsIssuesIssueNumberSequenceViewByName(@Arg('input', () => RunViewByNameInput) input: RunViewByNameInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByNameGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsIssuesIssueNumberSequenceViewResult)
+    async RunmjBizAppsIssuesIssueNumberSequenceDynamicView(@Arg('input', () => RunDynamicViewInput) input: RunDynamicViewInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        input.EntityName = 'MJ_BizApps_Issues: Issue Number Sequences';
+        return super.RunDynamicViewGeneric(input, provider, userPayload, pubSub);
+    }
+    @Query(() => mjBizAppsIssuesIssueNumberSequence_, { nullable: true })
+    async mjBizAppsIssuesIssueNumberSequence(@Arg('ScopeCode', () => String) ScopeCode: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssueNumberSequence_ | null> {
+        this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Number Sequences', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueNumberSequences')} WHERE ${provider.QuoteIdentifier('ScopeCode')}='${ScopeCode}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Number Sequences', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Number Sequences', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+    
+    @Mutation(() => mjBizAppsIssuesIssueNumberSequence_)
+    async CreatemjBizAppsIssuesIssueNumberSequence(
+        @Arg('input', () => CreatemjBizAppsIssuesIssueNumberSequenceInput) input: CreatemjBizAppsIssuesIssueNumberSequenceInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.CreateRecord('MJ_BizApps_Issues: Issue Number Sequences', input, provider, userPayload, pubSub)
+    }
+        
+    @Mutation(() => mjBizAppsIssuesIssueNumberSequence_)
+    async UpdatemjBizAppsIssuesIssueNumberSequence(
+        @Arg('input', () => UpdatemjBizAppsIssuesIssueNumberSequenceInput) input: UpdatemjBizAppsIssuesIssueNumberSequenceInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.UpdateRecord('MJ_BizApps_Issues: Issue Number Sequences', input, provider, userPayload, pubSub);
+    }
+    
+    @Mutation(() => mjBizAppsIssuesIssueNumberSequence_)
+    async DeletemjBizAppsIssuesIssueNumberSequence(@Arg('ScopeCode', () => String) ScopeCode: string, @Arg('options___', () => DeleteOptionsInput) options: DeleteOptionsInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadWriteProvider(providers);
+        const key = new CompositeKey([{FieldName: 'ScopeCode', Value: ScopeCode}]);
+        return this.DeleteRecord('MJ_BizApps_Issues: Issue Number Sequences', key, options, provider, userPayload, pubSub);
     }
     
 }
@@ -675,6 +815,10 @@ export class mjBizAppsIssuesIssue_ {
     @MaxLength(36)
     ID: string;
         
+    @Field({nullable: true, description: `Human-readable case identifier, format {SCOPE}-{seq} (e.g. 'MJC-42'), where SCOPE is the normalized (trim/UPPER) AppScope or 'ISS' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.`}) 
+    @MaxLength(50)
+    IssueNumber?: string;
+        
     @Field({description: `Short, one-line summary of the issue.`}) 
     @MaxLength(500)
     Title: string;
@@ -780,6 +924,9 @@ export class CreatemjBizAppsIssuesIssueInput {
     ID?: string;
 
     @Field({ nullable: true })
+    IssueNumber: string | null;
+
+    @Field({ nullable: true })
     Title?: string;
 
     @Field({ nullable: true })
@@ -839,6 +986,9 @@ export class CreatemjBizAppsIssuesIssueInput {
 export class UpdatemjBizAppsIssuesIssueInput {
     @Field()
     ID: string;
+
+    @Field({ nullable: true })
+    IssueNumber?: string | null;
 
     @Field({ nullable: true })
     Title?: string;
