@@ -6,7 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { BaseFormsModule } from '@memberjunction/ng-base-forms';
 import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
 
-// Custom form components + the ReportIssueComponent are declared here in Phase 5.
+// Standalone feature components (imported, not declared)
+import { ReportIssueComponent } from '../components/report-issue/report-issue.component';
 
 @NgModule({
   declarations: [],
@@ -14,8 +15,12 @@ import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
     CommonModule,
     FormsModule,
     BaseFormsModule,
-    LinkDirectivesModule
+    LinkDirectivesModule,
+    // Standalone components used across the app
+    ReportIssueComponent
   ],
-  exports: []
+  exports: [
+    ReportIssueComponent
+  ]
 })
 export class CustomFormsModule { }

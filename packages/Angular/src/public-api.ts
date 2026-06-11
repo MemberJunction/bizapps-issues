@@ -23,8 +23,8 @@ export { CLASS_REGISTRATIONS } from './lib/generated/class-registrations-manifes
 export { GeneratedFormsModule } from './lib/generated/generated-forms.module';
 export { CustomFormsModule } from './lib/custom/custom-forms.module';
 
-// Reusable UI components (populated in Phase 5)
-// export { ReportIssueComponent } from './lib/components/report-issue/report-issue.component';
+// Reusable UI components
+export { ReportIssueComponent } from './lib/components/report-issue/report-issue.component';
 
 /**
  * Bootstrap function called during MJExplorer initialization.
