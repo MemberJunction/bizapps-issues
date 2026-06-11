@@ -10,8 +10,12 @@
   "sqlLogging": {
     "enabled": true,
     "outputDirectory": "./sql_logging",
-    "filterType": "exclude",
-    "formatAsMigration": false
+    "formatAsMigration": true,
+    "filterPatterns": [
+      "*spCreateAIPromptRun*",
+      "*spUpdateAIPromptRun*"
+    ],
+    "filterType": "exclude"
   },
   "emitSyncNotes": false
 }
