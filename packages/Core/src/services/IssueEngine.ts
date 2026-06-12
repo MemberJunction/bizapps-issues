@@ -128,8 +128,13 @@ export class IssueEngine extends BaseEngine<IssueEngine> {
     return this.IssueStatuses.find((s) => s.Name.trim().toLowerCase() === target);
   }
 
-  /** True if the given status ID is a terminal (closed/resolved) state. */
+  /** True if the given status ID is a terminal (closed/end) state. */
   public IsTerminalStatus(statusID: string): boolean {
     return this.IssueStatusByID(statusID)?.IsTerminal ?? false;
+  }
+
+  /** True if the given status ID is the resolved-but-not-closed state. */
+  public IsResolvedStatus(statusID: string): boolean {
+    return this.IssueStatusByID(statusID)?.IsResolved ?? false;
   }
 }

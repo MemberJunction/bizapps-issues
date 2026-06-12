@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// IssueService uses:
-//   - new Metadata().GetEntityObject(name, user) → entity w/ typed props + Save()
-//   - IssueEngine.Instance (Config + lookups + DefaultStatus)
-//   - ActionEngineServer.Instance (Config + Actions + RunAction) for hook firing
-// We mock all three so the service logic runs in isolation. Fake entities expose
-// plain writable properties (the service assigns typed props, not .Set()).
+// IssueService is now a THIN convenience layer: it resolves type/status and sets
+// fields, then calls entity.Save(). The authoritative lifecycle side-effects
+// (ResolvedAt/ClosedAt stamping + action-hook firing) live in IssueEntityServer,
+// NOT here — so these tests assert only that the service sets the right fields and
+// saves. (IssueEntityServer.test.ts covers the stamping/hook behavior.)
+//
+// We mock:
+//   - @memberjunction/core → Metadata (GetEntityObject) + LogError
+//   - ../IssueEngine.js    → lookups (DefaultStatus, IssueStatusByID, IssueType*)
 // ---------------------------------------------------------------------------
 
 const getEntityObjectMock = vi.fn();
@@ -21,28 +24,12 @@ vi.mock('@memberjunction/core', () => ({
   LogError: vi.fn(),
 }));
 
-const runActionMock = vi.fn();
-const actionsList: Array<{ ID: string }> = [{ ID: 'ACT-CREATE' }, { ID: 'ACT-STATUS' }, { ID: 'ACT-CLOSE' }];
-vi.mock('@memberjunction/actions', () => ({
-  ActionEngineServer: {
-    Instance: {
-      Config: vi.fn(async () => undefined),
-      get Actions() {
-        return actionsList;
-      },
-      RunAction: (...args: unknown[]) => runActionMock(...args),
-    },
-  },
-}));
-vi.mock('@memberjunction/actions-base', () => ({ ActionParam: class {} }));
-
-// IssueEngine is mocked: the service only calls Config() + a few lookups.
 const engineState = {
-  defaultStatus: { ID: 'S-NEW', IsTerminal: false } as { ID: string; IsTerminal: boolean } | undefined,
+  defaultStatus: { ID: 'S-NEW' } as { ID: string } | undefined,
   statusById: new Map<string, { ID: string; IsTerminal: boolean }>(),
-  typeById: new Map<string, { ID: string; DefaultPriority: string; OnCreateActionID: string | null; OnStatusChangeActionID: string | null; OnCloseActionID: string | null; OnAssignActionID: string | null }>(),
-  typeByName: new Map<string, { ID: string; DefaultPriority: string; OnCreateActionID: string | null; OnStatusChangeActionID: string | null; OnCloseActionID: string | null; OnAssignActionID: string | null }>(),
   terminalStatuses: [] as { ID: string; IsTerminal: boolean }[],
+  typeById: new Map<string, { ID: string; DefaultPriority: string }>(),
+  typeByName: new Map<string, { ID: string; DefaultPriority: string }>(),
 };
 vi.mock('../IssueEngine.js', () => ({
   IssueEngine: {
@@ -56,7 +43,7 @@ vi.mock('../IssueEngine.js', () => ({
       },
       IssueStatusByID: (id: string) => engineState.statusById.get(id),
       IssueTypeByID: (id: string) => engineState.typeById.get(id),
-      IssueTypeByName: (name: string) => engineState.typeByName.get(name.trim().toLowerCase()),
+      IssueTypeByName: (n: string) => engineState.typeByName.get(n.trim().toLowerCase()),
     },
   },
 }));
@@ -69,7 +56,6 @@ interface FakeIssue {
   Save: ReturnType<typeof vi.fn>;
   LatestResult?: { CompleteMessage: string };
 }
-
 function makeFakeIssue(saveResult = true): FakeIssue {
   return {
     NewRecord: vi.fn(),
@@ -78,18 +64,12 @@ function makeFakeIssue(saveResult = true): FakeIssue {
   };
 }
 
-const BUG_TYPE = {
-  ID: 'T-BUG',
-  DefaultPriority: 'High',
-  OnCreateActionID: 'ACT-CREATE',
-  OnStatusChangeActionID: 'ACT-STATUS',
-  OnCloseActionID: 'ACT-CLOSE',
-  OnAssignActionID: null,
-};
+const BUG_TYPE = { ID: 'T-BUG', DefaultPriority: 'High' };
+const ctx = {} as never;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  engineState.defaultStatus = { ID: 'S-NEW', IsTerminal: false };
+  engineState.defaultStatus = { ID: 'S-NEW' };
   engineState.statusById = new Map([
     ['S-NEW', { ID: 'S-NEW', IsTerminal: false }],
     ['S-PROG', { ID: 'S-PROG', IsTerminal: false }],
@@ -100,10 +80,8 @@ beforeEach(() => {
   engineState.typeByName = new Map([['bug', BUG_TYPE]]);
 });
 
-const ctx = {} as never;
-
-describe('IssueService.CreateIssue', () => {
-  it('defaults status to DefaultStatus and priority to the type default, then fires OnCreate', async () => {
+describe('IssueService.CreateIssue (thin wrapper)', () => {
+  it('sets fields with defaulted status + type priority, then saves', async () => {
     const issue = makeFakeIssue();
     getEntityObjectMock.mockResolvedValueOnce(issue);
 
@@ -113,10 +91,9 @@ describe('IssueService.CreateIssue', () => {
     expect(issue.NewRecord).toHaveBeenCalledOnce();
     expect(issue.Title).toBe('It broke');
     expect(issue.IssueTypeID).toBe('T-BUG');
-    expect(issue.StatusID).toBe('S-NEW'); // default status
-    expect(issue.Priority).toBe('High'); // type's DefaultPriority
+    expect(issue.StatusID).toBe('S-NEW'); // defaulted
+    expect(issue.Priority).toBe('High'); // type default
     expect(issue.Save).toHaveBeenCalledOnce();
-    expect(runActionMock).toHaveBeenCalledOnce(); // OnCreate hook fired
   });
 
   it('returns null and does not save when the IssueType cannot be resolved', async () => {
@@ -130,23 +107,17 @@ describe('IssueService.CreateIssue', () => {
     getEntityObjectMock.mockResolvedValueOnce(issue);
     const result = await new IssueService().CreateIssue({ Title: 'x', IssueTypeID: 'T-BUG' }, ctx);
     expect(result).toBeNull();
-    expect(runActionMock).not.toHaveBeenCalled(); // hook not fired on failed save
   });
 });
 
-describe('IssueService.TransitionStatus', () => {
-  it('stamps ClosedAt + ResolvedAt and fires OnStatusChange + OnClose on terminal transition', async () => {
+describe('IssueService.TransitionStatus (thin wrapper)', () => {
+  it('sets StatusID and saves on a real change', async () => {
     const issue = makeFakeIssue();
     issue.StatusID = 'S-PROG';
-    issue.IssueTypeID = 'T-BUG';
-
     const ok = await new IssueService().TransitionStatus(issue as never, 'S-CLOSED', ctx);
-
     expect(ok).toBe(true);
     expect(issue.StatusID).toBe('S-CLOSED');
-    expect(issue.ClosedAt).toBeInstanceOf(Date);
-    expect(issue.ResolvedAt).toBeInstanceOf(Date);
-    expect(runActionMock).toHaveBeenCalledTimes(2); // OnStatusChange + OnClose
+    expect(issue.Save).toHaveBeenCalledOnce();
   });
 
   it('is a no-op when the status is unchanged', async () => {
@@ -157,13 +128,33 @@ describe('IssueService.TransitionStatus', () => {
     expect(issue.Save).not.toHaveBeenCalled();
   });
 
-  it('non-terminal transition fires only OnStatusChange and clears ClosedAt', async () => {
+  it('rejects an unknown status without saving', async () => {
     const issue = makeFakeIssue();
     issue.StatusID = 'S-NEW';
-    issue.IssueTypeID = 'T-BUG';
-    const ok = await new IssueService().TransitionStatus(issue as never, 'S-PROG', ctx);
+    const ok = await new IssueService().TransitionStatus(issue as never, 'S-MISSING', ctx);
+    expect(ok).toBe(false);
+    expect(issue.Save).not.toHaveBeenCalled();
+  });
+});
+
+describe('IssueService.Assign (thin wrapper)', () => {
+  it('sets the polymorphic assignee fields and saves', async () => {
+    const issue = makeFakeIssue();
+    const ok = await new IssueService().Assign(issue as never, 'ENT-1', 'REC-1', ctx);
     expect(ok).toBe(true);
-    expect(issue.ClosedAt).toBeNull();
-    expect(runActionMock).toHaveBeenCalledTimes(1); // OnStatusChange only
+    expect(issue.AssigneeEntityID).toBe('ENT-1');
+    expect(issue.AssigneeRecordID).toBe('REC-1');
+    expect(issue.Save).toHaveBeenCalledOnce();
+  });
+});
+
+describe('IssueService.Close (thin wrapper)', () => {
+  it('transitions to the first terminal status', async () => {
+    const issue = makeFakeIssue();
+    issue.StatusID = 'S-PROG';
+    const ok = await new IssueService().Close(issue as never, ctx);
+    expect(ok).toBe(true);
+    expect(issue.StatusID).toBe('S-CLOSED'); // the IsTerminal status
+    expect(issue.Save).toHaveBeenCalledOnce();
   });
 });

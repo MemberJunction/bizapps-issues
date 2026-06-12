@@ -1,6 +1,4 @@
 import { Metadata, UserInfo, LogError } from '@memberjunction/core';
-import { ActionEngineServer } from '@memberjunction/actions';
-import { ActionParam } from '@memberjunction/actions-base';
 
 import {
   mjBizAppsIssuesIssueEntity,
@@ -33,18 +31,24 @@ export interface CreateIssueParams {
 }
 
 /**
- * Core issue lifecycle service: create, transition status, assign, and close. All mutations go
- * through the MJ entity API so entity-subclass validation fires, and each lifecycle event fires
- * the matching IssueType action hook (OnCreate / OnStatusChange / OnAssign / OnClose) via the
- * Action engine — mirroring the bizapps-tasks TaskType action-hook mechanism, but strongly typed.
+ * Convenience service for the common issue operations: create, transition status,
+ * assign, and close.
+ *
+ * IMPORTANT — this service is a THIN convenience layer. The authoritative lifecycle
+ * side-effects (IssueNumber assignment, ResolvedAt/ClosedAt stamping, and firing the
+ * IssueType OnCreate/OnStatusChange/OnClose/OnAssign action hooks) live in
+ * `IssueEntityServer.Save()` so they fire on EVERY save path — including a plain
+ * `entity.Save()` from the UI/API/automation that never touches this service. These
+ * methods just set the right field(s) and call Save(); the entity does the rest.
  *
  * Server-side: always pass contextUser.
  */
 export class IssueService {
   /**
-   * Creates a new Issue. Resolves the IssueType (by ID or name), defaults status to the
-   * IsDefault status and priority to the type's DefaultPriority, saves, then fires the type's
-   * OnCreate action hook. Returns the saved entity, or null on failure (details logged).
+   * Creates a new Issue. Resolves the IssueType (by ID or name) and defaults status to
+   * the IsDefault status and priority to the type's DefaultPriority, then saves. The
+   * entity server assigns IssueNumber, stamps lifecycle timestamps, and fires OnCreate.
+   * Returns the saved entity, or null on failure (details logged).
    */
   public async CreateIssue(
     params: CreateIssueParams,
@@ -84,14 +88,13 @@ export class IssueService {
       LogError(`IssueService.CreateIssue: save failed: ${issue.LatestResult?.CompleteMessage ?? 'unknown error'}`);
       return null;
     }
-
-    await this.fireHook(issueType.OnCreateActionID, issue, contextUser);
     return issue;
   }
 
   /**
-   * Transitions an issue to a new status. Stamps ResolvedAt/ClosedAt as appropriate, saves, and
-   * fires OnStatusChange (and OnClose when moving into a terminal status). Returns true on success.
+   * Transitions an issue to a new status by setting StatusID and saving. The entity
+   * server stamps ResolvedAt/ClosedAt and fires OnStatusChange (+ OnClose on terminal).
+   * No-ops when the status is unchanged. Returns true on success.
    */
   public async TransitionStatus(
     issue: mjBizAppsIssuesIssueEntity,
@@ -100,8 +103,7 @@ export class IssueService {
   ): Promise<boolean> {
     await IssueEngine.Instance.Config(false, contextUser);
 
-    const newStatus = IssueEngine.Instance.IssueStatusByID(newStatusID);
-    if (!newStatus) {
+    if (!IssueEngine.Instance.IssueStatusByID(newStatusID)) {
       LogError(`IssueService.TransitionStatus: unknown status ID ${newStatusID}`);
       return false;
     }
@@ -110,24 +112,17 @@ export class IssueService {
     }
 
     issue.StatusID = newStatusID;
-    this.stampLifecycleTimestamps(issue, newStatus.IsTerminal);
-
     if (!(await issue.Save())) {
       LogError(`IssueService.TransitionStatus: save failed: ${issue.LatestResult?.CompleteMessage ?? 'unknown error'}`);
       return false;
-    }
-
-    const issueType = IssueEngine.Instance.IssueTypeByID(issue.IssueTypeID);
-    await this.fireHook(issueType?.OnStatusChangeActionID, issue, contextUser);
-    if (newStatus.IsTerminal) {
-      await this.fireHook(issueType?.OnCloseActionID, issue, contextUser);
     }
     return true;
   }
 
   /**
-   * Assigns an issue to a polymorphic assignee (Person or AI Agent), saves, and fires OnAssign.
-   * Pass null/null to clear the assignee. Returns true on success.
+   * Assigns an issue to a polymorphic assignee (Person or AI Agent) and saves. The
+   * entity server fires OnAssign. Pass null/null to clear the assignee. Returns true
+   * on success.
    */
   public async Assign(
     issue: mjBizAppsIssuesIssueEntity,
@@ -139,20 +134,17 @@ export class IssueService {
 
     issue.AssigneeEntityID = assigneeEntityID;
     issue.AssigneeRecordID = assigneeRecordID;
-
     if (!(await issue.Save())) {
       LogError(`IssueService.Assign: save failed: ${issue.LatestResult?.CompleteMessage ?? 'unknown error'}`);
       return false;
     }
-
-    const issueType = IssueEngine.Instance.IssueTypeByID(issue.IssueTypeID);
-    await this.fireHook(issueType?.OnAssignActionID, issue, contextUser);
     return true;
   }
 
   /**
-   * Closes an issue by transitioning it to the supplied terminal status (or the first terminal
-   * status if none given). Fires OnStatusChange + OnClose via TransitionStatus.
+   * Closes an issue by transitioning it to the supplied terminal status (or the first
+   * terminal status if none given). The entity server stamps ClosedAt and fires
+   * OnStatusChange + OnClose.
    */
   public async Close(
     issue: mjBizAppsIssuesIssueEntity,
@@ -182,60 +174,5 @@ export class IssueService {
       return IssueEngine.Instance.IssueTypeByName(params.IssueTypeName);
     }
     return undefined;
-  }
-
-  /** Stamps ResolvedAt/ClosedAt when entering a terminal state; clears them when leaving. */
-  private stampLifecycleTimestamps(issue: mjBizAppsIssuesIssueEntity, isTerminal: boolean): void {
-    if (isTerminal) {
-      const now = new Date();
-      if (!issue.ResolvedAt) {
-        issue.ResolvedAt = now;
-      }
-      issue.ClosedAt = now;
-    } else {
-      // Re-opened: clear the closed timestamp (keep ResolvedAt history intact).
-      issue.ClosedAt = null;
-    }
-  }
-
-  /**
-   * Fires an IssueType action hook by Action ID, passing the issue's identity as input params.
-   * No-op when actionID is null/undefined. Failures are logged, never thrown — a misconfigured
-   * hook must not break the issue mutation that triggered it.
-   */
-  private async fireHook(
-    actionID: string | null | undefined,
-    issue: mjBizAppsIssuesIssueEntity,
-    contextUser: UserInfo,
-  ): Promise<void> {
-    if (!actionID) {
-      return;
-    }
-    try {
-      await ActionEngineServer.Instance.Config(false, contextUser);
-      const action = ActionEngineServer.Instance.Actions.find((a) => a.ID === actionID);
-      if (!action) {
-        LogError(`IssueService.fireHook: Action ${actionID} not found`);
-        return;
-      }
-
-      const params: ActionParam[] = [
-        { Name: 'IssueID', Value: issue.ID, Type: 'Input' },
-        { Name: 'Title', Value: issue.Title, Type: 'Input' },
-        { Name: 'StatusID', Value: issue.StatusID, Type: 'Input' },
-        { Name: 'Priority', Value: issue.Priority, Type: 'Input' },
-        { Name: 'Severity', Value: issue.Severity, Type: 'Input' },
-      ];
-
-      await ActionEngineServer.Instance.RunAction({
-        Action: action,
-        ContextUser: contextUser,
-        Params: params,
-        Filters: [],
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      LogError(`IssueService.fireHook: failed to run Action ${actionID}: ${msg}`);
-    }
   }
 }
