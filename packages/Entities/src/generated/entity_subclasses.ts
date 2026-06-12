@@ -151,6 +151,12 @@ export const mjBizAppsIssuesIssueStatusSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    IsResolved: z.boolean().describe(`
+        * * Field Name: IsResolved
+        * * Display Name: Is Resolved
+        * * SQL Data Type: bit
+        * * Default Value: 0
+        * * Description: Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue.ResolvedAt. Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.`),
 });
 
 export type mjBizAppsIssuesIssueStatusEntityType = z.infer<typeof mjBizAppsIssuesIssueStatusSchema>;
@@ -787,6 +793,20 @@ export class mjBizAppsIssuesIssueStatusEntity extends BaseEntity<mjBizAppsIssues
     */
     get __mj_UpdatedAt(): Date {
         return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: IsResolved
+    * * Display Name: Is Resolved
+    * * SQL Data Type: bit
+    * * Default Value: 0
+    * * Description: Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue.ResolvedAt. Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.
+    */
+    get IsResolved(): boolean {
+        return this.Get('IsResolved');
+    }
+    set IsResolved(value: boolean) {
+        this.Set('IsResolved', value);
     }
 }
 

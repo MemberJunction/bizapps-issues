@@ -5554,6 +5554,7 @@ input CreatemjBizAppsIssuesIssueStatusInput {
   Description: String
   ID: String
   IsDefault: Boolean
+  IsResolved: Boolean
   IsTerminal: Boolean
   Name: String
   RestoreContext___: RestoreContextInput
@@ -34844,6 +34845,7 @@ input UpdatemjBizAppsIssuesIssueStatusInput {
   Description: String
   ID: String!
   IsDefault: Boolean
+  IsResolved: Boolean
   IsTerminal: Boolean
   Name: String
   OldValues___: [KeyValuePairInput!]
@@ -35531,6 +35533,11 @@ type mjBizAppsIssuesIssueStatus_ {
   Whether new issues default to this status. Exactly one status should have this set.
   """
   IsDefault: Boolean!
+
+  """
+  Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue.ResolvedAt. Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.
+  """
+  IsResolved: Boolean!
 
   """
   Whether this is a terminal (end) state such as Closed or Won't Fix. Terminal statuses stop SLA timers and remove the issue from active queues.

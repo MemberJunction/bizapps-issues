@@ -169,8 +169,8 @@ export class mjBizAppsIssuesIssueCommentResolver extends ResolverBase {
     async mjBizAppsIssuesIssueComment(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssueComment_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Comments', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueComments')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Comments', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueComments')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Comments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Comments', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -309,8 +309,8 @@ export class mjBizAppsIssuesIssueNumberSequenceResolver extends ResolverBase {
     async mjBizAppsIssuesIssueNumberSequence(@Arg('ScopeCode', () => String) ScopeCode: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssueNumberSequence_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Number Sequences', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueNumberSequences')} WHERE ${provider.QuoteIdentifier('ScopeCode')}='${ScopeCode}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Number Sequences', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueNumberSequences')} WHERE ${provider.QuoteIdentifier('ScopeCode')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Number Sequences', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ScopeCode], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Number Sequences', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -379,6 +379,9 @@ export class mjBizAppsIssuesIssueStatus_ {
     @Field() 
     _mj__UpdatedAt: Date;
         
+    @Field(() => Boolean, {description: `Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue.ResolvedAt. Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.`}) 
+    IsResolved: boolean;
+        
     @Field(() => [mjBizAppsIssuesIssue_])
     mjBizAppsIssuesMJ_BizApps_Issues_Issues_StatusIDArray: mjBizAppsIssuesIssue_[]; // Link to mjBizAppsIssuesMJ_BizApps_Issues_Issues
     
@@ -410,6 +413,9 @@ export class CreatemjBizAppsIssuesIssueStatusInput {
     @Field({ nullable: true })
     ColorCode: string | null;
 
+    @Field(() => Boolean, { nullable: true })
+    IsResolved?: boolean;
+
     @Field(() => RestoreContextInput, { nullable: true })
     RestoreContext___?: RestoreContextInput;
 }
@@ -440,6 +446,9 @@ export class UpdatemjBizAppsIssuesIssueStatusInput {
 
     @Field({ nullable: true })
     ColorCode?: string | null;
+
+    @Field(() => Boolean, { nullable: true })
+    IsResolved?: boolean;
 
     @Field(() => [KeyValuePairInput], { nullable: true })
     OldValues___?: KeyValuePairInput[];
@@ -499,8 +508,8 @@ export class mjBizAppsIssuesIssueStatusResolver extends ResolverBase {
     async mjBizAppsIssuesIssueStatus(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssueStatus_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Status', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueStatus')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Status', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueStatus')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Status', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Status', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -509,8 +518,8 @@ export class mjBizAppsIssuesIssueStatusResolver extends ResolverBase {
     async mjBizAppsIssuesMJ_BizApps_Issues_Issues_StatusIDArray(@Root() mjbizappsissuesissuestatus_: mjBizAppsIssuesIssueStatus_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issues', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('StatusID')}='${mjbizappsissuesissuestatus_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('StatusID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappsissuesissuestatus_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Issues: Issues', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -761,8 +770,8 @@ export class mjBizAppsIssuesIssueTypeResolver extends ResolverBase {
     async mjBizAppsIssuesIssueType(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssueType_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Types', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueTypes')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Types', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueTypes')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Types', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Types', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -771,8 +780,8 @@ export class mjBizAppsIssuesIssueTypeResolver extends ResolverBase {
     async mjBizAppsIssuesMJ_BizApps_Issues_Issues_IssueTypeIDArray(@Root() mjbizappsissuesissuetype_: mjBizAppsIssuesIssueType_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issues', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('IssueTypeID')}='${mjbizappsissuesissuetype_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('IssueTypeID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappsissuesissuetype_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Issues: Issues', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1096,8 +1105,8 @@ export class mjBizAppsIssuesIssueResolver extends ResolverBase {
     async mjBizAppsIssuesIssue(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsIssuesIssue_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issues', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssues')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issues', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Issues: Issues', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1106,8 +1115,8 @@ export class mjBizAppsIssuesIssueResolver extends ResolverBase {
     async mjBizAppsIssuesMJ_BizApps_Issues_IssueComments_IssueIDArray(@Root() mjbizappsissuesissue_: mjBizAppsIssuesIssue_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Issues: Issue Comments', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueComments')} WHERE ${provider.QuoteIdentifier('IssueID')}='${mjbizappsissuesissue_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Comments', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsIssues', 'vwIssueComments')} WHERE ${provider.QuoteIdentifier('IssueID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Issues: Issue Comments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappsissuesissue_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Issues: Issue Comments', rows, this.GetUserFromPayload(userPayload));
         return result;
     }

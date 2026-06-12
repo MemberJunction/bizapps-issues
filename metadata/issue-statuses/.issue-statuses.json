@@ -73,6 +73,7 @@
       "Description": "A fix or answer has been delivered; awaiting confirmation before closing.",
       "Sequence": 50,
       "IsDefault": false,
+      "IsResolved": true,
       "IsTerminal": false,
       "ColorCode": "#10B981"
     },
@@ -80,8 +81,8 @@
       "ID": "BA34155E-E6A5-4BAE-A57C-20BFF88275EA"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.645Z",
-      "checksum": "6611336051dcac904436927e99d19663366b6d91a97f0911cbfd6da3ae8babf1"
+      "lastModified": "2026-06-12T19:38:29.711Z",
+      "checksum": "f91c2743de6a6a29e297b9526d4bde7047124066e5b8c057c029c29c774a499c"
     }
   },
   {
