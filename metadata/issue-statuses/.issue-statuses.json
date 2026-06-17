@@ -6,14 +6,14 @@
       "Sequence": 10,
       "IsDefault": true,
       "IsTerminal": false,
-      "ColorCode": "#6B7280"
+      "ColorCode": "#EAB308"
     },
     "primaryKey": {
       "ID": "E02A9B9E-45A0-4853-A82C-EDDC00BA5126"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.592Z",
-      "checksum": "4e823ad3063414f88300333c5bb6fee6551b83dd927c71f803d76d81606d0f4b"
+      "lastModified": "2026-06-16T19:45:47.675Z",
+      "checksum": "d462b9d59c092bd1065742d46de6b44fd45c0f9396e08c3789e86acabc608d62"
     }
   },
   {
@@ -23,14 +23,14 @@
       "Sequence": 20,
       "IsDefault": false,
       "IsTerminal": false,
-      "ColorCode": "#3B82F6"
+      "ColorCode": "#8B5CF6"
     },
     "primaryKey": {
       "ID": "6C38314F-970D-4965-9D9E-48D6BBF690A0"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.607Z",
-      "checksum": "34d0e4364d721c7e12d2d6cf51fb44b2e6cee944d5c461edd66dc0b4b3279046"
+      "lastModified": "2026-06-16T19:45:47.692Z",
+      "checksum": "76bb462440c6675808bdf5277f13da66e5b977bce6b06858d10f2f4cf3b0e9a9"
     }
   },
   {
@@ -40,14 +40,14 @@
       "Sequence": 30,
       "IsDefault": false,
       "IsTerminal": false,
-      "ColorCode": "#F59E0B"
+      "ColorCode": "#3B82F6"
     },
     "primaryKey": {
       "ID": "4A9D16B2-3CFC-4E4A-A94E-B1C0D0CBFA1D"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.619Z",
-      "checksum": "f2310acf646ee30e7a4582db9e0eede2c2935f4fa11c13a111ed932294ca07b9"
+      "lastModified": "2026-06-16T19:45:47.706Z",
+      "checksum": "d8914942772654a909798a55e475925a8275083a87767f7c0da21e9c49417d8c"
     }
   },
   {
@@ -57,14 +57,14 @@
       "Sequence": 40,
       "IsDefault": false,
       "IsTerminal": false,
-      "ColorCode": "#A855F7"
+      "ColorCode": "#F97316"
     },
     "primaryKey": {
       "ID": "20A6DDEC-24A3-4FAD-AF5B-F291B870255D"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.632Z",
-      "checksum": "8759342f6fba05ff8e360f7d93bc9998c26c9fe22d2e9cc7d74c34ab98f44181"
+      "lastModified": "2026-06-16T19:45:47.721Z",
+      "checksum": "0e66395a4223c887183e1e9aeb1fdae992678c8188d219ecc5aa0be92637282d"
     }
   },
   {
@@ -92,14 +92,14 @@
       "Sequence": 60,
       "IsDefault": false,
       "IsTerminal": true,
-      "ColorCode": "#374151"
+      "ColorCode": "#475569"
     },
     "primaryKey": {
       "ID": "DC42F011-C589-41BD-8FE0-D96258245E70"
     },
     "sync": {
-      "lastModified": "2026-06-09T21:51:03.658Z",
-      "checksum": "830c8e333e660ecff80cd1784a0a682d5b45b335a552243b915625b433e820fb"
+      "lastModified": "2026-06-16T19:45:47.735Z",
+      "checksum": "c7745775b6ed82f017e96b85a8792b4f42077cdb4584d46856dc7e96eb8f4fc9"
     }
   },
   {

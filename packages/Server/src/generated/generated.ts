@@ -44,7 +44,7 @@ export class mjBizAppsIssuesIssueComment_ {
     @MaxLength(320)
     AuthorEmail?: string;
         
-    @Field({description: `Origin of the comment: 'internal' (in-app), 'email' (email reply), or 'external' (reserved for v1.1 provider sync).`}) 
+    @Field({description: `Direction/visibility of the comment (channel-agnostic): 'internal' (staff-only note, never sent), 'outbound' (customer-facing message we sent, on any channel), or 'inbound' (a message from the customer/external side captured into the thread). The delivery channel is knowable from the ticket's linked message, not here.`}) 
     @MaxLength(20)
     Source: string;
         

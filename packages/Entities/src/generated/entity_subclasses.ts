@@ -40,17 +40,17 @@ export const mjBizAppsIssuesIssueCommentSchema = z.object({
         * * Display Name: Author Email
         * * SQL Data Type: nvarchar(320)
         * * Description: Email of the comment author, used when there is no linked Person.`),
-    Source: z.union([z.literal('email'), z.literal('external'), z.literal('internal')]).describe(`
+    Source: z.union([z.literal('inbound'), z.literal('internal'), z.literal('outbound')]).describe(`
         * * Field Name: Source
         * * Display Name: Source
         * * SQL Data Type: nvarchar(20)
         * * Default Value: internal
     * * Value List Type: List
     * * Possible Values 
-    *   * email
-    *   * external
+    *   * inbound
     *   * internal
-        * * Description: Origin of the comment: 'internal' (in-app), 'email' (email reply), or 'external' (reserved for v1.1 provider sync).`),
+    *   * outbound
+        * * Description: Direction/visibility of the comment (channel-agnostic): 'internal' (staff-only note, never sent), 'outbound' (customer-facing message we sent, on any channel), or 'inbound' (a message from the customer/external side captured into the thread). The delivery channel is knowable from the ticket's linked message, not here.`),
     __mj_CreatedAt: z.date().describe(`
         * * Field Name: __mj_CreatedAt
         * * Display Name: Created At
@@ -528,15 +528,15 @@ export class mjBizAppsIssuesIssueCommentEntity extends BaseEntity<mjBizAppsIssue
     * * Default Value: internal
     * * Value List Type: List
     * * Possible Values 
-    *   * email
-    *   * external
+    *   * inbound
     *   * internal
-    * * Description: Origin of the comment: 'internal' (in-app), 'email' (email reply), or 'external' (reserved for v1.1 provider sync).
+    *   * outbound
+    * * Description: Direction/visibility of the comment (channel-agnostic): 'internal' (staff-only note, never sent), 'outbound' (customer-facing message we sent, on any channel), or 'inbound' (a message from the customer/external side captured into the thread). The delivery channel is knowable from the ticket's linked message, not here.
     */
-    get Source(): 'email' | 'external' | 'internal' {
+    get Source(): 'inbound' | 'internal' | 'outbound' {
         return this.Get('Source');
     }
-    set Source(value: 'email' | 'external' | 'internal') {
+    set Source(value: 'inbound' | 'internal' | 'outbound') {
         this.Set('Source', value);
     }
 
