@@ -25,7 +25,10 @@
     "install:deps": "npm install",
     "setup": "echo 'Please run: npm run mj:migrate && npm run mj:codegen && npm run build'",
     "change": "changeset",
-    "version": "changeset version"
+    "version": "changeset version",
+    "commitpush": "node ci/commit_push.mjs",
+    "mergemain": "node ci/merge_main.mjs",
+    "mergemain:update-lock": "node ci/merge_main_and_update_lock.mjs"
   },
   "repository": {
     "type": "git",
