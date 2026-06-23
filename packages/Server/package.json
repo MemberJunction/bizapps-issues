@@ -12,6 +12,7 @@
     "/dist"
   ],
   "scripts": {
+    "prebuild": "mj codegen manifest --exclude-packages @memberjunction --output ./src/generated/class-registrations-manifest.ts || echo 'Warning: mj codegen manifest not available, using existing manifest'",
     "build": "tsc && tsc-alias -f",
     "test": "echo \"No tests configured yet\""
   },
