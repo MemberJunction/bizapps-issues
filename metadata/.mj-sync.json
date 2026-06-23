@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "push": {
+    "autoCreateMissingRecords": true
+  },
+  "directoryOrder": [
+    "issue-statuses",
+    "issue-types"
+  ],
+  "sqlLogging": {
+    "enabled": true,
+    "outputDirectory": "./sql_logging",
+    "formatAsMigration": true,
+    "filterPatterns": [
+      "*spCreateAIPromptRun*",
+      "*spUpdateAIPromptRun*"
+    ],
+    "filterType": "exclude"
+  },
+  "emitSyncNotes": false
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "fields": {
+      "Name": "Bug",
+      "Description": "Something is broken or not behaving as intended.",
+      "IconClass": "fa-solid fa-bug",
+      "DefaultPriority": "High",
+      "IsActive": true
+    },
+    "primaryKey": {
+      "ID": "A4A4B67C-DEFF-4CA0-9F3C-2467CB2D2D8D"
+    },
+    "sync": {
+      "lastModified": "2026-06-23T02:19:20.534Z",
+      "checksum": "8cdf7b6cdc6c1b9c006755d1c4ef95d3e6a0bf45750624db70e6908127a3290c"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Feature Request",
+      "Description": "A request for new functionality or an enhancement.",
+      "IconClass": "fa-solid fa-lightbulb",
+      "DefaultPriority": "Medium",
+      "IsActive": true
+    },
+    "primaryKey": {
+      "ID": "34733CAF-A7C4-4AF1-A6B6-7F082192E53F"
+    },
+    "sync": {
+      "lastModified": "2026-06-23T02:19:20.547Z",
+      "checksum": "2aa551a3e34bc90ea6e19328ee9ef1b9ed9dbcd3ab32e5f2fc61818d86cb07cb"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Question",
+      "Description": "A question or request for help; no code change necessarily implied.",
+      "IconClass": "fa-solid fa-circle-question",
+      "DefaultPriority": "Low",
+      "IsActive": true
+    },
+    "primaryKey": {
+      "ID": "5D6CE5C4-DFA7-452B-BDCD-0E5456C683B3"
+    },
+    "sync": {
+      "lastModified": "2026-06-23T02:19:20.562Z",
+      "checksum": "0fc23602022a7a36684124abc0aa5ccd88c48b37fe8b63c1ac9d8553765b98ec"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Feedback",
+      "Description": "General feedback or a suggestion, e.g. from the cloud feedback channel.",
+      "IconClass": "fa-solid fa-comment-dots",
+      "DefaultPriority": "Medium",
+      "IsActive": true
+    },
+    "primaryKey": {
+      "ID": "FE0C6A23-ACF0-4826-BB07-1640767874C3"
+    },
+    "sync": {
+      "lastModified": "2026-06-23T02:19:20.573Z",
+      "checksum": "6a808b5a3b102fa486fb3056d13465f3af5b104d2f5abfabb7859e569c3d5c27"
+    }
+  }
+]

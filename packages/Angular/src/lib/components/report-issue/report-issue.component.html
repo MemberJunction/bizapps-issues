@@ -1,0 +1,71 @@
+@if (Visible) {
+  <mj-dialog [Visible]="Visible" Title="Report an Issue" [Width]="560" [Closeable]="true" (Close)="OnDialogClose()">
+    <mj-dialog-titlebar>
+      <span class="ri-title"><i class="fa-solid fa-life-ring"></i> Report an Issue</span>
+    </mj-dialog-titlebar>
+
+    @if (IsLoading) {
+      <div class="ri-loading">
+        <mj-loading text="Loading options..." size="medium"></mj-loading>
+      </div>
+    } @else {
+      <div class="ri-body">
+        @if (ErrorMessage) {
+          <div class="ri-error" role="alert">
+            <i class="fa-solid fa-triangle-exclamation"></i> {{ ErrorMessage }}
+          </div>
+        }
+
+        <label class="ri-field">
+          <span class="ri-label">Type</span>
+          <mj-dropdown
+            [Data]="IssueTypes"
+            TextField="Name"
+            ValueField="ID"
+            [ValuePrimitive]="true"
+            Placeholder="Select an issue type"
+            [(ngModel)]="SelectedTypeID">
+          </mj-dropdown>
+        </label>
+
+        <label class="ri-field">
+          <span class="ri-label">Title <span class="ri-required">*</span></span>
+          <input
+            class="mj-input"
+            type="text"
+            maxlength="500"
+            placeholder="Short summary of the issue"
+            [(ngModel)]="Title" />
+        </label>
+
+        <label class="ri-field">
+          <span class="ri-label">Description</span>
+          <textarea
+            class="mj-textarea"
+            rows="5"
+            placeholder="What happened? Steps to reproduce, expected vs. actual…"
+            [(ngModel)]="Description"></textarea>
+        </label>
+
+        <label class="ri-field">
+          <span class="ri-label">Severity</span>
+          <mj-dropdown
+            [Data]="SeverityOptions"
+            [ValuePrimitive]="true"
+            [(ngModel)]="Severity">
+          </mj-dropdown>
+        </label>
+      </div>
+    }
+
+    <mj-dialog-actions>
+      <!-- Confirm/submit on the LEFT, cancel on the RIGHT (MJ convention). -->
+      <button mjButton variant="primary" [disabled]="!CanSubmit" (click)="Submit()">
+        @if (IsSubmitting) { Submitting… } @else { Submit }
+      </button>
+      <button mjButton variant="secondary" [disabled]="IsSubmitting" (click)="Cancel()">
+        Cancel
+      </button>
+    </mj-dialog-actions>
+  </mj-dialog>
+}
