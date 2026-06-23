@@ -1,0 +1,65 @@
+.ri-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--mj-text-primary);
+}
+
+.ri-title i {
+  color: var(--mj-brand-primary);
+}
+
+.ri-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 160px;
+}
+
+.ri-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 2px;
+}
+
+.ri-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ri-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mj-text-secondary);
+}
+
+.ri-required {
+  color: var(--mj-status-error);
+}
+
+.ri-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--mj-status-error-text);
+  background: var(--mj-status-error-bg);
+  border: 1px solid var(--mj-status-error-border);
+}
+
+/* Native form controls use the shared MJ input/textarea classes; only layout here. */
+.ri-field .mj-input,
+.ri-field .mj-textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ri-field .mj-textarea {
+  resize: vertical;
+  min-height: 96px;
+}

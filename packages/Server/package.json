@@ -1,0 +1,42 @@
+{
+  "name": "@mj-biz-apps/issues-server",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "BizApps Issues server bootstrap - GraphQL resolvers and class registrations for the Issues Open App",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "prebuild": "mj codegen manifest --exclude-packages @memberjunction --output ./src/generated/class-registrations-manifest.ts || echo 'Warning: mj codegen manifest not available, using existing manifest'",
+    "build": "tsc && tsc-alias -f",
+    "test": "echo \"No tests configured yet\""
+  },
+  "author": "MemberJunction.com",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@mj-biz-apps/issues-core-entities-server": "1.0.0",
+    "@mj-biz-apps/issues-core": "1.0.0",
+    "@mj-biz-apps/issues-entities": "1.0.0",
+    "@mj-biz-apps/issues-actions": "1.0.0",
+    "class-validator": "^0.14.3"
+  },
+  "peerDependencies": {
+    "@memberjunction/core": "^5.40.2",
+    "@memberjunction/global": "^5.40.2",
+    "@memberjunction/server": "^5.40.2",
+    "@memberjunction/sqlserver-dataprovider": "^5.40.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MemberJunction/bizapps-issues"
+  }
+}
