@@ -127,6 +127,54 @@ jobs:
             exit 1
           fi
 
+      - name: Sync mj-app.json version and MJ version range
+        if: steps.changeset_check.outputs.pending != '0'
+        run: |
+          # Sync app version from a package (Entities is the canonical version source for this repo)
+          VERSION=$(jq -r .version packages/Entities/package.json)
+          jq --arg v "$VERSION" '.version = $v' mj-app.json > mj-app.json.tmp
+          mv mj-app.json.tmp mj-app.json
+          echo "Updated mj-app.json version to $VERSION"
+
+          # Derive mjVersionRange from the @memberjunction/core dependency
+          MJ_DEP=$(jq -r '.dependencies["@memberjunction/core"] // .peerDependencies["@memberjunction/core"] // empty' packages/Entities/package.json)
+          if [ -n "$MJ_DEP" ]; then
+            MJ_MIN=$(echo "$MJ_DEP" | sed 's/^[^0-9]*//')
+            MJ_NEXT_MAJOR="$(( $(echo "$MJ_MIN" | cut -d. -f1) + 1 )).0.0"
+            MJ_RANGE=">=${MJ_MIN} <${MJ_NEXT_MAJOR}"
+            jq --arg r "$MJ_RANGE" '.mjVersionRange = $r' mj-app.json > mj-app.json.tmp
+            mv mj-app.json.tmp mj-app.json
+            echo "Updated mj-app.json mjVersionRange to $MJ_RANGE"
+          fi
+
+      - name: Sync mj-app.json upstream BizApps dependency version ranges
+        if: steps.changeset_check.outputs.pending != '0'
+        run: |
+          # Derive each upstream range from the dependency the app (MJAPI) actually uses.
+          # NOTE: object-form dependencies — key by app name, set its `version` field.
+
+          # BizApps Tasks (from @mj-biz-apps/tasks-server)
+          TASKS_DEP=$(jq -r '.dependencies["@mj-biz-apps/tasks-server"] // .peerDependencies["@mj-biz-apps/tasks-server"] // empty' apps/MJAPI/package.json)
+          if [ -n "$TASKS_DEP" ]; then
+            TASKS_MIN=$(echo "$TASKS_DEP" | sed 's/^[^0-9]*//')
+            TASKS_NEXT_MAJOR="$(( $(echo "$TASKS_MIN" | cut -d. -f1) + 1 )).0.0"
+            TASKS_RANGE=">=${TASKS_MIN} <${TASKS_NEXT_MAJOR}"
+            jq --arg r "$TASKS_RANGE" '.dependencies["mj-bizapps-tasks"].version = $r' mj-app.json > mj-app.json.tmp
+            mv mj-app.json.tmp mj-app.json
+            echo "Updated mj-app.json BizAppsTasks version range to $TASKS_RANGE"
+          fi
+
+          # BizApps Common (from @mj-biz-apps/common-server)
+          BAC_DEP=$(jq -r '.dependencies["@mj-biz-apps/common-server"] // .peerDependencies["@mj-biz-apps/common-server"] // empty' apps/MJAPI/package.json)
+          if [ -n "$BAC_DEP" ]; then
+            BAC_MIN=$(echo "$BAC_DEP" | sed 's/^[^0-9]*//')
+            BAC_NEXT_MAJOR="$(( $(echo "$BAC_MIN" | cut -d. -f1) + 1 )).0.0"
+            BAC_RANGE=">=${BAC_MIN} <${BAC_NEXT_MAJOR}"
+            jq --arg r "$BAC_RANGE" '.dependencies["mj-bizapps-common"].version = $r' mj-app.json > mj-app.json.tmp
+            mv mj-app.json.tmp mj-app.json
+            echo "Updated mj-app.json BizAppsCommon version range to $BAC_RANGE"
+          fi
+
       - name: Build all packages
         run: npm run build:packages
 
