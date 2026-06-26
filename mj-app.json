@@ -13,18 +13,16 @@
   },
   "repository": "https://github.com/MemberJunction/bizapps-issues",
   "mjVersionRange": ">=5.40.2 <6.0.0",
-  "dependencies": [
-    {
-      "name": "mj-bizapps-tasks",
-      "repository": "https://github.com/MemberJunction/bizapps-tasks",
-      "versionRange": ">=1.0.0 <2.0.0"
+  "dependencies": {
+    "mj-bizapps-tasks": {
+      "version": ">=1.0.0 <2.0.0",
+      "repository": "https://github.com/MemberJunction/bizapps-tasks"
     },
-    {
-      "name": "mj-bizapps-common",
-      "repository": "https://github.com/MemberJunction/bizapps-common",
-      "versionRange": ">=5.30.0 <6.0.0"
+    "mj-bizapps-common": {
+      "version": ">=5.30.0 <6.0.0",
+      "repository": "https://github.com/MemberJunction/bizapps-common"
     }
-  ],
+  },
   "schema": {
     "name": "__mj_BizAppsIssues",
     "createIfNotExists": true
