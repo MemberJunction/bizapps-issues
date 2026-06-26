@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/issues-core",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BizApps Issues Core Services - IssueEngine, IssueService, IssueWorkService",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +22,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@mj-biz-apps/issues-entities": "1.0.0",
+    "@mj-biz-apps/issues-entities": "1.0.1",
     "@mj-biz-apps/tasks-entities": "^1.0.0",
     "@mj-biz-apps/common-entities": "^5.30.0"
   },

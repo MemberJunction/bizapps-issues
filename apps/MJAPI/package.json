@@ -32,7 +32,7 @@
     "@memberjunction/templates": "5.40.2",
     "axios": "^1.13.4",
     "class-validator": "^0.14.3",
-    "@mj-biz-apps/issues-server": "1.0.0",
+    "@mj-biz-apps/issues-server": "1.0.1",
     "@mj-biz-apps/tasks-server": "^1.0.0",
     "@mj-biz-apps/common-server": "^5.30.0"
   },

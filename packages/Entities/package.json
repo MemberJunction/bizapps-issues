@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/issues-entities",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MJ BizApps Issues Entity Subclasses",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

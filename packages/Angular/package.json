@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/issues-ng",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BizApps Issues Angular bootstrap - form components and module for the Issues Open App",
   "main": "dist/public-api.js",
   "types": "dist/public-api.d.ts",
@@ -19,7 +19,7 @@
   "author": "MemberJunction.com",
   "license": "ISC",
   "dependencies": {
-    "@mj-biz-apps/issues-entities": "1.0.0"
+    "@mj-biz-apps/issues-entities": "1.0.1"
   },
   "peerDependencies": {
     "@angular/animations": ">=21.0.0 <22.0.0",

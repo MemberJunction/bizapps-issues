@@ -4,7 +4,7 @@
   "name": "mj-bizapps-issues",
   "displayName": "Issues",
   "description": "Reusable case / issue / ticket primitives — Issue, IssueType, IssueStatus, IssueComment — the shared foundation for ticketing UX (Izzy) and the cloud-feedback destination",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "ISC",
   "icon": "fa-solid fa-life-ring",
   "publisher": {
@@ -72,6 +72,16 @@
     "visibility": "public",
     "sourceDirectory": "packages"
   },
-  "categories": ["Business", "Support", "Ticketing"],
-  "tags": ["issue", "ticket", "case", "feedback", "support"]
+  "categories": [
+    "Business",
+    "Support",
+    "Ticketing"
+  ],
+  "tags": [
+    "issue",
+    "ticket",
+    "case",
+    "feedback",
+    "support"
+  ]
 }

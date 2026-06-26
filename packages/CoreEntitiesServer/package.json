@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/issues-core-entities-server",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Server-side entity subclasses for BizApps Issues — lifecycle hooks for Issue, IssueComment, etc. (stamp ResolvedAt/ClosedAt, fire IssueType action hooks).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,8 +22,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@mj-biz-apps/issues-entities": "1.0.0",
-    "@mj-biz-apps/issues-core": "1.0.0"
+    "@mj-biz-apps/issues-entities": "1.0.1",
+    "@mj-biz-apps/issues-core": "1.0.1"
   },
   "peerDependencies": {
     "@memberjunction/core": "^5.40.2",
