@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS __mj_BizAppsIssues;
-SET search_path TO __mj_BizAppsIssues, public;
+CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
+SET search_path TO "__mj_BizAppsIssues", public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;
@@ -29,31 +29,31 @@ DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'CK_IssueComment_Source'
-        AND parent_object_id = "OBJECT_ID"('__mj_BizAppsIssues."IssueComment"')
+        AND conrelid = '"__mj_BizAppsIssues"."IssueComment"'::regclass
     ) THEN
-        ALTER TABLE __mj_BizAppsIssues."IssueComment"
+        ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
         ADD CONSTRAINT "CK_IssueComment_Source" CHECK ("Source" IN ('internal', 'outbound', 'inbound'));
     END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_IssueID" ON __mj_BizAppsIssues."IssueComment" ("IssueID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_IssueID" ON "__mj_BizAppsIssues"."IssueComment" ("IssueID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_AuthorPersonID" ON __mj_BizAppsIssues."IssueComment" ("AuthorPersonID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_AuthorPersonID" ON "__mj_BizAppsIssues"."IssueComment" ("AuthorPersonID");
 
 
 -- ===================== Views =====================
 
-DROP VIEW IF EXISTS __mj_BizAppsIssues."vwIssueComments" CASCADE;
+DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueComments" CASCADE;
 DO $do$
 DECLARE
   v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
   v_target_name CONSTANT TEXT := 'vwIssueComments';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_BizAppsIssues."vwIssueComments"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueComments"
 AS SELECT
     i.*,
     "mjBizAppsCommonPerson_AuthorPersonID"."DisplayName" AS "AuthorPerson"
 FROM
-    __mj_BizAppsIssues."IssueComment" AS i
+    "__mj_BizAppsIssues"."IssueComment" AS i
 LEFT OUTER JOIN
     "${mjSchema}_BizAppsCommon"."Person" AS "mjBizAppsCommonPerson_AuthorPersonID"
   ON
@@ -117,7 +117,7 @@ $do$;
 -- ===================== Stored Procedures (sp*) =====================
 
 -- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE __mj_BizAppsIssues."spCreateIssueComment"
+-- CREATE PROCEDURE "__mj_BizAppsIssues"."spCreateIssueComment"
 --     @ID UUID = NULL,
 --     @IssueID UUID,
 --     @Body TEXT,
@@ -125,7 +125,7 @@ $do$;
 --     @AuthorPers...
 
 -- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE __mj_BizAppsIssues."spUpdateIssueComment"
+-- CREATE PROCEDURE "__mj_BizAppsIssues"."spUpdateIssueComment"
 --     @ID UUID,
 --     @IssueID UUID = NULL,
 --     @Body TEXT = NULL,
@@ -133,14 +133,14 @@ $do$;
 --     @Aut...
 
 -- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE __mj_BizAppsIssues."spDeleteIssueComment"
+-- CREATE PROCEDURE "__mj_BizAppsIssues"."spDeleteIssueComment"
 --     @ID UUID
 -- AS
 -- BEGIN
 --     SET NOCOUNT ON;
 -- 
 --     DELETE FROM
---         __mj_BizAppsIssues."IssueComment"
+--         "__mj_BizAppsIssues"."IssueComment"
 --     WHERE
 --         "ID" =...
 
@@ -149,21 +149,21 @@ $do$;
 
 -- SKIPPED: trigger (auto-conversion not supported)
 -- CREATE TRIGGER __mj_BizAppsIssues.trgUpdateIssueComment
--- ON __mj_BizAppsIssues."IssueComment"
+-- ON "__mj_BizAppsIssues"."IssueComment"
 -- AFTER UPDATE
 -- AS
 -- BEGIN
 --     SET NOCOUNT ON;
 --     UPDATE
---         __mj_BizAppsIssues."IssueComment"
+--         "__mj_BizAppsIssues"."IssueComment"
 --     SE
 
 
 -- ===================== Data (INSERT/UPDATE/DELETE) =====================
 
-UPDATE __mj_BizAppsIssues."IssueComment" SET "Source" = 'outbound' WHERE "Source" = 'email';
+UPDATE "__mj_BizAppsIssues"."IssueComment" SET "Source" = 'outbound' WHERE "Source" = 'email';
 
-UPDATE __mj_BizAppsIssues."IssueComment" SET "Source" = 'inbound'  WHERE "Source" = 'external';
+UPDATE "__mj_BizAppsIssues"."IssueComment" SET "Source" = 'inbound'  WHERE "Source" = 'external';
 
 DELETE FROM "${mjSchema}"."EntityFieldValue" WHERE "ID"='E875C064-3D9D-407E-A4E5-C27C1F793206';
 
@@ -194,7 +194,7 @@ UPDATE "${mjSchema}"."EntityFieldValue" SET "Sequence"=2 WHERE "ID"='CB674C9D-5D
 
 -- ===================== Grants =====================
 
-DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -205,7 +205,7 @@ DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueComments" TO "cdp_UI", "c
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -220,10 +220,10 @@ DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueComments" TO "cdp_UI", "c
 ----- CREATE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Comments */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -238,8 +238,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueComment" 
 ----- UPDATE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -254,16 +254,16 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueComment" 
 ----- DELETE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Comments */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to delete unneeded entity fields (1 scoped entities) */
 
 
 -- ===================== Comments =====================
 
-COMMENT ON COLUMN __mj_BizAppsIssues."IssueComment"."Source" IS 'Direction/visibility of the comment (channel-agnostic): ';
+COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."Source" IS 'Direction/visibility of the comment (channel-agnostic): ';
 
 
 -- ===================== Other =====================

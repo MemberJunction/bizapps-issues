@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS __mj_BizAppsIssues;
-SET search_path TO __mj_BizAppsIssues, public;
+CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
+SET search_path TO "__mj_BizAppsIssues", public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;

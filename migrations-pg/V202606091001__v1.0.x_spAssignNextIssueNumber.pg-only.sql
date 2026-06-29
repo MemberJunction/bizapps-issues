@@ -35,7 +35,7 @@
 -- the value BEFORE this call's increment, matching the T-SQL contract.
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION __mj_BizAppsIssues.spAssignNextIssueNumber(
+CREATE OR REPLACE FUNCTION "__mj_BizAppsIssues".spAssignNextIssueNumber(
     "AppScope" VARCHAR(255) DEFAULT NULL
 )
 RETURNS TEXT
@@ -55,7 +55,7 @@ BEGIN
     -- already advanced to 2 and this call takes seq 1. On reuse, DO UPDATE advances
     -- the stored counter by 1; v_seq is the value this call consumed (pre-increment),
     -- derived from the RETURNING of the new (post-increment) counter minus 1.
-    INSERT INTO __mj_BizAppsIssues."IssueNumberSequence" AS s ("ScopeCode", "NextSequenceNumber")
+    INSERT INTO "__mj_BizAppsIssues"."IssueNumberSequence" AS s ("ScopeCode", "NextSequenceNumber")
         VALUES (v_scope, 2)
     ON CONFLICT ("ScopeCode") DO UPDATE
         SET "NextSequenceNumber" = s."NextSequenceNumber" + 1

@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS __mj_BizAppsIssues;
-SET search_path TO __mj_BizAppsIssues, public;
+CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
+SET search_path TO "__mj_BizAppsIssues", public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;
@@ -52,7 +52,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_7c793b40 := FALSE;
 --   p_ColorCode_7c793b40 := '#EAB308';
 --   p_IsResolved_7c793b40 := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_7c793b40, p_Name := p_Name_7c793b40, p_Description := p_Description_7c793b40, p_Sequence := p_Sequence_7c793b40, p_IsDefault := p_IsDefault_7c793b40, p_IsTerminal := p_IsTerminal_7c793b40, p_ColorCode := p_ColorCode_7c793b40, p_IsResolved := p_IsResolved_7c793b40);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_7c793b40, p_Name := p_Name_7c793b40, p_Description := p_Description_7c793b40, p_Sequence := p_Sequence_7c793b40, p_IsDefault := p_IsDefault_7c793b40, p_IsTerminal := p_IsTerminal_7c793b40, p_ColorCode := p_ColorCode_7c793b40, p_IsResolved := p_IsResolved_7c793b40);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -75,7 +75,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_4d656cb7 := FALSE;
 --   p_ColorCode_4d656cb7 := '#8B5CF6';
 --   p_IsResolved_4d656cb7 := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_4d656cb7, p_Name := p_Name_4d656cb7, p_Description := p_Description_4d656cb7, p_Sequence := p_Sequence_4d656cb7, p_IsDefault := p_IsDefault_4d656cb7, p_IsTerminal := p_IsTerminal_4d656cb7, p_ColorCode := p_ColorCode_4d656cb7, p_IsResolved := p_IsResolved_4d656cb7);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_4d656cb7, p_Name := p_Name_4d656cb7, p_Description := p_Description_4d656cb7, p_Sequence := p_Sequence_4d656cb7, p_IsDefault := p_IsDefault_4d656cb7, p_IsTerminal := p_IsTerminal_4d656cb7, p_ColorCode := p_ColorCode_4d656cb7, p_IsResolved := p_IsResolved_4d656cb7);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -98,7 +98,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_57a061e1 := FALSE;
 --   p_ColorCode_57a061e1 := '#3B82F6';
 --   p_IsResolved_57a061e1 := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_57a061e1, p_Name := p_Name_57a061e1, p_Description := p_Description_57a061e1, p_Sequence := p_Sequence_57a061e1, p_IsDefault := p_IsDefault_57a061e1, p_IsTerminal := p_IsTerminal_57a061e1, p_ColorCode := p_ColorCode_57a061e1, p_IsResolved := p_IsResolved_57a061e1);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_57a061e1, p_Name := p_Name_57a061e1, p_Description := p_Description_57a061e1, p_Sequence := p_Sequence_57a061e1, p_IsDefault := p_IsDefault_57a061e1, p_IsTerminal := p_IsTerminal_57a061e1, p_ColorCode := p_ColorCode_57a061e1, p_IsResolved := p_IsResolved_57a061e1);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -121,7 +121,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_5e14f88a := FALSE;
 --   p_ColorCode_5e14f88a := '#F97316';
 --   p_IsResolved_5e14f88a := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_5e14f88a, p_Name := p_Name_5e14f88a, p_Description := p_Description_5e14f88a, p_Sequence := p_Sequence_5e14f88a, p_IsDefault := p_IsDefault_5e14f88a, p_IsTerminal := p_IsTerminal_5e14f88a, p_ColorCode := p_ColorCode_5e14f88a, p_IsResolved := p_IsResolved_5e14f88a);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_5e14f88a, p_Name := p_Name_5e14f88a, p_Description := p_Description_5e14f88a, p_Sequence := p_Sequence_5e14f88a, p_IsDefault := p_IsDefault_5e14f88a, p_IsTerminal := p_IsTerminal_5e14f88a, p_ColorCode := p_ColorCode_5e14f88a, p_IsResolved := p_IsResolved_5e14f88a);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -144,7 +144,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_3f66c16c := FALSE;
 --   p_ColorCode_3f66c16c := '#10B981';
 --   p_IsResolved_3f66c16c := TRUE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_3f66c16c, p_Name := p_Name_3f66c16c, p_Description := p_Description_3f66c16c, p_Sequence := p_Sequence_3f66c16c, p_IsDefault := p_IsDefault_3f66c16c, p_IsTerminal := p_IsTerminal_3f66c16c, p_ColorCode := p_ColorCode_3f66c16c, p_IsResolved := p_IsResolved_3f66c16c);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_3f66c16c, p_Name := p_Name_3f66c16c, p_Description := p_Description_3f66c16c, p_Sequence := p_Sequence_3f66c16c, p_IsDefault := p_IsDefault_3f66c16c, p_IsTerminal := p_IsTerminal_3f66c16c, p_ColorCode := p_ColorCode_3f66c16c, p_IsResolved := p_IsResolved_3f66c16c);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -167,7 +167,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_76a4b709 := TRUE;
 --   p_ColorCode_76a4b709 := '#475569';
 --   p_IsResolved_76a4b709 := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_76a4b709, p_Name := p_Name_76a4b709, p_Description := p_Description_76a4b709, p_Sequence := p_Sequence_76a4b709, p_IsDefault := p_IsDefault_76a4b709, p_IsTerminal := p_IsTerminal_76a4b709, p_ColorCode := p_ColorCode_76a4b709, p_IsResolved := p_IsResolved_76a4b709);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_76a4b709, p_Name := p_Name_76a4b709, p_Description := p_Description_76a4b709, p_Sequence := p_Sequence_76a4b709, p_IsDefault := p_IsDefault_76a4b709, p_IsTerminal := p_IsTerminal_76a4b709, p_ColorCode := p_ColorCode_76a4b709, p_IsResolved := p_IsResolved_76a4b709);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Status (core SP call only)
@@ -190,7 +190,7 @@ SET standard_conforming_strings = on;
 --   p_IsTerminal_2b34ba9a := TRUE;
 --   p_ColorCode_2b34ba9a := '#9CA3AF';
 --   p_IsResolved_2b34ba9a := FALSE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueStatus"(p_ID := p_ID_2b34ba9a, p_Name := p_Name_2b34ba9a, p_Description := p_Description_2b34ba9a, p_Sequence := p_Sequence_2b34ba9a, p_IsDefault := p_IsDefault_2b34ba9a, p_IsTerminal := p_IsTerminal_2b34ba9a, p_ColorCode := p_ColorCode_2b34ba9a, p_IsResolved := p_IsResolved_2b34ba9a);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueStatus"(p_ID := p_ID_2b34ba9a, p_Name := p_Name_2b34ba9a, p_Description := p_Description_2b34ba9a, p_Sequence := p_Sequence_2b34ba9a, p_IsDefault := p_IsDefault_2b34ba9a, p_IsTerminal := p_IsTerminal_2b34ba9a, p_ColorCode := p_ColorCode_2b34ba9a, p_IsResolved := p_IsResolved_2b34ba9a);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Types (core SP call only)
@@ -214,7 +214,7 @@ SET standard_conforming_strings = on;
 --   p_IconClass_82366ff6 := 'fa-solid fa-bug';
 --   p_DefaultPriority_82366ff6 := 'High';
 --   p_IsActive_82366ff6 := TRUE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueType"(p_ID := p_ID_82366ff6, p_Name := p_Name_82366ff6, p_Description := p_Description_82366ff6, p_IconClass := p_IconClass_82366ff6, p_DefaultPriority := p_DefaultPriority_82366ff6, p_DefaultTaskTypeID := p_DefaultTaskTypeID_82366ff6, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_82366ff6, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_82366ff6, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_82366ff6, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_82366ff6, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_82366ff6);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueType"(p_ID := p_ID_82366ff6, p_Name := p_Name_82366ff6, p_Description := p_Description_82366ff6, p_IconClass := p_IconClass_82366ff6, p_DefaultPriority := p_DefaultPriority_82366ff6, p_DefaultTaskTypeID := p_DefaultTaskTypeID_82366ff6, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_82366ff6, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_82366ff6, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_82366ff6, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_82366ff6, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_82366ff6);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Types (core SP call only)
@@ -238,7 +238,7 @@ SET standard_conforming_strings = on;
 --   p_IconClass_594d9353 := 'fa-solid fa-lightbulb';
 --   p_DefaultPriority_594d9353 := 'Medium';
 --   p_IsActive_594d9353 := TRUE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueType"(p_ID := p_ID_594d9353, p_Name := p_Name_594d9353, p_Description := p_Description_594d9353, p_IconClass := p_IconClass_594d9353, p_DefaultPriority := p_DefaultPriority_594d9353, p_DefaultTaskTypeID := p_DefaultTaskTypeID_594d9353, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_594d9353, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_594d9353, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_594d9353, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_594d9353, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_594d9353);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueType"(p_ID := p_ID_594d9353, p_Name := p_Name_594d9353, p_Description := p_Description_594d9353, p_IconClass := p_IconClass_594d9353, p_DefaultPriority := p_DefaultPriority_594d9353, p_DefaultTaskTypeID := p_DefaultTaskTypeID_594d9353, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_594d9353, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_594d9353, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_594d9353, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_594d9353, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_594d9353);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Types (core SP call only)
@@ -262,7 +262,7 @@ SET standard_conforming_strings = on;
 --   p_IconClass_7cd89b91 := 'fa-solid fa-circle-question';
 --   p_DefaultPriority_7cd89b91 := 'Low';
 --   p_IsActive_7cd89b91 := TRUE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueType"(p_ID := p_ID_7cd89b91, p_Name := p_Name_7cd89b91, p_Description := p_Description_7cd89b91, p_IconClass := p_IconClass_7cd89b91, p_DefaultPriority := p_DefaultPriority_7cd89b91, p_DefaultTaskTypeID := p_DefaultTaskTypeID_7cd89b91, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_7cd89b91, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_7cd89b91, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_7cd89b91, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_7cd89b91, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_7cd89b91);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueType"(p_ID := p_ID_7cd89b91, p_Name := p_Name_7cd89b91, p_Description := p_Description_7cd89b91, p_IconClass := p_IconClass_7cd89b91, p_DefaultPriority := p_DefaultPriority_7cd89b91, p_DefaultTaskTypeID := p_DefaultTaskTypeID_7cd89b91, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_7cd89b91, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_7cd89b91, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_7cd89b91, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_7cd89b91, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_7cd89b91);
 -- END $mj$;
 
 -- Save MJ_BizApps_Issues: Issue Types (core SP call only)
@@ -286,7 +286,7 @@ SET standard_conforming_strings = on;
 --   p_IconClass_cf8c3b60 := 'fa-solid fa-comment-dots';
 --   p_DefaultPriority_cf8c3b60 := 'Medium';
 --   p_IsActive_cf8c3b60 := TRUE;
---   PERFORM __mj_BizAppsIssues."spCreateIssueType"(p_ID := p_ID_cf8c3b60, p_Name := p_Name_cf8c3b60, p_Description := p_Description_cf8c3b60, p_IconClass := p_IconClass_cf8c3b60, p_DefaultPriority := p_DefaultPriority_cf8c3b60, p_DefaultTaskTypeID := p_DefaultTaskTypeID_cf8c3b60, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_cf8c3b60, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_cf8c3b60, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_cf8c3b60, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_cf8c3b60, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_cf8c3b60);
+--   PERFORM "__mj_BizAppsIssues"."spCreateIssueType"(p_ID := p_ID_cf8c3b60, p_Name := p_Name_cf8c3b60, p_Description := p_Description_cf8c3b60, p_IconClass := p_IconClass_cf8c3b60, p_DefaultPriority := p_DefaultPriority_cf8c3b60, p_DefaultTaskTypeID := p_DefaultTaskTypeID_cf8c3b60, p_DefaultTaskTypeID_Clear := TRUE, p_OnCreateActionID := p_OnCreateActionID_cf8c3b60, p_OnCreateActionID_Clear := TRUE, p_OnStatusChangeActionID := p_OnStatusChangeActionID_cf8c3b60, p_OnStatusChangeActionID_Clear := TRUE, p_OnAssignActionID := p_OnAssignActionID_cf8c3b60, p_OnAssignActionID_Clear := TRUE, p_OnCloseActionID := p_OnCloseActionID_cf8c3b60, p_OnCloseActionID_Clear := TRUE, p_IsActive := p_IsActive_cf8c3b60);
 -- END $mj$;
 
 

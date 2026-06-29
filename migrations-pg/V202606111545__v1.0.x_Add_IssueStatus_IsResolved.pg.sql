@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS __mj_BizAppsIssues;
-SET search_path TO __mj_BizAppsIssues, public;
+CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
+SET search_path TO "__mj_BizAppsIssues", public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;
@@ -42,22 +42,22 @@ SET standard_conforming_strings = on;
 -- spCreate/spUpdate, EntityField metadata) — not hand-written here.
 -- =============================================================================
 
-ALTER TABLE __mj_BizAppsIssues."IssueStatus"
+ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
  ADD COLUMN IF NOT EXISTS "IsResolved" BOOLEAN NOT NULL DEFAULT FALSE;
 
 
 -- ===================== Views =====================
 
-DROP VIEW IF EXISTS __mj_BizAppsIssues."vwIssueStatus" CASCADE;
+DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueStatus" CASCADE;
 DO $do$
 DECLARE
   v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
   v_target_name CONSTANT TEXT := 'vwIssueStatus';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_BizAppsIssues."vwIssueStatus"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueStatus"
 AS SELECT
     i.*
 FROM
-    __mj_BizAppsIssues."IssueStatus" AS i$vsql$;
+    "__mj_BizAppsIssues"."IssueStatus" AS i$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -233,7 +233,7 @@ END $$;
 
 -- ===================== Grants =====================
 
-DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -244,7 +244,7 @@ DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueStatus" TO "cdp_UI", "cdp
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -259,10 +259,10 @@ DO $$ BEGIN GRANT SELECT ON __mj_BizAppsIssues."vwIssueStatus" TO "cdp_UI", "cdp
 ----- CREATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -277,8 +277,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spCreateIssueStatus" T
 ----- UPDATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -293,16 +293,16 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spUpdateIssueStatus" T
 ----- DELETE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_BizAppsIssues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to delete unneeded entity fields (1 scoped entities) */
 
 
 -- ===================== Comments =====================
 
-COMMENT ON COLUMN __mj_BizAppsIssues."IssueStatus"."IsResolved" IS 'Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue."ResolvedAt". Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.';
+COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."IsResolved" IS 'Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue."ResolvedAt". Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.';
 
 
 -- ===================== Other =====================
