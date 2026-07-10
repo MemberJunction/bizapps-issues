@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
-SET search_path TO "__mj_BizAppsIssues", public;
+CREATE SCHEMA IF NOT EXISTS __mj_bizappsissues;
+SET search_path TO __mj_bizappsissues, public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;
@@ -42,22 +42,22 @@ SET standard_conforming_strings = on;
 -- spCreate/spUpdate, EntityField metadata) — not hand-written here.
 -- =============================================================================
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
+ALTER TABLE __mj_bizappsissues."IssueStatus"
  ADD COLUMN IF NOT EXISTS "IsResolved" BOOLEAN NOT NULL DEFAULT FALSE;
 
 
 -- ===================== Views =====================
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueStatus" CASCADE;
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssueStatus" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssueStatus';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueStatus"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssueStatus"
 AS SELECT
     i.*
 FROM
-    "__mj_BizAppsIssues"."IssueStatus" AS i$vsql$;
+    __mj_bizappsissues."IssueStatus" AS i$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -116,47 +116,117 @@ $do$;
 
 -- ===================== Stored Procedures (sp*) =====================
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssueStatus]
---     @ID UUID = NULL,
---     @Name VARCHAR(100),
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @Sequen...
+-- spCreateIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssueStatus"(p_id uuid DEFAULT NULL::uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_sequence integer DEFAULT NULL::integer, p_isdefault boolean DEFAULT NULL::boolean, p_isterminal boolean DEFAULT NULL::boolean, p_colorcode_clear boolean DEFAULT false, p_colorcode character varying DEFAULT NULL::character varying, p_isresolved boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueStatus"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id UUID;
+BEGIN
+    v_new_id := COALESCE(p_id, gen_random_uuid());
+    INSERT INTO __mj_bizappsissues."IssueStatus"
+        (
+            "ID",
+            "Name",
+                "Description",
+                "Sequence",
+                "IsDefault",
+                "IsTerminal",
+                "ColorCode",
+                "IsResolved"
+        )
+    VALUES
+        (
+            v_new_id,
+            p_name,
+                CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, NULL) END,
+                COALESCE(p_sequence, 100),
+                COALESCE(p_isdefault, FALSE),
+                COALESCE(p_isterminal, FALSE),
+                CASE WHEN p_colorcode_clear = true THEN NULL ELSE COALESCE(p_colorcode, NULL) END,
+                COALESCE(p_isresolved, FALSE)
+        )
+    ;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssueStatus]
---     @ID UUID,
---     @Name VARCHAR(100) = NULL,
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @Sequen...
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueStatus"
+    WHERE "ID" = v_new_id;
+END;
+$function$;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssueStatus]
---     @ID UUID
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[IssueStatus]
---     WHERE
---         [ID] = @...
+-- spUpdateIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssueStatus"(p_id uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_sequence integer DEFAULT NULL::integer, p_isdefault boolean DEFAULT NULL::boolean, p_isterminal boolean DEFAULT NULL::boolean, p_colorcode_clear boolean DEFAULT false, p_colorcode character varying DEFAULT NULL::character varying, p_isresolved boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueStatus"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."IssueStatus"
+    SET
+        "Name" = COALESCE(p_name, "Name"),
+        "Description" = CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, "Description") END,
+        "Sequence" = COALESCE(p_sequence, "Sequence"),
+        "IsDefault" = COALESCE(p_isdefault, "IsDefault"),
+        "IsTerminal" = COALESCE(p_isterminal, "IsTerminal"),
+        "ColorCode" = CASE WHEN p_colorcode_clear = true THEN NULL ELSE COALESCE(p_colorcode, "ColorCode") END,
+        "IsResolved" = COALESCE(p_isresolved, "IsResolved")
+    WHERE
+        "ID" = p_id;
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
+
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueStatus"
+    WHERE "ID" = p_id;
+END;
+$function$;
+
+-- spDeleteIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssueStatus"(p_id uuid)
+ RETURNS TABLE("ID" uuid)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
+
+    DELETE FROM __mj_bizappsissues."IssueStatus"
+    WHERE "ID" = p_id;
+
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::UUID AS "ID";
+    ELSE
+        RETURN QUERY SELECT p_id AS "ID";
+    END IF;
+END;
+$function$;
 
 
 -- ===================== Triggers =====================
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssueStatus
--- ON [__mj_BizAppsIssues].[IssueStatus]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[IssueStatus]
---     SET
+-- trg_update_issue_status: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue_status()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue_status ON __mj_bizappsissues."IssueStatus";
+CREATE TRIGGER trg_update_issue_status BEFORE UPDATE ON __mj_bizappsissues."IssueStatus" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue_status();
  
 
 
@@ -233,7 +303,7 @@ END $$;
 
 -- ===================== Grants =====================
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -244,7 +314,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "c
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -259,10 +329,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "c
 ----- CREATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -277,8 +347,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus"
 ----- UPDATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -293,16 +363,16 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus"
 ----- DELETE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to delete unneeded entity fields (1 scoped entities) */
 
 
 -- ===================== Comments =====================
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."IsResolved" IS 'Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue."ResolvedAt". Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."IsResolved" IS 'Whether this is the resolved-but-not-closed state (e.g. Resolved). Entering an IsResolved status stamps Issue."ResolvedAt". Distinct from IsTerminal: an issue can be resolved while still open for confirmation before it is closed.';
 
 
 -- ===================== Other =====================

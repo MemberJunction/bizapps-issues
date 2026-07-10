@@ -8,8 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Schema
-CREATE SCHEMA IF NOT EXISTS "__mj_BizAppsIssues";
-SET search_path TO "__mj_BizAppsIssues", public;
+CREATE SCHEMA IF NOT EXISTS __mj_bizappsissues;
+SET search_path TO __mj_bizappsissues, public;
 
 -- Ensure backslashes in string literals are treated literally (not as escape sequences)
 SET standard_conforming_strings = on;
@@ -36,7 +36,7 @@ SET standard_conforming_strings = on;
 -- event. DefaultTaskTypeID is the bizapps-tasks TaskType used when an Issue
 -- of this type spawns work via IssueWorkService.
 ---------------------------------------------------------------------------
-CREATE TABLE "__mj_BizAppsIssues"."IssueType" (
+CREATE TABLE __mj_bizappsissues."IssueType" (
  "ID" UUID NOT NULL DEFAULT gen_random_uuid(),
  "Name" VARCHAR(100) NOT NULL,
  "Description" TEXT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE "__mj_BizAppsIssues"."IssueType" (
 -- board columns later. IsDefault marks the new-issue status; IsTerminal
 -- marks closed/resolved end states.
 ---------------------------------------------------------------------------
-CREATE TABLE "__mj_BizAppsIssues"."IssueStatus" (
+CREATE TABLE __mj_bizappsissues."IssueStatus" (
  "ID" UUID NOT NULL DEFAULT gen_random_uuid(),
  "Name" VARCHAR(100) NOT NULL,
  "Description" TEXT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE "__mj_BizAppsIssues"."IssueStatus" (
 -- addressed by SourceEntityID + SourceRecordID.
 -- - Severity = impact, Priority = scheduling (kept distinct per decision).
 ---------------------------------------------------------------------------
-CREATE TABLE "__mj_BizAppsIssues"."Issue" (
+CREATE TABLE __mj_bizappsissues."Issue" (
  "ID" UUID NOT NULL DEFAULT gen_random_uuid(),
  "IssueNumber" VARCHAR(50) NULL,
  "Title" VARCHAR(500) NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE "__mj_BizAppsIssues"."Issue" (
 -- internal; AuthorEmail carries the address for email/external sources.
 -- Source 'external' is reserved for v1.1 provider sync.
 ---------------------------------------------------------------------------
-CREATE TABLE "__mj_BizAppsIssues"."IssueComment" (
+CREATE TABLE __mj_bizappsissues."IssueComment" (
  "ID" UUID NOT NULL DEFAULT gen_random_uuid(),
  "IssueID" UUID NOT NULL,
  "Body" TEXT NOT NULL,
@@ -137,91 +137,91 @@ CREATE TABLE "__mj_BizAppsIssues"."IssueComment" (
 -- (trimmed/uppercased) AppScope, or 'ISS' when an issue has no AppScope.
 -- Maintained ONLY by spAssignNextIssueNumber — never write directly.
 ---------------------------------------------------------------------------
-CREATE TABLE "__mj_BizAppsIssues"."IssueNumberSequence" (
+CREATE TABLE __mj_bizappsissues."IssueNumberSequence" (
  "ScopeCode" VARCHAR(50) NOT NULL,
  "NextSequenceNumber" INTEGER NOT NULL DEFAULT 1,
  CONSTRAINT PK_IssueNumberSequence PRIMARY KEY ("ScopeCode"),
  CONSTRAINT CK_IssueNumberSequence_NextSeq CHECK ("NextSequenceNumber" > 0)
 );
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD COLUMN IF NOT EXISTS "__mj_CreatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."Issue" */
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."Issue" */
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD COLUMN IF NOT EXISTS "__mj_UpdatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence"
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence"
  ADD COLUMN IF NOT EXISTS "__mj_CreatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence"
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence"
  ADD COLUMN IF NOT EXISTS "__mj_UpdatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueStatus" */
+ALTER TABLE __mj_bizappsissues."IssueStatus"
  ADD COLUMN IF NOT EXISTS "__mj_CreatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueStatus" */
+ALTER TABLE __mj_bizappsissues."IssueStatus"
  ADD COLUMN IF NOT EXISTS "__mj_UpdatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueType" */
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD COLUMN IF NOT EXISTS "__mj_CreatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueType" */
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD COLUMN IF NOT EXISTS "__mj_UpdatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueComment" */
+ALTER TABLE __mj_bizappsissues."IssueComment"
  ADD COLUMN IF NOT EXISTS "__mj_CreatedAt" TIMESTAMPTZ NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueComment" */
+ALTER TABLE __mj_bizappsissues."IssueComment"
  ADD COLUMN IF NOT EXISTS "__mj_UpdatedAt" TIMESTAMPTZ NULL;
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_IssueID" ON "__mj_BizAppsIssues"."IssueComment" ("IssueID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_IssueID" ON __mj_bizappsissues."IssueComment" ("IssueID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_AuthorPersonID" ON "__mj_BizAppsIssues"."IssueComment" ("AuthorPersonID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueComment_AuthorPersonID" ON __mj_bizappsissues."IssueComment" ("AuthorPersonID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_DefaultTaskTypeID" ON "__mj_BizAppsIssues"."IssueType" ("DefaultTaskTypeID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_DefaultTaskTypeID" ON __mj_bizappsissues."IssueType" ("DefaultTaskTypeID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnCreateActionID" ON "__mj_BizAppsIssues"."IssueType" ("OnCreateActionID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnCreateActionID" ON __mj_bizappsissues."IssueType" ("OnCreateActionID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnStatusChangeActionID" ON "__mj_BizAppsIssues"."IssueType" ("OnStatusChangeActionID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnStatusChangeActionID" ON __mj_bizappsissues."IssueType" ("OnStatusChangeActionID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnAssignActionID" ON "__mj_BizAppsIssues"."IssueType" ("OnAssignActionID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnAssignActionID" ON __mj_bizappsissues."IssueType" ("OnAssignActionID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnCloseActionID" ON "__mj_BizAppsIssues"."IssueType" ("OnCloseActionID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_IssueType_OnCloseActionID" ON __mj_bizappsissues."IssueType" ("OnCloseActionID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_IssueTypeID" ON "__mj_BizAppsIssues"."Issue" ("IssueTypeID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_IssueTypeID" ON __mj_bizappsissues."Issue" ("IssueTypeID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_StatusID" ON "__mj_BizAppsIssues"."Issue" ("StatusID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_StatusID" ON __mj_bizappsissues."Issue" ("StatusID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_ReporterPersonID" ON "__mj_BizAppsIssues"."Issue" ("ReporterPersonID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_ReporterPersonID" ON __mj_bizappsissues."Issue" ("ReporterPersonID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_AssigneeEntityID" ON "__mj_BizAppsIssues"."Issue" ("AssigneeEntityID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_AssigneeEntityID" ON __mj_bizappsissues."Issue" ("AssigneeEntityID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_SourceEntityID" ON "__mj_BizAppsIssues"."Issue" ("SourceEntityID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_SourceEntityID" ON __mj_bizappsissues."Issue" ("SourceEntityID");
 
-CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_CreatedByPersonID" ON "__mj_BizAppsIssues"."Issue" ("CreatedByPersonID");
+CREATE INDEX IF NOT EXISTS "IDX_AUTO_MJ_FKEY_Issue_CreatedByPersonID" ON __mj_bizappsissues."Issue" ("CreatedByPersonID");
 
 
 -- ===================== Views =====================
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueNumberSequences" CASCADE;
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssueNumberSequences" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssueNumberSequences';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueNumberSequences"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssueNumberSequences"
 AS SELECT
     i.*
 FROM
-    "__mj_BizAppsIssues"."IssueNumberSequence" AS i$vsql$;
+    __mj_bizappsissues."IssueNumberSequence" AS i$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -277,16 +277,16 @@ EXCEPTION WHEN invalid_table_definition THEN
 END;
 $do$;
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueStatus" CASCADE;
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssueStatus" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssueStatus';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueStatus"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssueStatus"
 AS SELECT
     i.*
 FROM
-    "__mj_BizAppsIssues"."IssueStatus" AS i$vsql$;
+    __mj_bizappsissues."IssueStatus" AS i$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -342,19 +342,19 @@ EXCEPTION WHEN invalid_table_definition THEN
 END;
 $do$;
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueComments" CASCADE;
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssueComments" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssueComments';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueComments"
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssueComments"
 AS SELECT
     i.*,
     "mjBizAppsCommonPerson_AuthorPersonID"."DisplayName" AS "AuthorPerson"
 FROM
-    "__mj_BizAppsIssues"."IssueComment" AS i
+    __mj_bizappsissues."IssueComment" AS i
 LEFT OUTER JOIN
-    "${mjSchema}_BizAppsCommon"."Person" AS "mjBizAppsCommonPerson_AuthorPersonID"
+    __mj_bizappscommon."Person" AS "mjBizAppsCommonPerson_AuthorPersonID"
   ON
     i."AuthorPersonID" = "mjBizAppsCommonPerson_AuthorPersonID"."ID"$vsql$;
   v_target_oid OID;
@@ -412,41 +412,38 @@ EXCEPTION WHEN invalid_table_definition THEN
 END;
 $do$;
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssueTypes" CASCADE;
+-- vwIssueTypes: CodeGen-canonical definition (unquoted lowercase join aliases as CodeGen emits
+-- them), so a post-install codegen run sees an identical view and rewrites nothing.
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssueTypes" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssueTypes';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssueTypes"
-AS SELECT
-    i.*,
-    "mjBizAppsTasksTaskType_DefaultTaskTypeID"."Name" AS "DefaultTaskType",
-    "MJAction_OnCreateActionID"."Name" AS "OnCreateAction",
-    "MJAction_OnStatusChangeActionID"."Name" AS "OnStatusChangeAction",
-    "MJAction_OnAssignActionID"."Name" AS "OnAssignAction",
-    "MJAction_OnCloseActionID"."Name" AS "OnCloseAction"
-FROM
-    "__mj_BizAppsIssues"."IssueType" AS i
-LEFT OUTER JOIN
-    "${mjSchema}_BizAppsTasks"."TaskType" AS "mjBizAppsTasksTaskType_DefaultTaskTypeID"
-  ON
-    i."DefaultTaskTypeID" = "mjBizAppsTasksTaskType_DefaultTaskTypeID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Action" AS "MJAction_OnCreateActionID"
-  ON
-    i."OnCreateActionID" = "MJAction_OnCreateActionID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Action" AS "MJAction_OnStatusChangeActionID"
-  ON
-    i."OnStatusChangeActionID" = "MJAction_OnStatusChangeActionID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Action" AS "MJAction_OnAssignActionID"
-  ON
-    i."OnAssignActionID" = "MJAction_OnAssignActionID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Action" AS "MJAction_OnCloseActionID"
-  ON
-    i."OnCloseActionID" = "MJAction_OnCloseActionID"."ID"$vsql$;
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssueTypes"
+AS  SELECT i."ID",
+    i."Name",
+    i."Description",
+    i."IconClass",
+    i."DefaultPriority",
+    i."DefaultTaskTypeID",
+    i."OnCreateActionID",
+    i."OnStatusChangeActionID",
+    i."OnAssignActionID",
+    i."OnCloseActionID",
+    i."IsActive",
+    i."__mj_CreatedAt",
+    i."__mj_UpdatedAt",
+    mjbizappstaskstasktype_defaulttasktypeid."Name" AS "DefaultTaskType",
+    mjaction_oncreateactionid."Name" AS "OnCreateAction",
+    mjaction_onstatuschangeactionid."Name" AS "OnStatusChangeAction",
+    mjaction_onassignactionid."Name" AS "OnAssignAction",
+    mjaction_oncloseactionid."Name" AS "OnCloseAction"
+   FROM __mj_bizappsissues."IssueType" i
+     LEFT JOIN __mj_bizappstasks."TaskType" mjbizappstaskstasktype_defaulttasktypeid ON i."DefaultTaskTypeID" = mjbizappstaskstasktype_defaulttasktypeid."ID"
+     LEFT JOIN "${mjSchema}"."Action" mjaction_oncreateactionid ON i."OnCreateActionID" = mjaction_oncreateactionid."ID"
+     LEFT JOIN "${mjSchema}"."Action" mjaction_onstatuschangeactionid ON i."OnStatusChangeActionID" = mjaction_onstatuschangeactionid."ID"
+     LEFT JOIN "${mjSchema}"."Action" mjaction_onassignactionid ON i."OnAssignActionID" = mjaction_onassignactionid."ID"
+     LEFT JOIN "${mjSchema}"."Action" mjaction_oncloseactionid ON i."OnCloseActionID" = mjaction_oncloseactionid."ID"$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -502,46 +499,47 @@ EXCEPTION WHEN invalid_table_definition THEN
 END;
 $do$;
 
-DROP VIEW IF EXISTS "__mj_BizAppsIssues"."vwIssues" CASCADE;
+-- vwIssues: CodeGen-canonical definition (unquoted lowercase join aliases as CodeGen emits
+-- them), so a post-install codegen run sees an identical view and rewrites nothing.
+DROP VIEW IF EXISTS __mj_bizappsissues."vwIssues" CASCADE;
 DO $do$
 DECLARE
-  v_target_schema CONSTANT TEXT := '__mj_BizAppsIssues';
+  v_target_schema CONSTANT TEXT := '__mj_bizappsissues';
   v_target_name CONSTANT TEXT := 'vwIssues';
-  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW "__mj_BizAppsIssues"."vwIssues"
-AS SELECT
-    i.*,
-    "mjBizAppsIssuesIssueType_IssueTypeID"."Name" AS "IssueType",
-    "mjBizAppsIssuesIssueStatus_StatusID"."Name" AS "Status",
-    "mjBizAppsCommonPerson_ReporterPersonID"."DisplayName" AS "ReporterPerson",
-    "MJEntity_AssigneeEntityID"."Name" AS "AssigneeEntity",
-    "MJEntity_SourceEntityID"."Name" AS "SourceEntity",
-    "mjBizAppsCommonPerson_CreatedByPersonID"."DisplayName" AS "CreatedByPerson"
-FROM
-    "__mj_BizAppsIssues"."Issue" AS i
-INNER JOIN
-    "__mj_BizAppsIssues"."IssueType" AS "mjBizAppsIssuesIssueType_IssueTypeID"
-  ON
-    i."IssueTypeID" = "mjBizAppsIssuesIssueType_IssueTypeID"."ID"
-INNER JOIN
-    "__mj_BizAppsIssues"."IssueStatus" AS "mjBizAppsIssuesIssueStatus_StatusID"
-  ON
-    i."StatusID" = "mjBizAppsIssuesIssueStatus_StatusID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}_BizAppsCommon"."Person" AS "mjBizAppsCommonPerson_ReporterPersonID"
-  ON
-    i."ReporterPersonID" = "mjBizAppsCommonPerson_ReporterPersonID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Entity" AS "MJEntity_AssigneeEntityID"
-  ON
-    i."AssigneeEntityID" = "MJEntity_AssigneeEntityID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}"."Entity" AS "MJEntity_SourceEntityID"
-  ON
-    i."SourceEntityID" = "MJEntity_SourceEntityID"."ID"
-LEFT OUTER JOIN
-    "${mjSchema}_BizAppsCommon"."Person" AS "mjBizAppsCommonPerson_CreatedByPersonID"
-  ON
-    i."CreatedByPersonID" = "mjBizAppsCommonPerson_CreatedByPersonID"."ID"$vsql$;
+  vsql CONSTANT TEXT := $vsql$CREATE OR REPLACE VIEW __mj_bizappsissues."vwIssues"
+AS  SELECT i."ID",
+    i."IssueNumber",
+    i."Title",
+    i."Description",
+    i."IssueTypeID",
+    i."StatusID",
+    i."Severity",
+    i."Priority",
+    i."ReporterPersonID",
+    i."ReporterEmail",
+    i."AssigneeEntityID",
+    i."AssigneeRecordID",
+    i."SourceEntityID",
+    i."SourceRecordID",
+    i."AppScope",
+    i."ResolvedAt",
+    i."ClosedAt",
+    i."CreatedByPersonID",
+    i."__mj_CreatedAt",
+    i."__mj_UpdatedAt",
+    mjbizappsissuesissuetype_issuetypeid."Name" AS "IssueType",
+    mjbizappsissuesissuestatus_statusid."Name" AS "Status",
+    mjbizappscommonperson_reporterpersonid."DisplayName" AS "ReporterPerson",
+    mjentity_assigneeentityid."Name" AS "AssigneeEntity",
+    mjentity_sourceentityid."Name" AS "SourceEntity",
+    mjbizappscommonperson_createdbypersonid."DisplayName" AS "CreatedByPerson"
+   FROM __mj_bizappsissues."Issue" i
+     JOIN __mj_bizappsissues."IssueType" mjbizappsissuesissuetype_issuetypeid ON i."IssueTypeID" = mjbizappsissuesissuetype_issuetypeid."ID"
+     JOIN __mj_bizappsissues."IssueStatus" mjbizappsissuesissuestatus_statusid ON i."StatusID" = mjbizappsissuesissuestatus_statusid."ID"
+     LEFT JOIN __mj_bizappscommon."Person" mjbizappscommonperson_reporterpersonid ON i."ReporterPersonID" = mjbizappscommonperson_reporterpersonid."ID"
+     LEFT JOIN "${mjSchema}"."Entity" mjentity_assigneeentityid ON i."AssigneeEntityID" = mjentity_assigneeentityid."ID"
+     LEFT JOIN "${mjSchema}"."Entity" mjentity_sourceentityid ON i."SourceEntityID" = mjentity_sourceentityid."ID"
+     LEFT JOIN __mj_bizappscommon."Person" mjbizappscommonperson_createdbypersonid ON i."CreatedByPersonID" = mjbizappscommonperson_createdbypersonid."ID"$vsql$;
   v_target_oid OID;
   v_dep RECORD;
   v_captured JSONB[] := ARRAY[]::JSONB[];
@@ -600,214 +598,575 @@ $do$;
 
 -- ===================== Stored Procedures (sp*) =====================
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssueNumberSequence]
---     @ScopeCode VARCHAR(50) = NULL,
---     @NextSequenceNumber INTEGER = NULL
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     
---     INSERT INTO
---     [__mj_B...
+-- spCreateIssueNumberSequence: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssueNumberSequence"(p_scopecode character varying DEFAULT NULL::character varying, p_nextsequencenumber integer DEFAULT NULL::integer)
+ RETURNS SETOF __mj_bizappsissues."vwIssueNumberSequences"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id varchar(50);
+BEGIN
+    INSERT INTO __mj_bizappsissues."IssueNumberSequence"
+        (
+            "ScopeCode",
+                "NextSequenceNumber"
+        )
+    VALUES
+        (
+            p_scopecode,
+                COALESCE(p_nextsequencenumber, 1)
+        )
+    ;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssueNumberSequence]
---     @ScopeCode VARCHAR(50),
---     @NextSequenceNumber INTEGER = NULL
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues]...
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueNumberSequences"
+    WHERE "ScopeCode" = p_scope_code;
+END;
+$function$;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssueStatus]
---     @ID UUID = NULL,
---     @Name VARCHAR(100),
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @Sequen...
+-- spUpdateIssueNumberSequence: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssueNumberSequence"(p_scopecode character varying, p_nextsequencenumber integer DEFAULT NULL::integer)
+ RETURNS SETOF __mj_bizappsissues."vwIssueNumberSequences"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."IssueNumberSequence"
+    SET
+        "NextSequenceNumber" = COALESCE(p_nextsequencenumber, "NextSequenceNumber")
+    WHERE
+        "ScopeCode" = p_scope_code;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssueStatus]
---     @ID UUID,
---     @Name VARCHAR(100) = NULL,
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @Sequen...
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssueNumberSequence]
---     @ScopeCode VARCHAR(50)
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[IssueNumberSequence]
---     WHE...
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssueStatus]
---     @ID UUID
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[IssueStatus]
---     WHERE
---         [ID] = @...
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueNumberSequences"
+    WHERE "ScopeCode" = p_scope_code;
+END;
+$function$;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssueComment]
---     @ID UUID = NULL,
---     @IssueID UUID,
---     @Body TEXT,
---     @AuthorPersonID_Clear bit = 0,
---     @AuthorPers...
+-- spCreateIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+-- References IsResolved (added in V202606111545); safe here because plpgsql bodies are not
+-- validated against columns until first execution, and nothing executes this during migration.
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssueStatus"(p_id uuid DEFAULT NULL::uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_sequence integer DEFAULT NULL::integer, p_isdefault boolean DEFAULT NULL::boolean, p_isterminal boolean DEFAULT NULL::boolean, p_colorcode_clear boolean DEFAULT false, p_colorcode character varying DEFAULT NULL::character varying, p_isresolved boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueStatus"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id UUID;
+BEGIN
+    v_new_id := COALESCE(p_id, gen_random_uuid());
+    INSERT INTO __mj_bizappsissues."IssueStatus"
+        (
+            "ID",
+            "Name",
+                "Description",
+                "Sequence",
+                "IsDefault",
+                "IsTerminal",
+                "ColorCode",
+                "IsResolved"
+        )
+    VALUES
+        (
+            v_new_id,
+            p_name,
+                CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, NULL) END,
+                COALESCE(p_sequence, 100),
+                COALESCE(p_isdefault, FALSE),
+                COALESCE(p_isterminal, FALSE),
+                CASE WHEN p_colorcode_clear = true THEN NULL ELSE COALESCE(p_colorcode, NULL) END,
+                COALESCE(p_isresolved, FALSE)
+        )
+    ;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssueComment]
---     @ID UUID,
---     @IssueID UUID = NULL,
---     @Body TEXT = NULL,
---     @AuthorPersonID_Clear bit = 0,
---     @Aut...
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueStatus"
+    WHERE "ID" = v_new_id;
+END;
+$function$;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssueComment]
---     @ID UUID
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[IssueComment]
---     WHERE
---         [ID] =...
+-- spUpdateIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+-- References IsResolved (added in V202606111545); safe here — see spCreateIssueStatus note.
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssueStatus"(p_id uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_sequence integer DEFAULT NULL::integer, p_isdefault boolean DEFAULT NULL::boolean, p_isterminal boolean DEFAULT NULL::boolean, p_colorcode_clear boolean DEFAULT false, p_colorcode character varying DEFAULT NULL::character varying, p_isresolved boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueStatus"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."IssueStatus"
+    SET
+        "Name" = COALESCE(p_name, "Name"),
+        "Description" = CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, "Description") END,
+        "Sequence" = COALESCE(p_sequence, "Sequence"),
+        "IsDefault" = COALESCE(p_isdefault, "IsDefault"),
+        "IsTerminal" = COALESCE(p_isterminal, "IsTerminal"),
+        "ColorCode" = CASE WHEN p_colorcode_clear = true THEN NULL ELSE COALESCE(p_colorcode, "ColorCode") END,
+        "IsResolved" = COALESCE(p_isresolved, "IsResolved")
+    WHERE
+        "ID" = p_id;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssueType]
---     @ID UUID = NULL,
---     @Name VARCHAR(100),
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @IconClas...
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssueType]
---     @ID UUID,
---     @Name VARCHAR(100) = NULL,
---     @Description_Clear bit = 0,
---     @Description TEXT = NULL,
---     @IconClas...
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssueType]
---     @ID UUID
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[IssueType]
---     WHERE
---         [ID] = @ID
--- 
--- ...
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueStatus"
+    WHERE "ID" = p_id;
+END;
+$function$;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spCreateIssue]
---     @ID UUID = NULL,
---     @IssueNumber_Clear bit = 0,
---     @IssueNumber VARCHAR(50) = NULL,
---     @Title VARCHAR(500),
---     @Description_...
+-- spDeleteIssueNumberSequence: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssueNumberSequence"(p_scope_code character varying)
+ RETURNS TABLE("ScopeCode" character varying)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spUpdateIssue]
---     @ID UUID,
---     @IssueNumber_Clear bit = 0,
---     @IssueNumber VARCHAR(50) = NULL,
---     @Title VARCHAR(500) = NULL,
---     @Description_...
+    DELETE FROM __mj_bizappsissues."IssueNumberSequence"
+    WHERE "ScopeCode" = p_scope_code;
 
--- SKIPPED: procedure (auto-conversion not supported)
--- CREATE PROCEDURE [__mj_BizAppsIssues].[spDeleteIssue]
---     @ID UUID
--- AS
--- BEGIN
---     SET NOCOUNT ON;
--- 
---     DELETE FROM
---         [__mj_BizAppsIssues].[Issue]
---     WHERE
---         [ID] = @ID
--- 
--- 
---     -- ...
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::varchar(50) AS "ScopeCode";
+    ELSE
+        RETURN QUERY SELECT p_scope_code AS "ScopeCode";
+    END IF;
+END;
+$function$;
+
+-- spDeleteIssueStatus: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssueStatus"(p_id uuid)
+ RETURNS TABLE("ID" uuid)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
+
+    DELETE FROM __mj_bizappsissues."IssueStatus"
+    WHERE "ID" = p_id;
+
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::UUID AS "ID";
+    ELSE
+        RETURN QUERY SELECT p_id AS "ID";
+    END IF;
+END;
+$function$;
+
+-- spCreateIssueComment: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+-- References Source (added in V202606161000) and the post-V202606161000 value set; safe here
+-- because plpgsql bodies are not validated against columns until first execution.
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssueComment"(p_id uuid DEFAULT NULL::uuid, p_issueid uuid DEFAULT NULL::uuid, p_body text DEFAULT NULL::text, p_authorpersonid_clear boolean DEFAULT false, p_authorpersonid uuid DEFAULT NULL::uuid, p_authoremail_clear boolean DEFAULT false, p_authoremail character varying DEFAULT NULL::character varying, p_source character varying DEFAULT NULL::character varying)
+ RETURNS SETOF __mj_bizappsissues."vwIssueComments"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id UUID;
+BEGIN
+    v_new_id := COALESCE(p_id, gen_random_uuid());
+    INSERT INTO __mj_bizappsissues."IssueComment"
+        (
+            "ID",
+            "IssueID",
+                "Body",
+                "AuthorPersonID",
+                "AuthorEmail",
+                "Source"
+        )
+    VALUES
+        (
+            v_new_id,
+            p_issueid,
+                p_body,
+                CASE WHEN p_authorpersonid_clear = true THEN NULL ELSE COALESCE(p_authorpersonid, NULL) END,
+                CASE WHEN p_authoremail_clear = true THEN NULL ELSE COALESCE(p_authoremail, NULL) END,
+                COALESCE(p_source, 'internal')
+        )
+    ;
+
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueComments"
+    WHERE "ID" = v_new_id;
+END;
+$function$;
+
+-- spUpdateIssueComment: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+-- References Source (added in V202606161000); safe here — see spCreateIssueComment note.
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssueComment"(p_id uuid, p_issueid uuid DEFAULT NULL::uuid, p_body text DEFAULT NULL::text, p_authorpersonid_clear boolean DEFAULT false, p_authorpersonid uuid DEFAULT NULL::uuid, p_authoremail_clear boolean DEFAULT false, p_authoremail character varying DEFAULT NULL::character varying, p_source character varying DEFAULT NULL::character varying)
+ RETURNS SETOF __mj_bizappsissues."vwIssueComments"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."IssueComment"
+    SET
+        "IssueID" = COALESCE(p_issueid, "IssueID"),
+        "Body" = COALESCE(p_body, "Body"),
+        "AuthorPersonID" = CASE WHEN p_authorpersonid_clear = true THEN NULL ELSE COALESCE(p_authorpersonid, "AuthorPersonID") END,
+        "AuthorEmail" = CASE WHEN p_authoremail_clear = true THEN NULL ELSE COALESCE(p_authoremail, "AuthorEmail") END,
+        "Source" = COALESCE(p_source, "Source")
+    WHERE
+        "ID" = p_id;
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
+
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueComments"
+    WHERE "ID" = p_id;
+END;
+$function$;
+
+-- spDeleteIssueComment: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssueComment"(p_id uuid)
+ RETURNS TABLE("ID" uuid)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
+
+    DELETE FROM __mj_bizappsissues."IssueComment"
+    WHERE "ID" = p_id;
+
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::UUID AS "ID";
+    ELSE
+        RETURN QUERY SELECT p_id AS "ID";
+    END IF;
+END;
+$function$;
+
+-- spCreateIssueType: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssueType"(p_id uuid DEFAULT NULL::uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_iconclass_clear boolean DEFAULT false, p_iconclass character varying DEFAULT NULL::character varying, p_defaultpriority character varying DEFAULT NULL::character varying, p_defaulttasktypeid_clear boolean DEFAULT false, p_defaulttasktypeid uuid DEFAULT NULL::uuid, p_oncreateactionid_clear boolean DEFAULT false, p_oncreateactionid uuid DEFAULT NULL::uuid, p_onstatuschangeactionid_clear boolean DEFAULT false, p_onstatuschangeactionid uuid DEFAULT NULL::uuid, p_onassignactionid_clear boolean DEFAULT false, p_onassignactionid uuid DEFAULT NULL::uuid, p_oncloseactionid_clear boolean DEFAULT false, p_oncloseactionid uuid DEFAULT NULL::uuid, p_isactive boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueTypes"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id UUID;
+BEGIN
+    v_new_id := COALESCE(p_id, gen_random_uuid());
+    INSERT INTO __mj_bizappsissues."IssueType"
+        (
+            "ID",
+            "Name",
+                "Description",
+                "IconClass",
+                "DefaultPriority",
+                "DefaultTaskTypeID",
+                "OnCreateActionID",
+                "OnStatusChangeActionID",
+                "OnAssignActionID",
+                "OnCloseActionID",
+                "IsActive"
+        )
+    VALUES
+        (
+            v_new_id,
+            p_name,
+                CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, NULL) END,
+                CASE WHEN p_iconclass_clear = true THEN NULL ELSE COALESCE(p_iconclass, NULL) END,
+                COALESCE(p_defaultpriority, 'Medium'),
+                CASE WHEN p_defaulttasktypeid_clear = true THEN NULL ELSE COALESCE(p_defaulttasktypeid, NULL) END,
+                CASE WHEN p_oncreateactionid_clear = true THEN NULL ELSE COALESCE(p_oncreateactionid, NULL) END,
+                CASE WHEN p_onstatuschangeactionid_clear = true THEN NULL ELSE COALESCE(p_onstatuschangeactionid, NULL) END,
+                CASE WHEN p_onassignactionid_clear = true THEN NULL ELSE COALESCE(p_onassignactionid, NULL) END,
+                CASE WHEN p_oncloseactionid_clear = true THEN NULL ELSE COALESCE(p_oncloseactionid, NULL) END,
+                COALESCE(p_isactive, TRUE)
+        )
+    ;
+
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueTypes"
+    WHERE "ID" = v_new_id;
+END;
+$function$;
+
+-- spUpdateIssueType: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssueType"(p_id uuid, p_name character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_iconclass_clear boolean DEFAULT false, p_iconclass character varying DEFAULT NULL::character varying, p_defaultpriority character varying DEFAULT NULL::character varying, p_defaulttasktypeid_clear boolean DEFAULT false, p_defaulttasktypeid uuid DEFAULT NULL::uuid, p_oncreateactionid_clear boolean DEFAULT false, p_oncreateactionid uuid DEFAULT NULL::uuid, p_onstatuschangeactionid_clear boolean DEFAULT false, p_onstatuschangeactionid uuid DEFAULT NULL::uuid, p_onassignactionid_clear boolean DEFAULT false, p_onassignactionid uuid DEFAULT NULL::uuid, p_oncloseactionid_clear boolean DEFAULT false, p_oncloseactionid uuid DEFAULT NULL::uuid, p_isactive boolean DEFAULT NULL::boolean)
+ RETURNS SETOF __mj_bizappsissues."vwIssueTypes"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."IssueType"
+    SET
+        "Name" = COALESCE(p_name, "Name"),
+        "Description" = CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, "Description") END,
+        "IconClass" = CASE WHEN p_iconclass_clear = true THEN NULL ELSE COALESCE(p_iconclass, "IconClass") END,
+        "DefaultPriority" = COALESCE(p_defaultpriority, "DefaultPriority"),
+        "DefaultTaskTypeID" = CASE WHEN p_defaulttasktypeid_clear = true THEN NULL ELSE COALESCE(p_defaulttasktypeid, "DefaultTaskTypeID") END,
+        "OnCreateActionID" = CASE WHEN p_oncreateactionid_clear = true THEN NULL ELSE COALESCE(p_oncreateactionid, "OnCreateActionID") END,
+        "OnStatusChangeActionID" = CASE WHEN p_onstatuschangeactionid_clear = true THEN NULL ELSE COALESCE(p_onstatuschangeactionid, "OnStatusChangeActionID") END,
+        "OnAssignActionID" = CASE WHEN p_onassignactionid_clear = true THEN NULL ELSE COALESCE(p_onassignactionid, "OnAssignActionID") END,
+        "OnCloseActionID" = CASE WHEN p_oncloseactionid_clear = true THEN NULL ELSE COALESCE(p_oncloseactionid, "OnCloseActionID") END,
+        "IsActive" = COALESCE(p_isactive, "IsActive")
+    WHERE
+        "ID" = p_id;
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
+
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssueTypes"
+    WHERE "ID" = p_id;
+END;
+$function$;
+
+-- spDeleteIssueType: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssueType"(p_id uuid)
+ RETURNS TABLE("ID" uuid)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
+
+    DELETE FROM __mj_bizappsissues."IssueType"
+    WHERE "ID" = p_id;
+
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::UUID AS "ID";
+    ELSE
+        RETURN QUERY SELECT p_id AS "ID";
+    END IF;
+END;
+$function$;
+
+-- spCreateIssue: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spCreateIssue"(p_id uuid DEFAULT NULL::uuid, p_issuenumber_clear boolean DEFAULT false, p_issuenumber character varying DEFAULT NULL::character varying, p_title character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_issuetypeid uuid DEFAULT NULL::uuid, p_statusid uuid DEFAULT NULL::uuid, p_severity character varying DEFAULT NULL::character varying, p_priority character varying DEFAULT NULL::character varying, p_reporterpersonid_clear boolean DEFAULT false, p_reporterpersonid uuid DEFAULT NULL::uuid, p_reporteremail_clear boolean DEFAULT false, p_reporteremail character varying DEFAULT NULL::character varying, p_assigneeentityid_clear boolean DEFAULT false, p_assigneeentityid uuid DEFAULT NULL::uuid, p_assigneerecordid_clear boolean DEFAULT false, p_assigneerecordid character varying DEFAULT NULL::character varying, p_sourceentityid_clear boolean DEFAULT false, p_sourceentityid uuid DEFAULT NULL::uuid, p_sourcerecordid_clear boolean DEFAULT false, p_sourcerecordid character varying DEFAULT NULL::character varying, p_appscope_clear boolean DEFAULT false, p_appscope character varying DEFAULT NULL::character varying, p_resolvedat_clear boolean DEFAULT false, p_resolvedat timestamp with time zone DEFAULT NULL::timestamp with time zone, p_closedat_clear boolean DEFAULT false, p_closedat timestamp with time zone DEFAULT NULL::timestamp with time zone, p_createdbypersonid_clear boolean DEFAULT false, p_createdbypersonid uuid DEFAULT NULL::uuid)
+ RETURNS SETOF __mj_bizappsissues."vwIssues"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_id UUID;
+BEGIN
+    v_new_id := COALESCE(p_id, gen_random_uuid());
+    INSERT INTO __mj_bizappsissues."Issue"
+        (
+            "ID",
+            "IssueNumber",
+                "Title",
+                "Description",
+                "IssueTypeID",
+                "StatusID",
+                "Severity",
+                "Priority",
+                "ReporterPersonID",
+                "ReporterEmail",
+                "AssigneeEntityID",
+                "AssigneeRecordID",
+                "SourceEntityID",
+                "SourceRecordID",
+                "AppScope",
+                "ResolvedAt",
+                "ClosedAt",
+                "CreatedByPersonID"
+        )
+    VALUES
+        (
+            v_new_id,
+            CASE WHEN p_issuenumber_clear = true THEN NULL ELSE COALESCE(p_issuenumber, NULL) END,
+                p_title,
+                CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, NULL) END,
+                p_issuetypeid,
+                p_statusid,
+                COALESCE(p_severity, 'Medium'),
+                COALESCE(p_priority, 'Medium'),
+                CASE WHEN p_reporterpersonid_clear = true THEN NULL ELSE COALESCE(p_reporterpersonid, NULL) END,
+                CASE WHEN p_reporteremail_clear = true THEN NULL ELSE COALESCE(p_reporteremail, NULL) END,
+                CASE WHEN p_assigneeentityid_clear = true THEN NULL ELSE COALESCE(p_assigneeentityid, NULL) END,
+                CASE WHEN p_assigneerecordid_clear = true THEN NULL ELSE COALESCE(p_assigneerecordid, NULL) END,
+                CASE WHEN p_sourceentityid_clear = true THEN NULL ELSE COALESCE(p_sourceentityid, NULL) END,
+                CASE WHEN p_sourcerecordid_clear = true THEN NULL ELSE COALESCE(p_sourcerecordid, NULL) END,
+                CASE WHEN p_appscope_clear = true THEN NULL ELSE COALESCE(p_appscope, NULL) END,
+                CASE WHEN p_resolvedat_clear = true THEN NULL ELSE COALESCE(p_resolvedat, NULL) END,
+                CASE WHEN p_closedat_clear = true THEN NULL ELSE COALESCE(p_closedat, NULL) END,
+                CASE WHEN p_createdbypersonid_clear = true THEN NULL ELSE COALESCE(p_createdbypersonid, NULL) END
+        )
+    ;
+
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssues"
+    WHERE "ID" = v_new_id;
+END;
+$function$;
+
+-- spUpdateIssue: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spUpdateIssue"(p_id uuid, p_issuenumber_clear boolean DEFAULT false, p_issuenumber character varying DEFAULT NULL::character varying, p_title character varying DEFAULT NULL::character varying, p_description_clear boolean DEFAULT false, p_description text DEFAULT NULL::text, p_issuetypeid uuid DEFAULT NULL::uuid, p_statusid uuid DEFAULT NULL::uuid, p_severity character varying DEFAULT NULL::character varying, p_priority character varying DEFAULT NULL::character varying, p_reporterpersonid_clear boolean DEFAULT false, p_reporterpersonid uuid DEFAULT NULL::uuid, p_reporteremail_clear boolean DEFAULT false, p_reporteremail character varying DEFAULT NULL::character varying, p_assigneeentityid_clear boolean DEFAULT false, p_assigneeentityid uuid DEFAULT NULL::uuid, p_assigneerecordid_clear boolean DEFAULT false, p_assigneerecordid character varying DEFAULT NULL::character varying, p_sourceentityid_clear boolean DEFAULT false, p_sourceentityid uuid DEFAULT NULL::uuid, p_sourcerecordid_clear boolean DEFAULT false, p_sourcerecordid character varying DEFAULT NULL::character varying, p_appscope_clear boolean DEFAULT false, p_appscope character varying DEFAULT NULL::character varying, p_resolvedat_clear boolean DEFAULT false, p_resolvedat timestamp with time zone DEFAULT NULL::timestamp with time zone, p_closedat_clear boolean DEFAULT false, p_closedat timestamp with time zone DEFAULT NULL::timestamp with time zone, p_createdbypersonid_clear boolean DEFAULT false, p_createdbypersonid uuid DEFAULT NULL::uuid)
+ RETURNS SETOF __mj_bizappsissues."vwIssues"
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_updated_count INTEGER;
+BEGIN
+    UPDATE __mj_bizappsissues."Issue"
+    SET
+        "IssueNumber" = CASE WHEN p_issuenumber_clear = true THEN NULL ELSE COALESCE(p_issuenumber, "IssueNumber") END,
+        "Title" = COALESCE(p_title, "Title"),
+        "Description" = CASE WHEN p_description_clear = true THEN NULL ELSE COALESCE(p_description, "Description") END,
+        "IssueTypeID" = COALESCE(p_issuetypeid, "IssueTypeID"),
+        "StatusID" = COALESCE(p_statusid, "StatusID"),
+        "Severity" = COALESCE(p_severity, "Severity"),
+        "Priority" = COALESCE(p_priority, "Priority"),
+        "ReporterPersonID" = CASE WHEN p_reporterpersonid_clear = true THEN NULL ELSE COALESCE(p_reporterpersonid, "ReporterPersonID") END,
+        "ReporterEmail" = CASE WHEN p_reporteremail_clear = true THEN NULL ELSE COALESCE(p_reporteremail, "ReporterEmail") END,
+        "AssigneeEntityID" = CASE WHEN p_assigneeentityid_clear = true THEN NULL ELSE COALESCE(p_assigneeentityid, "AssigneeEntityID") END,
+        "AssigneeRecordID" = CASE WHEN p_assigneerecordid_clear = true THEN NULL ELSE COALESCE(p_assigneerecordid, "AssigneeRecordID") END,
+        "SourceEntityID" = CASE WHEN p_sourceentityid_clear = true THEN NULL ELSE COALESCE(p_sourceentityid, "SourceEntityID") END,
+        "SourceRecordID" = CASE WHEN p_sourcerecordid_clear = true THEN NULL ELSE COALESCE(p_sourcerecordid, "SourceRecordID") END,
+        "AppScope" = CASE WHEN p_appscope_clear = true THEN NULL ELSE COALESCE(p_appscope, "AppScope") END,
+        "ResolvedAt" = CASE WHEN p_resolvedat_clear = true THEN NULL ELSE COALESCE(p_resolvedat, "ResolvedAt") END,
+        "ClosedAt" = CASE WHEN p_closedat_clear = true THEN NULL ELSE COALESCE(p_closedat, "ClosedAt") END,
+        "CreatedByPersonID" = CASE WHEN p_createdbypersonid_clear = true THEN NULL ELSE COALESCE(p_createdbypersonid, "CreatedByPersonID") END
+    WHERE
+        "ID" = p_id;
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+    IF v_updated_count = 0 THEN
+        -- Nothing was updated, return empty result set
+        RETURN;
+    END IF;
+
+    -- Return the updated record from the base view
+    RETURN QUERY
+    SELECT * FROM __mj_bizappsissues."vwIssues"
+    WHERE "ID" = p_id;
+END;
+$function$;
+
+-- spDeleteIssue: native plpgsql as emitted by MJ CodeGen (replaces the skipped T-SQL procedure).
+CREATE OR REPLACE FUNCTION __mj_bizappsissues."spDeleteIssue"(p_id uuid)
+ RETURNS TABLE("ID" uuid)
+ LANGUAGE plpgsql
+AS $function$
+#variable_conflict use_column
+DECLARE
+    v_affected_count INTEGER;
+BEGIN
+
+    DELETE FROM __mj_bizappsissues."Issue"
+    WHERE "ID" = p_id;
+
+    GET DIAGNOSTICS v_affected_count = ROW_COUNT;
+
+    IF v_affected_count = 0 THEN
+        RETURN QUERY SELECT NULL::UUID AS "ID";
+    ELSE
+        RETURN QUERY SELECT p_id AS "ID";
+    END IF;
+END;
+$function$;
 
 
 -- ===================== Triggers =====================
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssueNumberSequence
--- ON [__mj_BizAppsIssues].[IssueNumberSequence]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[IssueN
+-- trg_update_issue_number_sequence: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue_number_sequence()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue_number_sequence ON __mj_bizappsissues."IssueNumberSequence";
+CREATE TRIGGER trg_update_issue_number_sequence BEFORE UPDATE ON __mj_bizappsissues."IssueNumberSequence" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue_number_sequence();
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssueStatus
--- ON [__mj_BizAppsIssues].[IssueStatus]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[IssueStatus]
---     SET
+-- trg_update_issue_status: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue_status()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue_status ON __mj_bizappsissues."IssueStatus";
+CREATE TRIGGER trg_update_issue_status BEFORE UPDATE ON __mj_bizappsissues."IssueStatus" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue_status();
  
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssueComment
--- ON [__mj_BizAppsIssues].[IssueComment]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[IssueComment]
---     SE
+-- trg_update_issue_comment: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue_comment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue_comment ON __mj_bizappsissues."IssueComment";
+CREATE TRIGGER trg_update_issue_comment BEFORE UPDATE ON __mj_bizappsissues."IssueComment" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue_comment();
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssueType
--- ON [__mj_BizAppsIssues].[IssueType]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[IssueType]
---     SET
+-- trg_update_issue_type: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue_type()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue_type ON __mj_bizappsissues."IssueType";
+CREATE TRIGGER trg_update_issue_type BEFORE UPDATE ON __mj_bizappsissues."IssueType" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue_type();
        
 
--- SKIPPED: trigger (auto-conversion not supported)
--- CREATE TRIGGER [__mj_BizAppsIssues].trgUpdateIssue
--- ON [__mj_BizAppsIssues].[Issue]
--- AFTER UPDATE
--- AS
--- BEGIN
---     SET NOCOUNT ON;
---     UPDATE
---         [__mj_BizAppsIssues].[Issue]
---     SET
---         __mj_Update
+-- trg_update_issue: native row-touch trigger as emitted by MJ CodeGen (replaces the skipped T-SQL trigger)
+CREATE OR REPLACE FUNCTION __mj_bizappsissues.fn_trg_update_issue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW."__mj_UpdatedAt" := NOW() AT TIME ZONE 'UTC';
+    RETURN NEW;
+END;
+$function$;
+DROP TRIGGER IF EXISTS trg_update_issue ON __mj_bizappsissues."Issue";
+CREATE TRIGGER trg_update_issue BEFORE UPDATE ON __mj_bizappsissues."Issue" FOR EACH ROW EXECUTE FUNCTION __mj_bizappsissues.fn_trg_update_issue();
 
 
 -- ===================== Data (INSERT/UPDATE/DELETE) =====================
@@ -843,7 +1202,7 @@ INSERT INTO "${mjSchema}"."Entity" (
          NULL,
          'IssueType',
          'vwIssueTypes',
-         '__mj_BizAppsIssues',
+         '__mj_bizappsissues',
          TRUE,
          TRUE,
          FALSE
@@ -859,24 +1218,24 @@ INSERT INTO "${mjSchema}"."Entity" (
          , NOW()
       );
 
-/* SQL generated to create new application __mj_BizAppsIssues */
+/* SQL generated to create new application __mj_bizappsissues */
 
 INSERT INTO "${mjSchema}"."Application" ("ID", "Name", "Description", "SchemaAutoAddNewEntities", "Path", "AutoUpdatePath")
-                       VALUES ('7cc8c510-249d-4a54-a96d-198be952ef11', '__mj_BizAppsIssues', 'Generated for schema', '__mj_BizAppsIssues', 'mjbizappsissues', TRUE);
+                       VALUES ('7cc8c510-249d-4a54-a96d-198be952ef11', '__mj_bizappsissues', 'Generated for schema', '__mj_bizappsissues', 'mjbizappsissues', TRUE);
 
-/* Adding role UI to application __mj_BizAppsIssues */
+/* Adding role UI to application __mj_bizappsissues */
 
 INSERT INTO "${mjSchema}"."ApplicationRole"
                                  ("ApplicationID", "RoleID", "CanAccess", "CanAdmin") VALUES
                                  ('7cc8c510-249d-4a54-a96d-198be952ef11', 'E0AFCCEC-6A37-EF11-86D4-000D3A4E707E', TRUE, FALSE);
 
-/* Adding role Developer to application __mj_BizAppsIssues */
+/* Adding role Developer to application __mj_bizappsissues */
 
 INSERT INTO "${mjSchema}"."ApplicationRole"
                                  ("ApplicationID", "RoleID", "CanAccess", "CanAdmin") VALUES
                                  ('7cc8c510-249d-4a54-a96d-198be952ef11', 'DEAFCCEC-6A37-EF11-86D4-000D3A4E707E', TRUE, TRUE);
 
-/* Adding role Integration to application __mj_BizAppsIssues */
+/* Adding role Integration to application __mj_bizappsissues */
 
 INSERT INTO "${mjSchema}"."ApplicationRole"
                                  ("ApplicationID", "RoleID", "CanAccess", "CanAdmin") VALUES
@@ -939,7 +1298,7 @@ INSERT INTO "${mjSchema}"."Entity" (
          NULL,
          'IssueStatus',
          'vwIssueStatus',
-         '__mj_BizAppsIssues',
+         '__mj_bizappsissues',
          TRUE,
          TRUE,
          FALSE
@@ -1012,7 +1371,7 @@ INSERT INTO "${mjSchema}"."Entity" (
          NULL,
          'Issue',
          'vwIssues',
-         '__mj_BizAppsIssues',
+         '__mj_bizappsissues',
          TRUE,
          TRUE,
          FALSE
@@ -1085,7 +1444,7 @@ INSERT INTO "${mjSchema}"."Entity" (
          NULL,
          'IssueComment',
          'vwIssueComments',
-         '__mj_BizAppsIssues',
+         '__mj_bizappsissues',
          TRUE,
          TRUE,
          FALSE
@@ -1158,7 +1517,7 @@ INSERT INTO "${mjSchema}"."Entity" (
          NULL,
          'IssueNumberSequence',
          'vwIssueNumberSequences',
-         '__mj_BizAppsIssues',
+         '__mj_bizappsissues',
          TRUE,
          TRUE,
          FALSE
@@ -1200,94 +1559,94 @@ INSERT INTO "${mjSchema}"."EntityPermission"
 
 /* SQL text to update existing entities from schema */
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."Issue" */
-UPDATE "__mj_BizAppsIssues"."Issue" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."Issue" */
+UPDATE __mj_bizappsissues."Issue" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."Issue" */
-ALTER TABLE "__mj_BizAppsIssues"."Issue" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."Issue" */
+ALTER TABLE __mj_bizappsissues."Issue" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
   ALTER COLUMN "__mj_CreatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."Issue" */
-UPDATE "__mj_BizAppsIssues"."Issue" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."Issue" */
+UPDATE __mj_bizappsissues."Issue" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."Issue" */
-ALTER TABLE "__mj_BizAppsIssues"."Issue" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."Issue" */
+ALTER TABLE __mj_bizappsissues."Issue" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
   ALTER COLUMN "__mj_UpdatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-UPDATE "__mj_BizAppsIssues"."IssueNumberSequence" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+UPDATE __mj_bizappsissues."IssueNumberSequence" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence"
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence"
   ALTER COLUMN "__mj_CreatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-UPDATE "__mj_BizAppsIssues"."IssueNumberSequence" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+UPDATE __mj_bizappsissues."IssueNumberSequence" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueNumberSequence" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueNumberSequence" */
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueNumberSequence"
+ALTER TABLE __mj_bizappsissues."IssueNumberSequence"
   ALTER COLUMN "__mj_UpdatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-UPDATE "__mj_BizAppsIssues"."IssueStatus" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueStatus" */
+UPDATE __mj_bizappsissues."IssueStatus" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueStatus" */
+ALTER TABLE __mj_bizappsissues."IssueStatus" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
+ALTER TABLE __mj_bizappsissues."IssueStatus"
   ALTER COLUMN "__mj_CreatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-UPDATE "__mj_BizAppsIssues"."IssueStatus" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueStatus" */
+UPDATE __mj_bizappsissues."IssueStatus" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueStatus" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueStatus" */
+ALTER TABLE __mj_bizappsissues."IssueStatus" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueStatus"
+ALTER TABLE __mj_bizappsissues."IssueStatus"
   ALTER COLUMN "__mj_UpdatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-UPDATE "__mj_BizAppsIssues"."IssueType" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueType" */
+UPDATE __mj_bizappsissues."IssueType" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueType" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueType" */
+ALTER TABLE __mj_bizappsissues."IssueType" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
   ALTER COLUMN "__mj_CreatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-UPDATE "__mj_BizAppsIssues"."IssueType" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueType" */
+UPDATE __mj_bizappsissues."IssueType" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueType" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueType" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueType" */
+ALTER TABLE __mj_bizappsissues."IssueType" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
   ALTER COLUMN "__mj_UpdatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-UPDATE "__mj_BizAppsIssues"."IssueComment" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueComment" */
+UPDATE __mj_bizappsissues."IssueComment" SET "__mj_CreatedAt" = NOW() WHERE "__mj_CreatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_CreatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_CreatedAt to entity __mj_bizappsissues."IssueComment" */
+ALTER TABLE __mj_bizappsissues."IssueComment" ALTER COLUMN "__mj_CreatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+ALTER TABLE __mj_bizappsissues."IssueComment"
   ALTER COLUMN "__mj_CreatedAt" SET DEFAULT NOW();
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-UPDATE "__mj_BizAppsIssues"."IssueComment" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueComment" */
+UPDATE __mj_bizappsissues."IssueComment" SET "__mj_UpdatedAt" = NOW() WHERE "__mj_UpdatedAt" IS NULL;
 
-/* SQL text to add special date field __mj_UpdatedAt to entity "__mj_BizAppsIssues"."IssueComment" */
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
+/* SQL text to add special date field __mj_UpdatedAt to entity __mj_bizappsissues."IssueComment" */
+ALTER TABLE __mj_bizappsissues."IssueComment" ALTER COLUMN "__mj_UpdatedAt" SET NOT NULL;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+ALTER TABLE __mj_bizappsissues."IssueComment"
   ALTER COLUMN "__mj_UpdatedAt" SET DEFAULT NOW();
 
 DO $$
@@ -6042,60 +6401,60 @@ SET CONSTRAINTS ALL IMMEDIATE;
 -- =============================================================================
 
 -- IssueType → bizapps-tasks TaskType (default work type) and core [Action] hooks
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD CONSTRAINT "FK_IssueType_DefaultTaskType"
-        FOREIGN KEY ("DefaultTaskTypeID") REFERENCES "__mj_BizAppsTasks"."TaskType"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("DefaultTaskTypeID") REFERENCES __mj_bizappstasks."TaskType"("ID") DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD CONSTRAINT "FK_IssueType_OnCreateAction"
         FOREIGN KEY ("OnCreateActionID") REFERENCES ${mjSchema}."Action"("ID");
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD CONSTRAINT "FK_IssueType_OnStatusChangeAction"
         FOREIGN KEY ("OnStatusChangeActionID") REFERENCES ${mjSchema}."Action"("ID");
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD CONSTRAINT "FK_IssueType_OnAssignAction"
         FOREIGN KEY ("OnAssignActionID") REFERENCES ${mjSchema}."Action"("ID");
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueType"
+ALTER TABLE __mj_bizappsissues."IssueType"
  ADD CONSTRAINT "FK_IssueType_OnCloseAction"
         FOREIGN KEY ("OnCloseActionID") REFERENCES ${mjSchema}."Action"("ID");
 
 -- Issue → IssueType / IssueStatus (within schema), polymorphic entity refs to
 -- core Entity, reporter + creator Person (cross-schema to bizapps-common).
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_IssueType"
-        FOREIGN KEY ("IssueTypeID") REFERENCES "__mj_BizAppsIssues"."IssueType"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("IssueTypeID") REFERENCES __mj_bizappsissues."IssueType"("ID") DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_Status"
-        FOREIGN KEY ("StatusID") REFERENCES "__mj_BizAppsIssues"."IssueStatus"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("StatusID") REFERENCES __mj_bizappsissues."IssueStatus"("ID") DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_AssigneeEntity"
         FOREIGN KEY ("AssigneeEntityID") REFERENCES ${mjSchema}."Entity"("ID");
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_SourceEntity"
         FOREIGN KEY ("SourceEntityID") REFERENCES ${mjSchema}."Entity"("ID");
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_ReporterPerson"
-        FOREIGN KEY ("ReporterPersonID") REFERENCES "__mj_BizAppsCommon"."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("ReporterPersonID") REFERENCES __mj_bizappscommon."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "__mj_BizAppsIssues"."Issue"
+ALTER TABLE __mj_bizappsissues."Issue"
  ADD CONSTRAINT "FK_Issue_CreatedByPerson"
-        FOREIGN KEY ("CreatedByPersonID") REFERENCES "__mj_BizAppsCommon"."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("CreatedByPersonID") REFERENCES __mj_bizappscommon."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
 
 -- IssueComment → Issue (within schema), author Person (cross-schema).
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+ALTER TABLE __mj_bizappsissues."IssueComment"
  ADD CONSTRAINT "FK_IssueComment_Issue"
-        FOREIGN KEY ("IssueID") REFERENCES "__mj_BizAppsIssues"."Issue"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("IssueID") REFERENCES __mj_bizappsissues."Issue"("ID") DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
+ALTER TABLE __mj_bizappsissues."IssueComment"
  ADD CONSTRAINT "FK_IssueComment_AuthorPerson"
-        FOREIGN KEY ("AuthorPersonID") REFERENCES "__mj_BizAppsCommon"."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY ("AuthorPersonID") REFERENCES __mj_bizappscommon."Person"("ID") DEFERRABLE INITIALLY DEFERRED;
 
 
 -- ===================== Grants =====================
@@ -6103,8 +6462,8 @@ ALTER TABLE "__mj_BizAppsIssues"."IssueComment"
 -- Grant EXECUTE to the MJ runtime roles (CodeGen does this automatically for its
 -- generated CRUD procs; custom procs must grant explicitly). Called on the Issue
 -- insert path, so grant to both roles like a create proc.
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spAssignNextIssueNumber" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueNumberSequences" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spAssignNextIssueNumber" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueNumberSequences" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Number Sequences */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6115,7 +6474,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueNumberSequences" TO "cd
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueNumberSequences" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueNumberSequences" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Number Sequences */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6130,10 +6489,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueNumberSequences" TO "cd
 ----- CREATE PROCEDURE FOR IssueNumberSequence
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Number Sequences */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Number Sequences */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6148,8 +6507,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueNumberS
 ----- UPDATE PROCEDURE FOR IssueNumberSequence
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6162,12 +6521,12 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueNumberS
 
 ------------------------------------------------------------
 ----- BASE VIEW FOR ENTITY:      MJ_BizApps_Issues: Issue Status
------               SCHEMA:      __mj_BizAppsIssues
+-----               SCHEMA:      __mj_bizappsissues
 -----               BASE TABLE:  IssueStatus
 -----               PRIMARY KEY: ID
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6178,7 +6537,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "c
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueStatus" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6193,10 +6552,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueStatus" TO "cdp_UI", "c
 ----- CREATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6211,8 +6570,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueStatus"
 ----- UPDATE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Number Sequences */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6227,10 +6586,10 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueStatus"
 ----- DELETE PROCEDURE FOR IssueNumberSequence
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Number Sequences */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueNumberSequence" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Status */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6245,10 +6604,10 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueNumberS
 ----- DELETE PROCEDURE FOR IssueStatus
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Status */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueStatus" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6261,12 +6620,12 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueStatus"
 
 ------------------------------------------------------------
 ----- BASE VIEW FOR ENTITY:      MJ_BizApps_Issues: Issue Comments
------               SCHEMA:      __mj_BizAppsIssues
+-----               SCHEMA:      __mj_bizappsissues
 -----               BASE TABLE:  IssueComment
 -----               PRIMARY KEY: ID
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6277,7 +6636,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", 
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueComments" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6292,10 +6651,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueComments" TO "cdp_UI", 
 ----- CREATE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Comments */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6310,8 +6669,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueComment
 ----- UPDATE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Comments */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6326,13 +6685,13 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueComment
 ----- DELETE PROCEDURE FOR IssueComment
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Comments */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueComment" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to update entity field related entity name field map for entity field ID 86B9EC44-D8DA-4540-9638-DB50F4D92BC4 */
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueTypes" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueTypes" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issue Types */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6343,7 +6702,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueTypes" TO "cdp_UI", "cd
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueTypes" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssueTypes" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issue Types */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6358,10 +6717,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssueTypes" TO "cdp_UI", "cd
 ----- CREATE PROCEDURE FOR IssueType
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issue Types */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issue Types */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6376,8 +6735,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssueType" T
 ----- UPDATE PROCEDURE FOR IssueType
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issue Types */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6392,13 +6751,13 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssueType" T
 ----- DELETE PROCEDURE FOR IssueType
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issue Types */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssueType" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to update entity field related entity name field map for entity field ID 2BDFB21A-BAF7-482D-98C5-4DFD03FF45EE */
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssues" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssues" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* Base View Permissions SQL for MJ_BizApps_Issues: Issues */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6409,7 +6768,7 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssues" TO "cdp_UI", "cdp_De
 -- This file should NOT be edited by hand.
 -----------------------------------------------------------------;
 
-DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssues" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT SELECT ON __mj_bizappsissues."vwIssues" TO "cdp_UI", "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate SQL for MJ_BizApps_Issues: Issues */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6424,10 +6783,10 @@ DO $$ BEGIN GRANT SELECT ON "__mj_BizAppsIssues"."vwIssues" TO "cdp_UI", "cdp_De
 ----- CREATE PROCEDURE FOR Issue
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spCreate Permissions for MJ_BizApps_Issues: Issues */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spUpdate SQL for MJ_BizApps_Issues: Issues */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6442,8 +6801,8 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spCreateIssue" TO "c
 ----- UPDATE PROCEDURE FOR Issue
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete SQL for MJ_BizApps_Issues: Issues */
 -----------------------------------------------------------------
 -- SQL Code Generation
@@ -6458,10 +6817,10 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spUpdateIssue" TO "c
 ----- DELETE PROCEDURE FOR Issue
 ------------------------------------------------------------;
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* spDelete Permissions for MJ_BizApps_Issues: Issues */
 
-DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
+DO $$ BEGIN GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spDeleteIssue" TO "cdp_Developer", "cdp_Integration"; EXCEPTION WHEN others THEN NULL; END $$;
 /* SQL text to delete unneeded entity fields (5 scoped entities) */
 
 
@@ -6474,105 +6833,105 @@ DO $$ BEGIN GRANT EXECUTE ON FUNCTION "__mj_BizAppsIssues"."spDeleteIssue" TO "c
 -- 
 -- -- Schema
 -- EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'BizApps Issues: reusable case / issue / ticket primitives. The shared foundation for ticketing UX (Izzy) and the destination for MJ cloud feedback.',
---     @level0type = N'SCHEMA', @level0name = N'__mj_BizAppsIssues';
+--     @level0type = N'SCHEMA', @level0name = N'__mj_bizappsissues';
 
-COMMENT ON TABLE "__mj_BizAppsIssues"."IssueType" IS 'Lifecycle automation for a class of issue (Bug, Feature Request, Question, Feedback). Mirrors the bizapps-tasks TaskType action-hook pattern: On*ActionID columns point at core "Action" records fired at the matching lifecycle event.';
+COMMENT ON TABLE __mj_bizappsissues."IssueType" IS 'Lifecycle automation for a class of issue (Bug, Feature Request, Question, Feedback). Mirrors the bizapps-tasks TaskType action-hook pattern: On*ActionID columns point at core "Action" records fired at the matching lifecycle event.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."ID" IS 'Unique identifier (UUID).';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."ID" IS 'Unique identifier (UUID).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."Name" IS 'Display name of the issue type (unique). E.g. ';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."Name" IS 'Display name of the issue type (unique). E.g. ''Bug'', ''Feature Request''.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."Description" IS 'Detailed description of what this issue type represents and when to use it.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."Description" IS 'Detailed description of what this issue type represents and when to use it.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."IconClass" IS 'Font Awesome (or similar) icon class shown next to issues of this type in the UI.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."IconClass" IS 'Font Awesome (or similar) icon class shown next to issues of this type in the UI.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."DefaultPriority" IS 'Priority assigned to new issues of this type when none is specified. One of Low, Medium, High, Critical.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."DefaultPriority" IS 'Priority assigned to new issues of this type when none is specified. One of Low, Medium, High, Critical.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."DefaultTaskTypeID" IS 'bizapps-tasks TaskType used when an Issue of this type spawns work via IssueWorkService. NULL = let the caller choose.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."DefaultTaskTypeID" IS 'bizapps-tasks TaskType used when an Issue of this type spawns work via IssueWorkService. NULL = let the caller choose.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."OnCreateActionID" IS 'Action fired by IssueService when an Issue of this type is created.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."OnCreateActionID" IS 'Action fired by IssueService when an Issue of this type is created.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."OnStatusChangeActionID" IS 'Action fired by IssueService when an Issue of this type changes status.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."OnStatusChangeActionID" IS 'Action fired by IssueService when an Issue of this type changes status.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."OnAssignActionID" IS 'Action fired by IssueService when an Issue of this type is assigned.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."OnAssignActionID" IS 'Action fired by IssueService when an Issue of this type is assigned.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."OnCloseActionID" IS 'Action fired by IssueService when an Issue of this type is closed.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."OnCloseActionID" IS 'Action fired by IssueService when an Issue of this type is closed.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueType"."IsActive" IS 'Whether this issue type is available for new issues. Inactive types stay on historical issues but are hidden from selection.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueType"."IsActive" IS 'Whether this issue type is available for new issues. Inactive types stay on historical issues but are hidden from selection.';
 
-COMMENT ON TABLE "__mj_BizAppsIssues"."IssueStatus" IS 'Workflow state an Issue can be in (New, Triaged, In Progress, Resolved, Closed, ...). Seeded via metadata sync, not in this migration. Drives board columns.';
+COMMENT ON TABLE __mj_bizappsissues."IssueStatus" IS 'Workflow state an Issue can be in (New, Triaged, In Progress, Resolved, Closed, ...). Seeded via metadata sync, not in this migration. Drives board columns.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."ID" IS 'Unique identifier (UUID).';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."ID" IS 'Unique identifier (UUID).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."Name" IS 'Display name of the status (unique). E.g. ';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."Name" IS 'Display name of the status (unique). E.g. ''In Progress'', ''Resolved''.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."Description" IS 'Detailed description of what this status means in the workflow.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."Description" IS 'Detailed description of what this status means in the workflow.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."Sequence" IS 'Sort order of the status on boards and in dropdowns. Lower values appear first.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."Sequence" IS 'Sort order of the status on boards and in dropdowns. Lower values appear first.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."IsDefault" IS 'Whether new issues default to this status. Exactly one status should have this set.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."IsDefault" IS 'Whether new issues default to this status. Exactly one status should have this set.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."IsTerminal" IS 'Whether this is a terminal (end) state such as Closed or Won';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."IsTerminal" IS 'Whether this is a terminal (end) state such as Closed or Won''t Fix. Terminal statuses stop SLA timers and remove the issue from active queues.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueStatus"."ColorCode" IS 'Hex (or token) color used to render this status as a chip / board column header.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueStatus"."ColorCode" IS 'Hex (or token) color used to render this status as a chip / board column header.';
 
-COMMENT ON TABLE "__mj_BizAppsIssues"."Issue" IS 'The core case / ticket / feedback record. Carries reporter, polymorphic assignee (Person or AI Agent), and a polymorphic source (any record the issue is about). Spawns bizapps-tasks Tasks for the actual work via TaskLink.';
+COMMENT ON TABLE __mj_bizappsissues."Issue" IS 'The core case / ticket / feedback record. Carries reporter, polymorphic assignee (Person or AI Agent), and a polymorphic source (any record the issue is about). Spawns bizapps-tasks Tasks for the actual work via TaskLink.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."ID" IS 'Unique identifier (UUID).';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."ID" IS 'Unique identifier (UUID).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."IssueNumber" IS 'Human-readable case identifier, format {SCOPE}-{seq} (e.g. ';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."IssueNumber" IS 'Human-readable case identifier, format {SCOPE}-{seq} (e.g. ''MJC-42''), where SCOPE is the normalized (trim/UPPER) AppScope or ''ISS'' when none. Assigned once on insert by spAssignNextIssueNumber via IssueEntityServer; immutable thereafter. UNIQUE. Per-AppScope (globally sequential across orgs sharing a scope) — Izzy layers a separate per-org TKT-#### on top.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."Title" IS 'Short, one-line summary of the issue.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."Title" IS 'Short, one-line summary of the issue.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."Description" IS 'Full description / body of the issue (Markdown or plain text).';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."Description" IS 'Full description / body of the issue (Markdown or plain text).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."IssueTypeID" IS 'The IssueType classifying this issue. Drives lifecycle action hooks and the default spawned task type.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."IssueTypeID" IS 'The IssueType classifying this issue. Drives lifecycle action hooks and the default spawned task type.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."StatusID" IS 'Current workflow status of the issue.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."StatusID" IS 'Current workflow status of the issue.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."Severity" IS 'Impact of the issue (how bad it is): Low, Medium, High, Critical. Distinct from Priority.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."Severity" IS 'Impact of the issue (how bad it is): Low, Medium, High, Critical. Distinct from Priority.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."Priority" IS 'Scheduling priority (how soon to address it): Low, Medium, High, Critical. Distinct from Severity.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."Priority" IS 'Scheduling priority (how soon to address it): Low, Medium, High, Critical. Distinct from Severity.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."ReporterPersonID" IS 'The Person who raised the issue, when known internally. NULL for external/anonymous reporters (use ReporterEmail).';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."ReporterPersonID" IS 'The Person who raised the issue, when known internally. NULL for external/anonymous reporters (use ReporterEmail).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."ReporterEmail" IS 'Email of the reporter, used when there is no linked Person (external feedback, email-in).';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."ReporterEmail" IS 'Email of the reporter, used when there is no linked Person (external feedback, email-in).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."AssigneeEntityID" IS 'Polymorphic assignee: the core Entity of the assignee (e.g. a Person entity or an AI Agent entity). Paired with AssigneeRecordID.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."AssigneeEntityID" IS 'Polymorphic assignee: the core Entity of the assignee (e.g. a Person entity or an AI Agent entity). Paired with AssigneeRecordID.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."AssigneeRecordID" IS 'Polymorphic assignee: the primary key (as string) of the assignee record within AssigneeEntityID.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."AssigneeRecordID" IS 'Polymorphic assignee: the primary key (as string) of the assignee record within AssigneeEntityID.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."SourceEntityID" IS 'Polymorphic source: the core Entity of the record this issue is about (what the feedback concerns). Paired with SourceRecordID.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."SourceEntityID" IS 'Polymorphic source: the core Entity of the record this issue is about (what the feedback concerns). Paired with SourceRecordID.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."SourceRecordID" IS 'Polymorphic source: the primary key (as string) of the source record within SourceEntityID.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."SourceRecordID" IS 'Polymorphic source: the primary key (as string) of the source record within SourceEntityID.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."AppScope" IS 'Which app / product this issue belongs to (free-text scope tag, e.g. ';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."AppScope" IS 'Which app / product this issue belongs to (free-text scope tag, e.g. ''MJC'', ''Explorer'').';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."ResolvedAt" IS 'Timestamp the issue was resolved (entered a resolved state). NULL while unresolved.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."ResolvedAt" IS 'Timestamp the issue was resolved (entered a resolved state). NULL while unresolved.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."ClosedAt" IS 'Timestamp the issue was closed (entered a terminal state). NULL while open.';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."ClosedAt" IS 'Timestamp the issue was closed (entered a terminal state). NULL while open.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."Issue"."CreatedByPersonID" IS 'The Person who created the issue record in the system (may differ from the reporter).';
+COMMENT ON COLUMN __mj_bizappsissues."Issue"."CreatedByPersonID" IS 'The Person who created the issue record in the system (may differ from the reporter).';
 
-COMMENT ON TABLE "__mj_BizAppsIssues"."IssueComment" IS 'Threaded discussion entry on an Issue. Author is a Person when internal; AuthorEmail carries the address for email / external sources.';
+COMMENT ON TABLE __mj_bizappsissues."IssueComment" IS 'Threaded discussion entry on an Issue. Author is a Person when internal; AuthorEmail carries the address for email / external sources.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."ID" IS 'Unique identifier (UUID).';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."ID" IS 'Unique identifier (UUID).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."IssueID" IS 'The Issue this comment belongs to.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."IssueID" IS 'The Issue this comment belongs to.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."Body" IS 'Comment body (Markdown or plain text).';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."Body" IS 'Comment body (Markdown or plain text).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."AuthorPersonID" IS 'The Person who authored the comment, when internal. NULL for email/external authors (use AuthorEmail).';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."AuthorPersonID" IS 'The Person who authored the comment, when internal. NULL for email/external authors (use AuthorEmail).';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."AuthorEmail" IS 'Email of the comment author, used when there is no linked Person.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."AuthorEmail" IS 'Email of the comment author, used when there is no linked Person.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueComment"."Source" IS 'Origin of the comment: ';
+COMMENT ON COLUMN __mj_bizappsissues."IssueComment"."Source" IS 'Origin of the comment: ''internal'' (in-app), ''email'' (email reply), or ''external'' (reserved for v1.1 provider sync).';
 
-COMMENT ON TABLE "__mj_BizAppsIssues"."IssueNumberSequence" IS 'Per-scope gap-free counter backing the human-readable Issue."IssueNumber". One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.';
+COMMENT ON TABLE __mj_bizappsissues."IssueNumberSequence" IS 'Per-scope gap-free counter backing the human-readable Issue."IssueNumber". One row per normalized ScopeCode. Maintained ONLY by spAssignNextIssueNumber — never write directly.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueNumberSequence"."ScopeCode" IS 'The normalized (trim/UPPER) AppScope this counter is for, or ';
+COMMENT ON COLUMN __mj_bizappsissues."IssueNumberSequence"."ScopeCode" IS 'The normalized (trim/UPPER) AppScope this counter is for, or ''ISS'' when an issue has no AppScope. Primary key.';
 
-COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueNumberSequence"."NextSequenceNumber" IS 'The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.';
+COMMENT ON COLUMN __mj_bizappsissues."IssueNumberSequence"."NextSequenceNumber" IS 'The next sequence value to assign for this scope. Incremented atomically (UPDLOCK/HOLDLOCK) by spAssignNextIssueNumber.';
 
 
 -- ===================== Other =====================
@@ -6593,7 +6952,7 @@ COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueNumberSequence"."NextSequenceNumber
 --     if the subsequent insert rolls back the number is skipped (standard
 --     sequence behavior — unique + monotonic, occasional cosmetic gaps accepted).
 ---------------------------------------------------------------------------
--- CREATE OR ALTER PROCEDURE __mj_BizAppsIssues.spAssignNextIssueNumber
+-- CREATE OR ALTER PROCEDURE __mj_bizappsissues.spAssignNextIssueNumber
 --     @AppScope VARCHAR(255) = NULL,
 --     @IssueNumber VARCHAR(50) OUTPUT
 -- AS
@@ -6607,13 +6966,13 @@ COMMENT ON COLUMN "__mj_BizAppsIssues"."IssueNumberSequence"."NextSequenceNumber
 --     DECLARE @Seq INTEGER;
 
 --     BEGIN TRAN;
---         UPDATE "__mj_BizAppsIssues"."IssueNumberSequence" WITH (UPDLOCK, HOLDLOCK)
+--         UPDATE __mj_bizappsissues."IssueNumberSequence" WITH (UPDLOCK, HOLDLOCK)
 --             SET @Seq = NextSequenceNumber, NextSequenceNumber = NextSequenceNumber + 1
 --             WHERE ScopeCode = @Scope;
 
 --         IF @@ROWCOUNT = 0
 --         BEGIN
---             INSERT "__mj_BizAppsIssues"."IssueNumberSequence" (ScopeCode, NextSequenceNumber)
+--             INSERT __mj_bizappsissues."IssueNumberSequence" (ScopeCode, NextSequenceNumber)
 --                 VALUES (@Scope, 2);
 --             SET @Seq = 1;
 --         END
