@@ -134,11 +134,16 @@ SELECT (SELECT count(*) FROM __mj_bizappsissues."IssueStatus"),          -- 7
        (SELECT count(*) FROM __mj_bizappsissues."IssueType");            -- 4
 ```
 
-Then the live proof:
+Then the two live proofs:
 
 ```bash
 # Functional suite — connection via PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD
 node scripts/pg-objectmodel-test.mjs      # expect: RESULT: 22 passed, 0 failed
+
+# MJAPI against it (same shell, exports still set; pick a free port)
+cd apps/MJAPI && GRAPHQL_PORT=4103 npm start
+# expect: DB PostgreSQL · localhost:<port>/<db> · 407 entities · Ready :4103
+# (an unauthenticated GraphQL POST returns 401 — the endpoint is serving)
 ```
 
 ## 5. Optional: prove codegen is a no-op
