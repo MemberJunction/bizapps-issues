@@ -6,7 +6,7 @@
 -- codegen run makes no metadata changes. Mirrors the bizapps-common v5.32
 -- backfill (commit 1bfe93c) and the bizapps-tasks v1.2 backfill.
 --
--- Two groups of statements, all data (no DDL):
+-- Three groups of statements (metadata rows + permission grants, no object DDL):
 --
 -- 1. SchemaInfo (MemberJunction/MJ#2992). Issues migrations never create a
 --    SchemaInfo row, so on a fresh install CodeGen auto-creates one with
@@ -127,3 +127,13 @@ UPDATE __mj."EntityField" SET "Sequence" = 1, "Type" = 'nvarchar', "DefaultColum
 UPDATE __mj."EntityField" SET "Sequence" = 4, "Type" = 'datetimeoffset', "DefaultColumnWidth" = 100 WHERE "ID" = '30118bfc-fe8a-4fe4-903c-79184edce894';
 UPDATE __mj."EntityField" SET "Sequence" = 2, "Type" = 'int', "DefaultColumnWidth" = 50 WHERE "ID" = '219d0d34-f277-4222-b9a1-f5a9f155abca';
 
+
+-- 3. Function grants CodeGen derives from entity UI permissions. The
+-- Grant_UI_Role_Issue_Write migration covers table/view grants; these four
+-- EXECUTE grants are what CodeGen's first run was still adding (verified by
+-- snapshot diff). Without them a cdp_UI user gets permission-denied on
+-- Issue/IssueComment writes until codegen runs.
+GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssue" TO "cdp_UI";
+GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spCreateIssueComment" TO "cdp_UI";
+GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssue" TO "cdp_UI";
+GRANT EXECUTE ON FUNCTION __mj_bizappsissues."spUpdateIssueComment" TO "cdp_UI";

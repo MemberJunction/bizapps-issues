@@ -24,7 +24,7 @@ jobs:
       - name: Check for migration file changes
         id: migration_check
         run: |
-          MIGRATION_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^migrations/.*\.sql$' || true)
+          MIGRATION_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^migrations(-pg)?/.*\.sql$' || true)
           if [ -n "$MIGRATION_FILES" ]; then
             echo "has_migrations=true" >> "$GITHUB_OUTPUT"
             echo "Migration files changed:"
