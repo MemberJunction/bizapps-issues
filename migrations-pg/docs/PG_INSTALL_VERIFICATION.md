@@ -172,6 +172,13 @@ rm -rf temp_sql_scripts
   `@mj-biz-apps/issues-entities` and none exists on the SQL Server side either,
   so this is parity, not a gap. A keyed codegen run may add that one
   GeneratedCode row — exactly as it would on SQL Server today.
+- **First codegen adds four `GRANT EXECUTE ... TO cdp_UI`** on the write
+  functions (spCreate/spUpdate for Issue and IssueComment) — CodeGen deriving
+  DB grants from the UI role's CanCreate/CanUpdate set by the
+  Grant_UI_Role_Issue_Write migration. Deliberately not shipped in the
+  backfill: the SQL Server migrations don't carry them either, and hand-adding
+  them on PG only would break migration parity. They arrive in the next
+  CodeGen_Run migration on both platforms.
 - **Two SchemaInfo rows** (`__mj_bizappsissues` + `__mj_BizAppsIssues`): the
   second is what CodeGen auto-creates keyed by the canonical name (its
   newEntityDefaults config references the schema that way); the backfill
