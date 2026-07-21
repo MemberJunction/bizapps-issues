@@ -127,3 +127,9 @@ UPDATE __mj."EntityField" SET "Sequence" = 1, "Type" = 'nvarchar', "DefaultColum
 UPDATE __mj."EntityField" SET "Sequence" = 4, "Type" = 'datetimeoffset', "DefaultColumnWidth" = 100 WHERE "ID" = '30118bfc-fe8a-4fe4-903c-79184edce894';
 UPDATE __mj."EntityField" SET "Sequence" = 2, "Type" = 'int', "DefaultColumnWidth" = 50 WHERE "ID" = '219d0d34-f277-4222-b9a1-f5a9f155abca';
 
+-- NOTE — deliberately NOT shipped here: the four GRANT EXECUTE ... TO cdp_UI
+-- statements CodeGen derives from the UI role's CanCreate/CanUpdate permissions
+-- (spCreateIssue / spUpdateIssue / spCreateIssueComment / spUpdateIssueComment).
+-- The SQL Server migrations do not carry them either — DB-level proc grants are
+-- CodeGen output and ship in the next CodeGen_Run migration on BOTH platforms.
+-- Hand-adding them on PG only would break migration parity with SQL Server.

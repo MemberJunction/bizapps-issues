@@ -134,11 +134,16 @@ SELECT (SELECT count(*) FROM __mj_bizappsissues."IssueStatus"),          -- 7
        (SELECT count(*) FROM __mj_bizappsissues."IssueType");            -- 4
 ```
 
-Then the live proof:
+Then the two live proofs:
 
 ```bash
 # Functional suite — connection via PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD
 node scripts/pg-objectmodel-test.mjs      # expect: RESULT: 22 passed, 0 failed
+
+# MJAPI against it (same shell, exports still set; pick a free port)
+cd apps/MJAPI && GRAPHQL_PORT=4103 npm start
+# expect: DB PostgreSQL · localhost:<port>/<db> · 407 entities · Ready :4103
+# (an unauthenticated GraphQL POST returns 401 — the endpoint is serving)
 ```
 
 ## 5. Optional: prove codegen is a no-op
@@ -172,6 +177,13 @@ rm -rf temp_sql_scripts
   `@mj-biz-apps/issues-entities` and none exists on the SQL Server side either,
   so this is parity, not a gap. A keyed codegen run may add that one
   GeneratedCode row — exactly as it would on SQL Server today.
+- **First codegen adds four `GRANT EXECUTE ... TO cdp_UI`** on the write
+  functions (spCreate/spUpdate for Issue and IssueComment) — CodeGen deriving
+  DB grants from the UI role's CanCreate/CanUpdate set by the
+  Grant_UI_Role_Issue_Write migration. Deliberately not shipped in the
+  backfill: the SQL Server migrations don't carry them either, and hand-adding
+  them on PG only would break migration parity. They arrive in the next
+  CodeGen_Run migration on both platforms.
 - **Two SchemaInfo rows** (`__mj_bizappsissues` + `__mj_BizAppsIssues`): the
   second is what CodeGen auto-creates keyed by the canonical name (its
   newEntityDefaults config references the schema that way); the backfill
