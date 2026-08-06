@@ -19,12 +19,14 @@
   "author": "MemberJunction.com",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@mj-biz-apps/common-entities": "^5.30.0",
     "@mj-biz-apps/issues-entities": "1.1.0",
     "@mj-biz-apps/tasks-entities": "^1.2.0",
-    "@mj-biz-apps/common-entities": "^5.30.0"
+    "rxjs": "^7.8.2"
   },
   "peerDependencies": {
     "@memberjunction/core": "^5.44.0",
