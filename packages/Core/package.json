@@ -29,12 +29,12 @@
     "rxjs": "^7.8.2"
   },
   "peerDependencies": {
-    "@memberjunction/core": "^5.44.0",
-    "@memberjunction/core-entities": "^5.44.0",
-    "@memberjunction/global": "^5.44.0",
-    "@memberjunction/sqlserver-dataprovider": "^5.44.0",
-    "@memberjunction/actions": "^5.44.0",
-    "@memberjunction/actions-base": "^5.44.0"
+    "@memberjunction/core": "^6.1.0-edge.1",
+    "@memberjunction/core-entities": "^6.1.0-edge.1",
+    "@memberjunction/global": "^6.1.0-edge.1",
+    "@memberjunction/sqlserver-dataprovider": "^6.1.0-edge.1",
+    "@memberjunction/actions": "^6.1.0-edge.1",
+    "@memberjunction/actions-base": "^6.1.0-edge.1"
   },
   "repository": {
     "type": "git",
