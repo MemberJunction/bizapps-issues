@@ -1,5 +1,5 @@
 ---
-"@mj-biz-apps/issues-entities": minor
+"@mj-biz-apps/issues-entities": patch
 ---
 
 Upgrade to MemberJunction 6.1.0-edge.1, migrate the workspace to pnpm, and remove the
