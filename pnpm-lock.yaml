@@ -26,13 +26,13 @@ importers:
   .:
     dependencies:
       '@mj-biz-apps/tasks-entities':
-        specifier: 1.2.1
+        specifier: ^1.2.1
         version: 1.2.1(@memberjunction/core@6.1.0-edge.1)(@memberjunction/global@6.1.0-edge.1)
       '@mj-biz-apps/tasks-ng':
-        specifier: 1.2.1
+        specifier: ^1.2.1
         version: 1.2.1(b8b7983b43d35dc31b437e9c7eb21ae3)
       '@mj-biz-apps/tasks-server':
-        specifier: 1.2.1
+        specifier: ^1.2.1
         version: 1.2.1(34b549632f4549a0cfc0ddcb063a0066)
     devDependencies:
       '@changesets/cli':
@@ -185,13 +185,13 @@ importers:
         specifier: ^6.1.0-edge.1
         version: 6.1.0-edge.1(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(debug@4.4.3)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/common-entities':
-        specifier: 5.33.1
+        specifier: ^5.33.1
         version: 5.33.1(@memberjunction/core@6.1.0-edge.1)(@memberjunction/global@6.1.0-edge.1)
       '@mj-biz-apps/issues-entities':
         specifier: 1.1.0
         version: link:../Entities
       '@mj-biz-apps/tasks-entities':
-        specifier: 1.2.1
+        specifier: ^1.2.1
         version: 1.2.1(@memberjunction/core@6.1.0-edge.1)(@memberjunction/global@6.1.0-edge.1)
     devDependencies:
       rxjs:
@@ -10084,7 +10084,7 @@ snapshots:
       '@memberjunction/ai': 6.1.0-edge.1
       '@memberjunction/global': 6.1.0-edge.1
       axios: 1.19.0(debug@4.4.3)
-      axios-retry: 4.5.0(axios@1.19.0)
+      axios-retry: 4.5.0(axios@1.19.0(debug@4.4.3))
       env-var: 7.5.0
     transitivePeerDependencies:
       - debug
@@ -10511,7 +10511,7 @@ snapshots:
       '@memberjunction/global': 6.1.0-edge.1
       '@mistralai/mistralai': 1.15.1
       axios: 1.19.0(debug@4.4.3)
-      axios-retry: 4.5.0(axios@1.19.0)
+      axios-retry: 4.5.0(axios@1.19.0(debug@4.4.3))
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -16908,7 +16908,7 @@ snapshots:
 
   aws-ssl-profiles@1.1.2: {}
 
-  axios-retry@4.5.0(axios@1.19.0):
+  axios-retry@4.5.0(axios@1.19.0(debug@4.4.3)):
     dependencies:
       axios: 1.19.0(debug@4.4.3)
       is-retry-allowed: 2.2.0

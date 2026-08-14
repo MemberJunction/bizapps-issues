@@ -67,8 +67,8 @@
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
-    "@mj-biz-apps/tasks-entities": "1.2.1",
-    "@mj-biz-apps/tasks-ng": "1.2.1",
-    "@mj-biz-apps/tasks-server": "1.2.1"
+    "@mj-biz-apps/tasks-entities": "^1.2.1",
+    "@mj-biz-apps/tasks-ng": "^1.2.1",
+    "@mj-biz-apps/tasks-server": "^1.2.1"
   }
 }
