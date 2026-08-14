@@ -69,13 +69,6 @@ module.exports = {
       args: ['run', 'build'],
       when: 'after',
     },
-    {
-      workingDirectory: './apps/MJAPI',
-      command: 'npm',
-      args: ['start'],
-      timeout: 30000,
-      when: 'after',
-    },
   ],
 
   // ============================================================================
