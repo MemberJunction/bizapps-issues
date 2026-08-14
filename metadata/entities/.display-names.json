@@ -1,0 +1,57 @@
+[
+  {
+    "_comments": [
+      "Lock DisplayName to the unprefixed entity title."
+    ],
+    "fields": {
+      "DisplayName": "Issue Comments"
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issue Comments"
+    }
+  },
+  {
+    "_comments": [
+      "Lock DisplayName to the unprefixed entity title."
+    ],
+    "fields": {
+      "DisplayName": "Issue Number Sequences"
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issue Number Sequences"
+    }
+  },
+  {
+    "_comments": [
+      "Lock DisplayName to the unprefixed entity title."
+    ],
+    "fields": {
+      "DisplayName": "Issue Status"
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issue Status"
+    }
+  },
+  {
+    "_comments": [
+      "Lock DisplayName to the unprefixed entity title."
+    ],
+    "fields": {
+      "DisplayName": "Issue Types"
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issue Types"
+    }
+  },
+  {
+    "_comments": [
+      "Lock DisplayName to the unprefixed entity title."
+    ],
+    "fields": {
+      "DisplayName": "Issues"
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issues"
+    }
+  }
+]
