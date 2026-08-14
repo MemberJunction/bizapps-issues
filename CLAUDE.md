@@ -2007,3 +2007,7 @@ npx playwright-cli close
 
 ## Recent Changes
 - 601-mcp-oauth: Added TypeScript 5.x, Node.js 18+ + `@memberjunction/server` (auth providers), `express`, `jsonwebtoken`, `@modelcontextprotocol/sdk`
+
+## Angular pinning model
+
+**Angular pinning model** (family-wide, 2026-08-07, with MemberJunction/MJ#3580): `@angular/*` peers in `packages/*` are **caret ranges at the platform pin** (`^21.1.3`) — compatibility claims, never exact. Each package that consumes Angular **anchors** the concrete version with exact `21.1.3` entries in its own `devDependencies`; the anchor is what actually installs. In the shared pnpm dev workspace `auto-install-peers=true` turns unanchored peer ranges into install instructions, which is how two copies of `@angular/core` ended up installed family-wide. Rev anchors with the era platform pin, never with MJ pins.
