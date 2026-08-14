@@ -26,16 +26,16 @@
   },
   "dependencies": {
     "@mj-biz-apps/issues-entities": "1.1.0",
-    "@mj-biz-apps/tasks-entities": "^1.2.1",
-    "@mj-biz-apps/common-entities": "^5.33.1"
+    "@mj-biz-apps/tasks-entities": "^1.2.2",
+    "@mj-biz-apps/common-entities": "^5.34.0"
   },
   "peerDependencies": {
-    "@memberjunction/core": "^6.1.0-edge.1",
-    "@memberjunction/core-entities": "^6.1.0-edge.1",
-    "@memberjunction/global": "^6.1.0-edge.1",
-    "@memberjunction/sqlserver-dataprovider": "^6.1.0-edge.1",
-    "@memberjunction/actions": "^6.1.0-edge.1",
-    "@memberjunction/actions-base": "^6.1.0-edge.1",
+    "@memberjunction/core": "^6.1.0-edge.2",
+    "@memberjunction/core-entities": "^6.1.0-edge.2",
+    "@memberjunction/global": "^6.1.0-edge.2",
+    "@memberjunction/sqlserver-dataprovider": "^6.1.0-edge.2",
+    "@memberjunction/actions": "^6.1.0-edge.2",
+    "@memberjunction/actions-base": "^6.1.0-edge.2",
     "rxjs": "^7.8.2"
   },
   "repository": {

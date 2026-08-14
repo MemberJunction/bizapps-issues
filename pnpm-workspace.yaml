@@ -12,7 +12,7 @@ linkWorkspacePackages: true
 
 # Peer mismatches must not fail the install. Not cosmetic: the published
 # @mj-biz-apps/common-*@5.33.1 packages peer-pin @memberjunction/* at exactly
-# 6.1.0-edge.0, while this repo installs 6.1.0-edge.1. pnpm already defaults this to
+# 6.1.0-edge.0, while this repo installs 6.1.0-edge.2. pnpm already defaults this to
 # false; stated explicitly so the reason is on the record. (Replaces npm's
 # legacy-peer-deps, which pnpm does not read.) Lives here rather than in .npmrc so
 # `npm view` in the publish scripts does not warn about an unknown config key.
