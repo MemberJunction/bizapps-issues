@@ -1,0 +1,16 @@
+[
+  {
+    "_comments": [
+      "Form chrome: Issues this Person reported stay first-class on the Person form.",
+      "Comments / created-by stay Auto so the ranker can park them in More."
+    ],
+    "fields": {
+      "Configuration": {
+        "UI": { "FormRole": "Primary" }
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issues&RelatedEntityJoinField=ReporterPersonID"
+    }
+  }
+]
