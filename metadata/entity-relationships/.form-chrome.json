@@ -6,11 +6,58 @@
     ],
     "fields": {
       "Configuration": {
-        "UI": { "FormRole": "Primary" }
+        "UI": {
+          "inclusion": "Primary"
+        }
       }
     },
     "primaryKey": {
       "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issues&RelatedEntityJoinField=ReporterPersonID"
+    }
+  },
+  {
+    "_comments": [
+      "Person form: created-by Issues is audit \u2014 not a candidate."
+    ],
+    "fields": {
+      "Configuration": {
+        "UI": {
+          "inclusion": "None"
+        }
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issues&RelatedEntityJoinField=CreatedByPersonID"
+    }
+  },
+  {
+    "_comments": [
+      "Person form: issue comments are not a Person-form surface."
+    ],
+    "fields": {
+      "Configuration": {
+        "UI": {
+          "inclusion": "None"
+        }
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issue Comments&RelatedEntityJoinField=AuthorPersonID"
+    }
+  },
+  {
+    "_comments": [
+      "Issue form: comments stay first-class."
+    ],
+    "fields": {
+      "Configuration": {
+        "UI": {
+          "inclusion": "Primary"
+        }
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Issues: Issues&RelatedEntity=MJ_BizApps_Issues: Issue Comments&RelatedEntityJoinField=IssueID"
     }
   }
 ]
