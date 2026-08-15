@@ -14,6 +14,10 @@ module.exports = {
 
   entityPackageName: '@mj-biz-apps/issues-entities',
 
+  testing: {
+    checkModules: ['@mj-biz-apps/issues-integration-tests'],
+  },
+
   output: [
     { type: 'SQL', directory: './SQL Scripts/generated', appendOutputCode: true },
     {
