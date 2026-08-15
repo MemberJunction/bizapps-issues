@@ -263,6 +263,37 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/IntegrationTests:
+    dependencies:
+      '@memberjunction/core':
+        specifier: ^6.1.0-edge.2
+        version: 6.1.0-edge.2
+      '@memberjunction/global':
+        specifier: ^6.1.0-edge.2
+        version: 6.1.0-edge.2
+      '@memberjunction/testing-integration':
+        specifier: ^6.1.0-edge.2
+        version: 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@mj-biz-apps/common-entities':
+        specifier: '>=0.1.0'
+        version: 5.34.0(@memberjunction/core@6.1.0-edge.2)(@memberjunction/global@6.1.0-edge.2)
+      '@mj-biz-apps/issues-entities':
+        specifier: 1.1.1
+        version: link:../Entities
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.1.5
+        version: 7.3.6(@types/node@22.20.1)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jsdom@26.1.0)(vite@7.3.6(@types/node@22.20.1))
+
   packages/Server:
     dependencies:
       '@memberjunction/core':
@@ -15380,6 +15411,49 @@ snapshots:
       - ws
       - zod
 
+  '@memberjunction/testing-integration@6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)':
+    dependencies:
+      '@memberjunction/core': 6.1.0-edge.2
+      '@memberjunction/core-entities': 6.1.0-edge.2
+      '@memberjunction/generic-database-provider': 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(debug@4.4.3)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@memberjunction/global': 6.1.0-edge.2
+      '@memberjunction/graphql-dataprovider': 6.1.0-edge.2(ws@8.21.3)
+      '@memberjunction/server-bootstrap-lite': 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@memberjunction/sqlserver-dataprovider': 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(debug@4.4.3)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@memberjunction/testing-engine': 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)
+      '@memberjunction/testing-engine-base': 6.1.0-edge.2
+      cosmiconfig: 9.0.0(typescript@5.9.3)
+      dotenv: 17.2.4
+      mssql: 12.7.0
+    optionalDependencies:
+      '@memberjunction/postgresql-dataprovider': 6.1.0-edge.2(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(chokidar@3.6.0)(debug@4.4.3)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-provider-node'
+      - '@azure/msal-browser'
+      - '@cfworker/json-schema'
+      - '@fastify/websocket'
+      - '@modelcontextprotocol/sdk'
+      - '@noble/hashes'
+      - '@smithy/hash-node'
+      - '@smithy/signature-v4'
+      - bare-abort-controller
+      - bare-buffer
+      - buffer
+      - bufferutil
+      - canvas
+      - chokidar
+      - crossws
+      - debug
+      - encoding
+      - pg-native
+      - react-native-b4a
+      - stream-browserify
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - ws
+      - zod
+
   '@memberjunction/theme-engine@6.1.0-edge.2': {}
 
   '@memberjunction/version-history@6.1.0-edge.2':
@@ -16478,6 +16552,14 @@ snapshots:
       '@vitest/utils': 4.1.10
       chai: 6.2.2
       tinyrainbow: 3.1.1
+
+  '@vitest/mocker@4.1.10(vite@7.3.6(@types/node@22.20.1))':
+    dependencies:
+      '@vitest/spy': 4.1.10
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.3.6(@types/node@22.20.1)
 
   '@vitest/mocker@4.1.10(vite@7.3.6(@types/node@25.9.5))':
     dependencies:
@@ -21032,6 +21114,18 @@ snapshots:
 
   vary@1.1.2: {}
 
+  vite@7.3.6(@types/node@22.20.1):
+    dependencies:
+      esbuild: 0.28.2
+      fdir: 6.5.0(picomatch@4.0.5)
+      picomatch: 4.0.5
+      postcss: 8.5.26
+      rollup: 4.62.4
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 22.20.1
+      fsevents: 2.3.3
+
   vite@7.3.6(@types/node@25.9.5):
     dependencies:
       esbuild: 0.28.2
@@ -21043,6 +21137,35 @@ snapshots:
     optionalDependencies:
       '@types/node': 25.9.5
       fsevents: 2.3.3
+
+  vitest@4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jsdom@26.1.0)(vite@7.3.6(@types/node@22.20.1)):
+    dependencies:
+      '@vitest/expect': 4.1.10
+      '@vitest/mocker': 4.1.10(vite@7.3.6(@types/node@22.20.1))
+      '@vitest/pretty-format': 4.1.10
+      '@vitest/runner': 4.1.10
+      '@vitest/snapshot': 4.1.10
+      '@vitest/spy': 4.1.10
+      '@vitest/utils': 4.1.10
+      es-module-lexer: 2.3.1
+      expect-type: 1.4.0
+      magic-string: 0.30.21
+      obug: 2.1.4
+      pathe: 2.0.3
+      picomatch: 4.0.5
+      std-env: 4.2.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.1
+      vite: 7.3.6(@types/node@22.20.1)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 22.20.1
+      '@vitest/coverage-v8': 4.1.10(vitest@4.1.10)
+      jsdom: 26.1.0
+    transitivePeerDependencies:
+      - msw
 
   vitest@4.1.10(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(jsdom@26.1.0)(vite@7.3.6(@types/node@25.9.5)):
     dependencies:
