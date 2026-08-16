@@ -1,0 +1,60 @@
+[
+  {
+    "_comments": [
+      "The BizApps Issues Application — brings first-class Issue Tracking, Triage boards,",
+      "and SLA monitoring into MemberJunction Explorer.",
+      "",
+      "DefaultNavItems represents the four core views:",
+      "1. Issues (Kanban, List, Severity matrix with status KPIs and filters)",
+      "2. My Issues (User-reported and user-assigned issues)",
+      "3. Triage & SLAs (Defect escalation and response speed tracking)",
+      "4. Types & Workflows (Issue types and routing configuration)",
+      "",
+      "Each item is ResourceType 'Custom' pointing at a DriverClass registered with",
+      "@RegisterClass(BaseResourceComponent, '<DriverClass>') in @mj-biz-apps/issues-ng."
+    ],
+    "fields": {
+      "Name": "Issues",
+      "Description": "Issue tracking, defect triage, Kanban resolution boards, SLA monitoring, and customer feedback management across MemberJunction.",
+      "Icon": "fa-solid fa-bug",
+      "DefaultForNewUser": true,
+      "DefaultNavItems": [
+        {
+          "Label": "Issues",
+          "Icon": "fa-solid fa-bug",
+          "ResourceType": "Custom",
+          "DriverClass": "IssuesSectionResource",
+          "isDefault": true
+        },
+        {
+          "Label": "My Issues",
+          "Icon": "fa-solid fa-user-shield",
+          "ResourceType": "Custom",
+          "DriverClass": "MyIssuesSectionResource",
+          "isDefault": false
+        },
+        {
+          "Label": "Triage & SLAs",
+          "Icon": "fa-solid fa-stopwatch-20",
+          "ResourceType": "Custom",
+          "DriverClass": "IssueTriageSectionResource",
+          "isDefault": false
+        },
+        {
+          "Label": "Types & Workflows",
+          "Icon": "fa-solid fa-tags",
+          "ResourceType": "Custom",
+          "DriverClass": "IssueTypesSectionResource",
+          "isDefault": false
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "1D63E8A6-BFFA-4EA7-8231-7565CABBE53E"
+    },
+    "sync": {
+      "lastModified": "2026-08-16T00:33:08.738Z",
+      "checksum": "eb78dca5688f9a3e03175593c122c3482fcf79e2898f6fd060890aeb0d1556eb"
+    }
+  }
+]

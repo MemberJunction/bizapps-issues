@@ -45,13 +45,27 @@
   },
   {
     "_comments": [
-      "Lock DisplayName to the unprefixed entity title."
+      "Lock DisplayName to the unprefixed entity title.",
+      "Issue form uses left-nav. Comments stay first-class."
     ],
     "fields": {
-      "DisplayName": "Issues"
+      "DisplayName": "Issues",
+      "Configuration": {
+        "UI": {
+          "Form": {
+            "Layout": "left-nav",
+            "RelatedRolePolicy": "smart",
+            "PrimaryRelatedBudget": 6
+          }
+        }
+      }
     },
     "primaryKey": {
       "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Issues: Issues"
+    },
+    "sync": {
+      "lastModified": "2026-08-15T23:31:21.862Z",
+      "checksum": "75b803f2e4f03985356bd9fd62a88f91854a6ca7aeda7cf78b637b41ec989382"
     }
   }
 ]
