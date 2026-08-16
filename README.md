@@ -137,6 +137,12 @@ endpoint and reporter email notifications.
 
 ---
 
+## Form chrome
+
+The Issue form uses MJ's **left-nav** layout. Comments stay first-class. On a Person, reported Issues are Primary; created-by Issues and authored comments are None.
+
+---
+
 ## Entity Model
 
 ```

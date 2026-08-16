@@ -4,8 +4,11 @@
     "autoCreateMissingRecords": true
   },
   "directoryOrder": [
+    "applications",
     "issue-statuses",
-    "issue-types"
+    "issue-types",
+    "entities",
+    "entity-relationships"
   ],
   "sqlLogging": {
     "enabled": true,
