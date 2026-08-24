@@ -11,8 +11,14 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-// @mj-biz-apps/common-entities (10 classes)
+// @mj-biz-apps/common-entities (16 classes)
 import {
+    mjBizAppsCommonActivityEntity,
+    mjBizAppsCommonActivityFileEntity,
+    mjBizAppsCommonActivityLinkEntity,
+    mjBizAppsCommonActivitySyncConnectionEntity,
+    mjBizAppsCommonActivitySyncRuleEntity,
+    mjBizAppsCommonActivityTypeEntity,
     mjBizAppsCommonAddressEntity,
     mjBizAppsCommonAddressLinkEntity,
     mjBizAppsCommonAddressTypeEntity,
@@ -39,7 +45,7 @@ import {
     IssueEntityServer,
 } from '@mj-biz-apps/issues-core-entities-server';
 
-// @mj-biz-apps/tasks-entities (21 classes)
+// @mj-biz-apps/tasks-entities (22 classes)
 import {
     TaskDependencyEntity,
     TaskEntity,
@@ -62,6 +68,7 @@ import {
     mjBizAppsTasksTaskTemplateItemEntity,
     mjBizAppsTasksTaskTemplateItemRoleEntity,
     mjBizAppsTasksTaskTypeEntity,
+    mjBizAppsTasksTaskTypeStatusEntity,
 } from '@mj-biz-apps/tasks-entities';
 
 /**
@@ -70,6 +77,12 @@ import {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CLASS_REGISTRATIONS: any[] = [
+    mjBizAppsCommonActivityEntity,
+    mjBizAppsCommonActivityFileEntity,
+    mjBizAppsCommonActivityLinkEntity,
+    mjBizAppsCommonActivitySyncConnectionEntity,
+    mjBizAppsCommonActivitySyncRuleEntity,
+    mjBizAppsCommonActivityTypeEntity,
     mjBizAppsCommonAddressEntity,
     mjBizAppsCommonAddressLinkEntity,
     mjBizAppsCommonAddressTypeEntity,
@@ -107,13 +120,14 @@ export const CLASS_REGISTRATIONS: any[] = [
     mjBizAppsTasksTaskTemplateItemEntity,
     mjBizAppsTasksTaskTemplateItemRoleEntity,
     mjBizAppsTasksTaskTypeEntity,
+    mjBizAppsTasksTaskTypeStatusEntity,
 ];
 
 /** Marker constant indicating the manifest has been loaded. */
 export const CLASS_REGISTRATIONS_MANIFEST_LOADED = true;
 
 /** Total @RegisterClass decorated classes discovered in dependency tree */
-export const CLASS_REGISTRATIONS_COUNT = 37;
+export const CLASS_REGISTRATIONS_COUNT = 44;
 
 /** Packages imported by this manifest */
 export const CLASS_REGISTRATIONS_PACKAGES = [

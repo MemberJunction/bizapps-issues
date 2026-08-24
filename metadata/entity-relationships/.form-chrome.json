@@ -15,7 +15,7 @@
       "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issues&RelatedEntityJoinField=ReporterPersonID"
     },
     "sync": {
-      "lastModified": "2026-08-15T23:31:21.935Z",
+      "lastModified": "2026-08-24T20:14:07.060Z",
       "checksum": "ffcadf6a38dea7ba00c49040ba5c94475c9266e21b9bc382278ef1da715e8086"
     }
   },
@@ -34,7 +34,7 @@
       "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issues&RelatedEntityJoinField=CreatedByPersonID"
     },
     "sync": {
-      "lastModified": "2026-08-15T23:31:21.959Z",
+      "lastModified": "2026-08-24T20:14:07.103Z",
       "checksum": "9cefa22b1ba112e419ae4bb1b3a7c0523ed4d83203e6d34e454e6ae81d2a1f62"
     }
   },
@@ -53,7 +53,7 @@
       "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Common: People&RelatedEntity=MJ_BizApps_Issues: Issue Comments&RelatedEntityJoinField=AuthorPersonID"
     },
     "sync": {
-      "lastModified": "2026-08-15T23:31:21.981Z",
+      "lastModified": "2026-08-24T20:14:07.082Z",
       "checksum": "9cefa22b1ba112e419ae4bb1b3a7c0523ed4d83203e6d34e454e6ae81d2a1f62"
     }
   },
@@ -72,7 +72,7 @@
       "ID": "@lookup:MJ: Entity Relationships.Entity=MJ_BizApps_Issues: Issues&RelatedEntity=MJ_BizApps_Issues: Issue Comments&RelatedEntityJoinField=IssueID"
     },
     "sync": {
-      "lastModified": "2026-08-15T23:31:22.001Z",
+      "lastModified": "2026-08-24T20:14:07.123Z",
       "checksum": "ffcadf6a38dea7ba00c49040ba5c94475c9266e21b9bc382278ef1da715e8086"
     }
   }
