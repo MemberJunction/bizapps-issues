@@ -94,10 +94,10 @@ module.exports = {
     ],
   },
 
-  // ---------------------------------------------------------------------------
-  // Schema/Table Exclusions — never let CodeGen touch core or other app schemas.
-  // ---------------------------------------------------------------------------
-  excludeSchemas: ['sys', 'staging', 'dbo', '__mj', '__mj_BizAppsCommon', '__mj_BizAppsTasks'],
+  // Allow-list: CodeGen this app's schema only (MJ >= 5.50 includeSchemas).
+  // Unnamed schemas — core, siblings, never-seen client schemas — are excluded.
+  includeSchemas: ['__mj_BizAppsIssues'],
+  excludeSchemas: [],
 
   // ---------------------------------------------------------------------------
   // SQL Output (for migrations)
