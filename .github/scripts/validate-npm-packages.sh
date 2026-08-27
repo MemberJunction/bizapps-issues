@@ -16,6 +16,11 @@ for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/n
     continue
   fi
 
+  # Private packages are never published — no npm placeholder needed
+  if [[ $(jq -r '.private // false' "$pkg_json") == "true" ]]; then
+    continue
+  fi
+
   CHECKED=$((CHECKED + 1))
 
   # Check if package exists on npm with retry logic.

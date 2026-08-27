@@ -137,6 +137,12 @@ endpoint and reporter email notifications.
 
 ---
 
+## Form chrome
+
+The Issue form uses MJ's **left-nav** layout. Comments stay first-class. On a Person, reported Issues are Primary; created-by Issues and authored comments are None.
+
+---
+
 ## Entity Model
 
 ```
@@ -345,10 +351,10 @@ Entities ──► Actions ──► Server ──► MJAPI
 
 ## License
 
-ISC
+Business Source License 1.1 — see [LICENSE](./LICENSE) for details.
 
 ---
 
 <p align="center">
-  Built on <a href="https://github.com/MemberJunction/MJ">MemberJunction</a> -- the open-source metadata-driven application platform.
+  Built on <a href="https://github.com/MemberJunction/MJ">MemberJunction</a> -- the metadata-driven application platform.
 </p>

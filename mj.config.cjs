@@ -14,6 +14,10 @@ module.exports = {
 
   entityPackageName: '@mj-biz-apps/issues-entities',
 
+  testing: {
+    checkModules: ['@mj-biz-apps/issues-integration-tests'],
+  },
+
   output: [
     { type: 'SQL', directory: './SQL Scripts/generated', appendOutputCode: true },
     {
@@ -90,10 +94,22 @@ module.exports = {
     ],
   },
 
-  // ---------------------------------------------------------------------------
-  // Schema/Table Exclusions — never let CodeGen touch core or other app schemas.
-  // ---------------------------------------------------------------------------
-  excludeSchemas: ['sys', 'staging', 'dbo', '__mj', '__mj_BizAppsCommon', '__mj_BizAppsTasks'],
+  // Allow-list: CodeGen this app's schema only (MJ >= 5.50 includeSchemas).
+  // Unnamed schemas — core, siblings, never-seen client schemas — are excluded.
+  includeSchemas: ['__mj_BizAppsIssues'],
+  excludeSchemas: [],
+  /**
+   * Schema → npm for peer entity classes this emit does NOT generate
+   * (embeds + related-record collections). Distinct from:
+   *   includeSchemas     — what this run generates
+   *   entityPackageName  — the npm package this run writes (string form)
+   * Core (__mj) always comes from @memberjunction/core-entities; do not list it.
+   * Do not map a foreign schema to this emit's own package.
+   */
+  entityImportPackages: {
+    '__mj_BizAppsCommon': '@mj-biz-apps/common-entities',
+    '__mj_BizAppsTasks': '@mj-biz-apps/tasks-entities',
+  },
 
   // ---------------------------------------------------------------------------
   // SQL Output (for migrations)
