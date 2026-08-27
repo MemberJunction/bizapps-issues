@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/issues-server",
   "type": "module",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "BizApps Issues server bootstrap - GraphQL resolvers and class registrations for the Issues Open App",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,10 +24,10 @@
   },
   "dependencies": {
     "@mj-biz-apps/common-entities": "5.34.0",
-    "@mj-biz-apps/issues-actions": "1.1.1",
-    "@mj-biz-apps/issues-core": "1.1.1",
-    "@mj-biz-apps/issues-core-entities-server": "1.1.1",
-    "@mj-biz-apps/issues-entities": "1.1.1",
+    "@mj-biz-apps/issues-actions": "1.2.0",
+    "@mj-biz-apps/issues-core": "1.2.0",
+    "@mj-biz-apps/issues-core-entities-server": "1.2.0",
+    "@mj-biz-apps/issues-entities": "1.2.0",
     "@mj-biz-apps/tasks-entities": "1.2.3",
     "class-validator": "^0.14.3"
   },
