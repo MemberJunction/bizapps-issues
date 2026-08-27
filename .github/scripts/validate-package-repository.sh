@@ -15,6 +15,11 @@ for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/n
     continue
   fi
 
+  # Private packages are never published — provenance does not apply
+  if [[ $(jq -r '.private // false' "$pkg_json") == "true" ]]; then
+    continue
+  fi
+
   repo_url=$(jq -r '.repository.url // ""' "$pkg_json")
 
   if [ -z "$repo_url" ]; then
