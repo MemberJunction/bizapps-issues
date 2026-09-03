@@ -19,7 +19,7 @@
   <img alt="MJ Version" src="https://img.shields.io/badge/MemberJunction-6.1.0--edge.2-blue?style=flat-square" />
   <img alt="Angular" src="https://img.shields.io/badge/Angular-21-DD0031?style=flat-square&logo=angular&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img alt="License" src="https://img.shields.io/badge/License-ISC-green?style=flat-square" />
+  <a href="./LICENSE"><img alt="License: BUSL-1.1" src="https://img.shields.io/badge/License-BUSL--1.1-green?style=flat-square" /></a>
   <img alt="Node" src="https://img.shields.io/badge/Node-18%2B-339933?style=flat-square&logo=node.js&logoColor=white" />
   <img alt="Status" src="https://img.shields.io/badge/Status-Pre--release%20(v1%20in%20progress)-orange?style=flat-square" />
 </p>
