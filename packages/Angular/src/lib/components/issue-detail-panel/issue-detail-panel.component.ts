@@ -344,7 +344,7 @@ export class IssueDetailPanelComponent implements OnInit, OnChanges {
                 this.Comments = res.Results.map(c => ({
                     ID: String(c['ID'] || ''),
                     Comment: String(c['Comment'] || c['Body'] || ''),
-                    User: String(c['User'] || 'Team Member'),
+                    User: String(c['User'] || c['AuthorEmail'] || 'Team Member'),
                     CreatedAt: new Date(String(c['__mj_CreatedAt'] || Date.now()))
                 }));
                 this.cdr.detectChanges();
@@ -365,6 +365,10 @@ export class IssueDetailPanelComponent implements OnInit, OnChanges {
                 commentEntity.IssueID = this.Issue.ID;
                 commentEntity.Body = this.NewComment.trim();
                 commentEntity.Source = 'internal';
+                // Attribute the comment to its author — without this every comment is
+                // saved anonymous and rendered as "Team Member", leaving no reliable
+                // authorship on what becomes a customer-facing audit trail.
+                commentEntity.AuthorEmail = md.CurrentUser?.Email ?? null;
                 const success = await commentEntity.Save();
                 if (success) {
                     this.NewComment = '';
