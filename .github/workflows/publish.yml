@@ -116,8 +116,11 @@ jobs:
 
       - name: Update version
         if: steps.changeset_check.outputs.pending != '0'
+        env:
+          # Pass workflow-dispatch input via env, not ${{ }} inline in the script body —
+          # inline interpolation is substituted before bash parses, allowing shell injection.
+          EXPECTED_NEXT_VERSION: ${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}
         run: |
-          EXPECTED_NEXT_VERSION="${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}"
           echo "Expected next version: $EXPECTED_NEXT_VERSION"
 
           pnpm run version
