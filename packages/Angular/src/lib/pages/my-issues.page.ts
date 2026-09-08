@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RunView } from '@memberjunction/core';
+import { Metadata, RunView } from '@memberjunction/core';
 import { IssueListComponent } from '../components/issue-list/issue-list.component';
 import { IssueDetailPanelComponent } from '../components/issue-detail-panel/issue-detail-panel.component';
 import type { IssueCardItem } from '../components/issue-kanban/issue-kanban.component';
@@ -125,9 +125,21 @@ export class MyIssuesPageComponent implements OnInit {
 
     public async LoadData(): Promise<void> {
         try {
+            // This page is "My Issues" — scope the query to the current user's own reports.
+            // Without this filter the page listed the newest 50 issues of the WHOLE system
+            // (including every reporter's email) and labeled them "Reported by Me".
+            const currentEmail = new Metadata().CurrentUser?.Email?.trim();
+            if (!currentEmail) {
+                this.ReportedIssues = [];
+                this.OpenIssues = [];
+                return;
+            }
+            const escapedEmail = currentEmail.replace(/'/g, "''");
+
             const rv = new RunView();
             const res = await rv.RunView<Record<string, unknown>>({
                 EntityName: 'MJ_BizApps_Issues: Issues',
+                ExtraFilter: `ReporterEmail = '${escapedEmail}'`,
                 OrderBy: '__mj_CreatedAt DESC',
                 MaxRows: 50,
                 ResultType: 'simple'

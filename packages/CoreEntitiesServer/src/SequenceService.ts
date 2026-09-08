@@ -38,6 +38,10 @@ export class SequenceService {
     appScope: string | null,
     entity: BaseEntity,
   ): Promise<string> {
+    // AppScope reaches the routine as an inline SQL literal (this is a multi-statement batch,
+    // and parameter binding differs per platform on this path), so it is strictly validated
+    // BEFORE any SQL text is built — see normalizeAppScope for the allowlist.
+    const safeScope = this.normalizeAppScope(appScope);
     // ProviderToUse is typed IEntityDataProvider, but every concrete MJ provider (SQL Server /
     // PostgreSQL) is a DatabaseProviderBase subclass that also implements IEntityDataProvider. The two
     // interfaces don't structurally overlap, so TS requires the widening cast through `unknown` — this
@@ -52,8 +56,8 @@ export class SequenceService {
     const platform = resolveDbPlatformFromEnv() ?? 'sqlserver';
     const sql =
       platform === 'postgresql'
-        ? this.buildPostgresSQL(appScope)
-        : this.buildSqlServerSQL(appScope);
+        ? this.buildPostgresSQL(safeScope)
+        : this.buildSqlServerSQL(safeScope);
 
     const rows = await provider.ExecuteSQL(
       sql,
@@ -69,6 +73,34 @@ export class SequenceService {
       );
     }
     return value;
+  }
+
+  /**
+   * Validates and normalizes an AppScope before it may be inlined into SQL.
+   *
+   * `Issue.AppScope` is writable by any caller with CanCreate on Issues, and this service
+   * inlines it into a raw SQL batch — so the value is constrained to a strict allowlist
+   * rather than relying on quote-escaping alone: after trimming, it must be 1-50 characters
+   * of letters, digits, `_` or `-`. Blank/whitespace-only scopes normalize to null (the
+   * routine defaults those to 'ISS'). The 50-char cap matches the routine's
+   * `@Scope NVARCHAR(50)` parameter, which previously truncated longer values silently —
+   * colliding distinct long scopes onto one counter.
+   */
+  private static normalizeAppScope(appScope: string | null): string | null {
+    if (appScope == null) {
+      return null;
+    }
+    const trimmed = appScope.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    if (!/^[A-Za-z0-9_-]{1,50}$/.test(trimmed)) {
+      throw new Error(
+        `SequenceService.assignNextIssueNumber: invalid AppScope ${JSON.stringify(appScope)} — ` +
+          `must be 1-50 characters using only letters, digits, '_' or '-'`,
+      );
+    }
+    return trimmed;
   }
 
   /**

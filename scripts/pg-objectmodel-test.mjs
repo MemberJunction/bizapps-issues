@@ -13,6 +13,15 @@
 // Connection via env: PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD
 import { Pool } from 'pg';
 
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    console.error(`${name} must be set (no default is shipped for credentials)`);
+    process.exit(1);
+  }
+  return value;
+}
+
 const S = '__mj_bizappsissues';
 const C = '__mj_bizappscommon';
 const T = '__mj_bizappstasks';
@@ -20,7 +29,9 @@ const pool = new Pool({
   host: process.env.PGHOST ?? 'localhost',
   port: +(process.env.PGPORT ?? 5436),
   user: process.env.PGUSER ?? 'mj_admin',
-  password: process.env.PGPASSWORD ?? 'Verify99',
+  // No default — a shared fallback password committed to the repo becomes a documented
+  // credential. Require the caller to supply it.
+  password: requireEnv('PGPASSWORD'),
   database: process.env.PGDATABASE ?? 'Issues_OneShot',
 });
 const q = (sql, p) => pool.query(sql, p);

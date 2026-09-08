@@ -59,9 +59,27 @@ describe('SequenceService.assignNextIssueNumber', () => {
       expect(capturedSQL).toContain('@AppScope = NULL');
     });
 
-    it('escapes single quotes in the scope literal', async () => {
-      await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("N'O''Brien'");
+    it('rejects scopes containing SQL metacharacters (allowlist validation)', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+      expect(capturedSQL).toBe(''); // no SQL was ever built
+    });
+
+    it('rejects scopes longer than the routine parameter (50 chars)', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber('A'.repeat(51), makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+    });
+
+    it('trims surrounding whitespace and passes the trimmed scope', async () => {
+      await SequenceService.assignNextIssueNumber('  MJC  ', makeEntity() as never);
+      expect(capturedSQL).toContain("@AppScope = N'MJC'");
+    });
+
+    it('treats a blank scope as NULL', async () => {
+      await SequenceService.assignNextIssueNumber('   ', makeEntity() as never);
+      expect(capturedSQL).toContain('@AppScope = NULL');
     });
 
     it('defaults to SQL Server when DB_PLATFORM is unset', async () => {
@@ -90,10 +108,11 @@ describe('SequenceService.assignNextIssueNumber', () => {
       expect(capturedSQL).toContain('spAssignNextIssueNumber(NULL)');
     });
 
-    it('escapes single quotes with a plain (non-N) literal', async () => {
-      await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("'O''Brien'");
-      expect(capturedSQL).not.toContain("N'O''Brien'");
+    it('rejects scopes containing SQL metacharacters (allowlist validation)', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+      expect(capturedSQL).toBe(''); // no SQL was ever built
     });
   });
 
