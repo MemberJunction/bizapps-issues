@@ -25,12 +25,14 @@ vi.mock('@memberjunction/core', () => ({
 import { SequenceService } from '../SequenceService.js';
 
 let capturedSQL = '';
+let capturedParams: unknown[] | undefined;
 let returnedRows: Array<Record<string, unknown>> = [];
 
 function makeEntity(): unknown {
   const provider = {
-    ExecuteSQL: vi.fn(async (sql: string) => {
+    ExecuteSQL: vi.fn(async (sql: string, parameters?: unknown[]) => {
       capturedSQL = sql;
+      capturedParams = parameters;
       return returnedRows;
     }),
   };
@@ -40,28 +42,33 @@ function makeEntity(): unknown {
 describe('SequenceService.assignNextIssueNumber', () => {
   beforeEach(() => {
     capturedSQL = '';
+    capturedParams = undefined;
     returnedRows = [{ IssueNumber: 'MJC-42' }];
   });
 
   describe('SQL Server dialect', () => {
     beforeEach(() => { platform = 'sqlserver'; });
 
-    it('emits an EXEC … OUTPUT procedure call', async () => {
+    it('emits an EXEC … OUTPUT procedure call with the scope bound as a parameter', async () => {
       const v = await SequenceService.assignNextIssueNumber('MJC', makeEntity() as never);
       expect(v).toBe('MJC-42');
       expect(capturedSQL).toContain('EXEC __mj_BizAppsIssues.spAssignNextIssueNumber');
       expect(capturedSQL).toContain('@IssueNumber = @issueNumber OUTPUT');
-      expect(capturedSQL).toContain("@AppScope = N'MJC'");
+      expect(capturedSQL).toContain('@AppScope = ?');
+      expect(capturedParams).toEqual(['MJC']);
     });
 
-    it('passes NULL (not a literal) when AppScope is null', async () => {
+    it('passes NULL inline (no bound parameter) when AppScope is null', async () => {
       await SequenceService.assignNextIssueNumber(null, makeEntity() as never);
       expect(capturedSQL).toContain('@AppScope = NULL');
+      expect(capturedParams).toBeUndefined();
     });
 
-    it('escapes single quotes in the scope literal', async () => {
+    it('never inlines the scope value into the SQL text', async () => {
       await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("N'O''Brien'");
+      expect(capturedSQL).not.toContain("O'Brien");
+      expect(capturedSQL).not.toContain("O''Brien");
+      expect(capturedParams).toEqual(["O'Brien"]);
     });
 
     it('defaults to SQL Server when DB_PLATFORM is unset', async () => {
@@ -74,26 +81,29 @@ describe('SequenceService.assignNextIssueNumber', () => {
   describe('PostgreSQL dialect', () => {
     beforeEach(() => { platform = 'postgresql'; });
 
-    it('emits a SELECT function call aliased to IssueNumber', async () => {
+    it('emits a SELECT function call aliased to IssueNumber with a $1 bound scope', async () => {
       const v = await SequenceService.assignNextIssueNumber('MJC', makeEntity() as never);
       expect(v).toBe('MJC-42');
-      expect(capturedSQL).toContain('SELECT __mj_BizAppsIssues.spAssignNextIssueNumber(');
+      expect(capturedSQL).toContain('SELECT __mj_BizAppsIssues.spAssignNextIssueNumber($1)');
       expect(capturedSQL).toContain('AS "IssueNumber"');
+      expect(capturedParams).toEqual(['MJC']);
       // No T-SQL constructs leak into the PG path.
       expect(capturedSQL).not.toContain('EXEC');
       expect(capturedSQL).not.toContain('OUTPUT');
       expect(capturedSQL).not.toContain('DECLARE');
     });
 
-    it('inlines NULL when AppScope is null', async () => {
+    it('inlines NULL (no bound parameter) when AppScope is null', async () => {
       await SequenceService.assignNextIssueNumber(null, makeEntity() as never);
       expect(capturedSQL).toContain('spAssignNextIssueNumber(NULL)');
+      expect(capturedParams).toBeUndefined();
     });
 
-    it('escapes single quotes with a plain (non-N) literal', async () => {
+    it('never inlines the scope value into the SQL text', async () => {
       await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("'O''Brien'");
-      expect(capturedSQL).not.toContain("N'O''Brien'");
+      expect(capturedSQL).not.toContain("O'Brien");
+      expect(capturedSQL).not.toContain("O''Brien");
+      expect(capturedParams).toEqual(["O'Brien"]);
     });
   });
 

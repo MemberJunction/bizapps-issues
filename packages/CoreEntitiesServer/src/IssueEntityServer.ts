@@ -50,6 +50,8 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
     // 1. IssueNumber (insert only, immutable)
     if (isNew && !this.IssueNumber) {
       await this.assignIssueNumber();
+    } else if (!isNew) {
+      this.rejectIssueNumberChange();
     }
 
     // 2. Lifecycle timestamps — stamp inline so they're part of this write.
@@ -76,6 +78,20 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
       const msg = err instanceof Error ? err.message : String(err);
       LogError(`IssueEntityServer: failed to assign IssueNumber (AppScope=${this.AppScope ?? '(null)'}): ${msg}`);
       throw err;
+    }
+  }
+
+  /**
+   * IssueNumber is documented immutable after insert (assigned atomically by the
+   * sequence proc) — reject any update that tries to change it, loudly, so the
+   * caller learns immediately instead of silently renumbering an issue.
+   */
+  private rejectIssueNumberChange(): void {
+    const field = this.GetFieldByName('IssueNumber');
+    if (field?.Dirty) {
+      const msg = `IssueEntityServer: IssueNumber is immutable after insert and cannot be changed (issue ${this.ID}, attempted '${field.OldValue}' → '${this.IssueNumber}')`;
+      LogError(msg);
+      throw new Error(msg);
     }
   }
 

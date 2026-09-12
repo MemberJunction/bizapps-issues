@@ -3,6 +3,12 @@ import { resolveDbPlatformFromEnv } from '@memberjunction/generic-database-provi
 
 const ISSUES_SCHEMA = '__mj_BizAppsIssues';
 
+/** A dialect-specific statement plus the bound parameters it expects. */
+interface SequenceSQL {
+  sql: string;
+  parameters: string[] | undefined;
+}
+
 /**
  * SequenceService — calls the DB-level atomic numbering routine (spAssignNextIssueNumber)
  * from TypeScript so the IssueEntityServer hook can assign IssueNumber before
@@ -50,14 +56,14 @@ export class SequenceService {
 
     // DB_PLATFORM defaults to SQL Server when unset (resolveDbPlatformFromEnv returns undefined).
     const platform = resolveDbPlatformFromEnv() ?? 'sqlserver';
-    const sql =
+    const { sql, parameters } =
       platform === 'postgresql'
         ? this.buildPostgresSQL(appScope)
         : this.buildSqlServerSQL(appScope);
 
     const rows = await provider.ExecuteSQL(
       sql,
-      undefined,
+      parameters,
       { isMutation: true, description: 'spAssignNextIssueNumber' },
       entity.ContextCurrentUser,
     );
@@ -73,15 +79,24 @@ export class SequenceService {
 
   /**
    * SQL Server: call the OUTPUT-parameter procedure and surface its value as a column.
-   * The proc re-normalizes the scope regardless of what we pass; we inline it as an escaped
-   * literal (the verified pattern across MJ's generated resolvers, which pass `undefined` params).
+   * The proc re-normalizes the scope regardless of what we pass. A non-null scope is bound as a
+   * positional parameter — SQLServerDataProvider rewrites `?` to `@p0` and binds via
+   * `request.input('p0', value)` — never inlined into the SQL text. NULL stays inline so the
+   * proc's NULL→'ISS' defaulting is untouched by parameter type inference.
    */
-  private static buildSqlServerSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `N'${appScope.replace(/'/g, "''")}'`;
+  private static buildSqlServerSQL(appScope: string | null): SequenceSQL {
+    if (appScope == null) {
+      return { sql: this.sqlServerCallTemplate('NULL'), parameters: undefined };
+    }
+    return { sql: this.sqlServerCallTemplate('?'), parameters: [appScope] };
+  }
+
+  /** Shared T-SQL batch shape for the OUTPUT-parameter procedure call. */
+  private static sqlServerCallTemplate(scopePlaceholder: string): string {
     return `
       DECLARE @issueNumber NVARCHAR(50);
       EXEC ${ISSUES_SCHEMA}.spAssignNextIssueNumber
-          @AppScope = ${scopeLiteral},
+          @AppScope = ${scopePlaceholder},
           @IssueNumber = @issueNumber OUTPUT;
       SELECT @issueNumber AS IssueNumber;
     `;
@@ -91,10 +106,19 @@ export class SequenceService {
    * PostgreSQL: call the function form and alias its scalar result to the `IssueNumber` column the
    * caller reads. The function name is emitted UNQUOTED so PostgreSQL folds it to the same lowercase
    * identifier the `CREATE FUNCTION` produced. The schema is likewise unquoted (folds to lowercase),
-   * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG.
+   * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG. A non-null
+   * scope is bound as the `$1` positional parameter, never inlined.
    */
-  private static buildPostgresSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `'${appScope.replace(/'/g, "''")}'`;
-    return `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(${scopeLiteral}) AS "IssueNumber";`;
+  private static buildPostgresSQL(appScope: string | null): SequenceSQL {
+    if (appScope == null) {
+      return {
+        sql: `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(NULL) AS "IssueNumber";`,
+        parameters: undefined,
+      };
+    }
+    return {
+      sql: `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber($1) AS "IssueNumber";`,
+      parameters: [appScope],
+    };
   }
 }
