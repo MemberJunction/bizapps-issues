@@ -149,6 +149,14 @@ describe('IssueEntityServer — IssueNumber', () => {
     expect(assignMock).not.toHaveBeenCalled();
     expect(baseState.IssueNumber).toBe('MJC-7');
   });
+
+  it('rejects an update that tries to change IssueNumber', async () => {
+    baseState.IsSaved = true;
+    baseState.IssueNumber = 'MJC-99';
+    fieldInfo['IssueNumber'] = { Dirty: true, OldValue: 'MJC-7' };
+    await expect(new IssueEntityServer().Save()).rejects.toThrow(/IssueNumber is immutable/);
+    expect(baseSaveMock).not.toHaveBeenCalled();
+  });
 });
 
 // ─── 2. Lifecycle timestamp stamping ──────────────────────────────────────────

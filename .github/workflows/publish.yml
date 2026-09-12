@@ -116,8 +116,13 @@ jobs:
 
       - name: Update version
         if: steps.changeset_check.outputs.pending != '0'
+        env:
+          TARGET_VERSION: ${{ github.event.inputs.targetVersion }}
+          COMPUTED_NEXT_VERSION: ${{ steps.version_check.outputs.EXPECTED_NEXT_VERSION }}
         run: |
-          EXPECTED_NEXT_VERSION="${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}"
+          # Same fallback semantics as the former `inputs.targetVersion || steps...` expression:
+          # an empty/unset input falls through to the computed version.
+          EXPECTED_NEXT_VERSION="${TARGET_VERSION:-$COMPUTED_NEXT_VERSION}"
           echo "Expected next version: $EXPECTED_NEXT_VERSION"
 
           pnpm run version
