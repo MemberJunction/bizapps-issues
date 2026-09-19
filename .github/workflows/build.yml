@@ -27,19 +27,20 @@ concurrency:
 
 jobs:
   build:
-    # One condition, three exclusions, and the `push` arm has to come first: on a push
+    # One condition, one exclusion, and the `push` arm has to come first: on a push
     # `github.event.pull_request` is null, so a bare draft comparison would skip the job on
     # every push to `next`.
     #
     #   * drafts — they DO fire opened/synchronize, so without this a draft burns a full run
     #     on every push; the `ready_for_review` trigger above brings the check back.
-    #   * the Version Packages PR — regenerated on every merge to `next`, so building it each
-    #     time reruns what `next` just built. The tree it produces is judged for real one step
-    #     later, on the release PR into `main`, where this context IS required.
+    #
+    # The Version Packages PR used to be excluded here too, on the reasoning that it only
+    # refreshed a lockfile nobody needed verified yet. It is now based on `main` and IS the
+    # release PR, so this is precisely the build that must not be skipped: the first place
+    # the refreshed lockfile meets --frozen-lockfile.
     #
     # A job skipped by `if:` still reports a conclusion, which satisfies a required check —
     # unlike a workflow filtered out at the `on:` level, which creates no check run at all.
-    if: >-
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
