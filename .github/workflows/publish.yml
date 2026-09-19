@@ -46,6 +46,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # The back-merge at the end has to open a PR, and a PR opened with GITHUB_TOKEN creates
+      # runs in `action_required` that wait for a click. The App is already registered and its
+      # credentials are already repository secrets, so this is a step, not new setup.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -128,6 +137,7 @@ jobs:
       # The tree is what separates the two: a genuine re-run of a completed release has the same
       # `packages/` as the tag; a hotfix that skipped the bump does not.
       - name: Tag the release
+        id: tag
         run: |
           VERSION="v$(jq -r .version packages/Entities/package.json)"
           PUBLISHED="${{ steps.publish.outputs.count }}"
@@ -151,6 +161,7 @@ jobs:
               exit 1
             fi
 
+            echo "released=false" >> "$GITHUB_OUTPUT"
             echo "## Nothing published — $VERSION is already on npm" >> "$GITHUB_STEP_SUMMARY"
             echo "Every package version already exists on the registry, the tag is already pushed, and packages/ is identical to it — this is a re-run of a completed release." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -164,5 +175,47 @@ jobs:
             git push origin "refs/tags/$VERSION"
             echo "Tagged $VERSION"
           fi
+          echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "## Released $VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "$PUBLISHED package(s) published." >> "$GITHUB_STEP_SUMMARY"
+
+      # Carry the bump home. `next` still holds the consumed changeset files and the
+      # pre-release version until this lands, so a push to `next` before it does would
+      # regenerate a Version Packages PR proposing the number just published. The window is
+      # seconds, but the back-merge is load-bearing, not bookkeeping.
+      #
+      # A PR rather than a ruleset bypass: a bypass is unconditional, so anyone who can make
+      # this workflow run could write anything to `next`. The App can only propose.
+      #
+      # Merged directly rather than with `gh pr merge --auto`: auto-merge is refused on a PR
+      # that is already mergeable, and `protect-next` requires no checks and no reviews, so
+      # every one of these is mergeable the moment it opens. If required checks are ever added
+      # to `next`, switch this to `--auto` and let them adjudicate.
+      - name: Carry the release back to next
+        if: steps.tag.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          BRANCH="release-back-merge/$VERSION"
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+          BODY="Carries the $VERSION bump, CHANGELOGs, mj-app.json sync and refreshed lockfile back to next.
+
+          Opened automatically by publish.yml after $VERSION published. Until this lands, next still holds the consumed changesets and the previous version, so the next Version Packages PR would propose a number that is already on npm."
+
+          PR_URL=$(gh pr create --base next --head "$BRANCH" \
+                     --title "chore(release): carry $VERSION back to next" \
+                     --body "$BODY" || true)
+
+          if [ -z "${PR_URL:-}" ]; then
+            echo "::warning::Could not open the back-merge PR. Open $BRANCH -> next by hand; next is stale until it lands."
+            exit 0
+          fi
+
+          if ! gh pr merge "$PR_URL" --merge --delete-branch; then
+            echo "::warning::Back-merge $PR_URL could not be merged automatically. Merge it by hand — next is stale until it lands."
+          fi
+          echo "Back-merge: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
