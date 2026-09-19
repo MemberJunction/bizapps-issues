@@ -32,6 +32,11 @@ jobs:
   # Is the migration well-formed, and will Flyway actually run it in the right order?
   migration-naming:
     name: 'migration naming'
+    # Published so `parse-migrations` can skip its SQL Server container entirely when no
+    # migration changed. A `services:` block starts when the JOB starts, before any step, so
+    # a step-level `if:` would still pay the ~27s container. Only a job-level one avoids it.
+    outputs:
+      has_migrations: ${{ steps.migration_check.outputs.has_migrations }}
     # Drafts DO fire opened/synchronize, so without this a draft burns a run on every push.
     # A job skipped by `if:` still reports a conclusion, so this stays safe as a required check.
     if: github.event.pull_request.draft == false
@@ -185,7 +190,11 @@ jobs:
   # which is why it is the most expensive job here — and why the draft guard matters most on it.
   parse-migrations:
     name: 'Parse migrations (T-SQL syntax check)'
-    if: github.event.pull_request.draft == false
+    needs: migration-naming
+    # Skipped, not filtered: a job skipped by `if:` still reports a conclusion and therefore
+    # SATISFIES a required check, whereas an `on:`-level filter would create no run at all and
+    # leave the context Pending forever.
+    if: github.event.pull_request.draft == false && needs.migration-naming.outputs.has_migrations == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     services:
