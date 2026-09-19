@@ -90,10 +90,17 @@ describe('SequenceService.assignNextIssueNumber', () => {
       expect(capturedSQL).toContain('spAssignNextIssueNumber(NULL)');
     });
 
-    it('escapes single quotes with a plain (non-N) literal', async () => {
+    it('escapes single quotes with a non-N escape-string literal', async () => {
       await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("'O''Brien'");
+      expect(capturedSQL).toContain("E'O''Brien'");
       expect(capturedSQL).not.toContain("N'O''Brien'");
+    });
+
+    it('escapes backslashes so a trailing \\ cannot break out of the literal', async () => {
+      // With only quote-doubling, this input would emit E'evil\'' — where \' is an escaped
+      // quote and the final ' terminates the literal early. Backslash-doubling closes that.
+      await SequenceService.assignNextIssueNumber("evil\\", makeEntity() as never);
+      expect(capturedSQL).toContain("E'evil\\\\'");
     });
   });
 
