@@ -1,0 +1,19 @@
+[
+  {
+    "fields": {
+      "MLModelID": "8766EFF7-4305-4C47-B3C5-BA8B968A850B",
+      "RecordProcessID": "74377EE7-FB5C-44D7-B42A-E3EC0AFA9ACB",
+      "TargetEntityID": "65E7DAD5-9930-4140-9A38-2184EB0097DA",
+      "TargetColumn": "PredictedCriticalEscalationProbability",
+      "Mode": "Materialized",
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "95C24D16-EED5-4C5F-919F-4B18E9DDACD7"
+    },
+    "sync": {
+      "lastModified": "2026-09-19T17:53:58.521Z",
+      "checksum": "8cc5391e577148174ec6ed0539db520999e780d867577c614cb16af019b72b9e"
+    }
+  }
+]

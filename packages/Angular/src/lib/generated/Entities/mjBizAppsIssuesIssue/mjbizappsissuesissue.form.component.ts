@@ -17,6 +17,13 @@ export class mjBizAppsIssuesIssueFormComponent extends BaseFormComponent {
         await super.ngOnInit();
         this.initSections([
             { sectionKey: 'details', sectionName: 'Details', isExpanded: true },
+            { sectionKey: 'issueOverview', sectionName: 'Issue Overview', isExpanded: true },
+            { sectionKey: 'classification', sectionName: 'Classification', isExpanded: true },
+            { sectionKey: 'stakeholders', sectionName: 'Stakeholders', isExpanded: true },
+            { sectionKey: 'context', sectionName: 'Context', isExpanded: true },
+            { sectionKey: 'timeline', sectionName: 'Timeline', isExpanded: true },
+            { sectionKey: 'escalationIntelligence', sectionName: 'Escalation Intelligence', isExpanded: true },
+            { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
             { sectionKey: 'mJBizAppsIssuesIssueComments', sectionName: 'Issue Comments', isExpanded: false }
         ]);
     }
