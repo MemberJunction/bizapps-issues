@@ -14,14 +14,12 @@
 # judged — i.e. somewhere the version is already RESOLVED (a Version Packages PR, or a
 # release PR), not on a branch where changesets are still pending.
 #
-# BUMP_LEVEL_EXEMPT=true skips the check, for the cases that genuinely are not features:
-# a re-captured baseline, a comment fix in a migration.
+# There is deliberately no exemption label. The only case it ever served was a re-captured
+# baseline — a migration file rewritten without shipping anything new — and under this
+# pipeline over-bumping is close to free, because a version number is minted and published
+# in the same breath and skipping one is structurally impossible. Taking the minor is the
+# cheaper answer than an escape hatch people have to reason about.
 set -euo pipefail
-
-if [ "${BUMP_LEVEL_EXEMPT:-false}" = "true" ]; then
-  echo "Exempt via label — skipping the bump-level check"
-  exit 0
-fi
 
 # --- metadata: tell a real edit apart from bookkeeping -------------------------------------
 #
@@ -151,6 +149,6 @@ if [ "$NMAJ" -gt "$PMAJ" ] || { [ "$NMAJ" -eq "$PMAJ" ] && [ "$NMIN" -gt "$PMIN"
   exit 0
 fi
 
-echo "::error::This release bumps $PREV -> $VERSION, a patch, but $CHANGED changed since $LAST_TAG. A consumer upgrading on a patch would not expect the schema or the seeded metadata to change. Raise one changeset on next to minor, then MERGE the Version Packages PR it regenerates — the fix only takes effect once that merge puts the new version on next; or label this PR 'bump-level-exempt' if the change genuinely is not a feature. Changed:"
+echo "::error::This release bumps $PREV -> $VERSION, a patch, but $CHANGED changed since $LAST_TAG. A consumer upgrading on a patch would not expect the schema or the seeded metadata to change. Raise a minor changeset on next; the Version Packages PR regenerates itself at the corrected number, and merging that is the release. Changed:"
 printf '%s\n%s\n' "$MIGRATIONS" "$METADATA" | grep -v '^$' | sed 's/^/  /'
 exit 1

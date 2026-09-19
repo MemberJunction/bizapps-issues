@@ -117,9 +117,8 @@ jobs:
           p = pathlib.Path("/tmp/pr-body.md"); body = p.read_text()
           wrong = ("publish to npm yourself or [setup this action to publish automatically]"
                    "(https://github.com/changesets/action#with-publishing)")
-          right = ("the versions below land on `next`. Publishing is a separate, deliberate step: "
-                   "open a release PR from `next` into `main`, and merging THAT publishes to npm "
-                   "and tags the release. Nothing here is manual, and nothing publishes from `next`")
+          right = ("merging THIS pull request publishes. It is based on `main`, so the merge is the release: the push to `main` runs publish.yml, which builds, runs `changeset publish`, and tags. A follow-up PR then carries the bump back to `next` "
+               "automatically")
           if wrong in body:
               p.write_text(body.replace(wrong, right))
               print("corrected the publish sentence")
