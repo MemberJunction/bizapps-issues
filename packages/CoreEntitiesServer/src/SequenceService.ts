@@ -92,9 +92,18 @@ export class SequenceService {
    * caller reads. The function name is emitted UNQUOTED so PostgreSQL folds it to the same lowercase
    * identifier the `CREATE FUNCTION` produced. The schema is likewise unquoted (folds to lowercase),
    * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG.
+   *
+   * SECURITY: the scope is emitted as an `E''` (escape-string) literal with BOTH backslashes and
+   * single quotes escaped. Plain `'...'` literals with only quote-doubling are injectable on servers
+   * configured with `standard_conforming_strings = off` (a `\'` in the input consumes the doubled
+   * quote and terminates the literal early). The E-string encoding parses to the identical value
+   * under BOTH settings, so this is behavior-preserving hardening, not a semantic change.
    */
   private static buildPostgresSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `'${appScope.replace(/'/g, "''")}'`;
+    const scopeLiteral =
+      appScope == null
+        ? 'NULL'
+        : `E'${appScope.replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
     return `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(${scopeLiteral}) AS "IssueNumber";`;
   }
 }
