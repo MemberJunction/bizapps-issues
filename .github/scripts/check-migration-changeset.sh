@@ -10,8 +10,6 @@
 # Usage:  check-migration-changeset.sh <base-ref> <head-ref>
 #         check-migration-changeset.sh --self-test
 #
-# BUMP_LEVEL_EXEMPT=true reports and passes, for the cases that genuinely are not features:
-# a comment fix inside a migration, or a second migration in a window a minor already covers.
 set -euo pipefail
 
 # `changeset add` writes the package line as either quote style, and has over this repo's
@@ -86,15 +84,9 @@ if [ -z "$MIGRATIONS" ]; then
   exit 0
 fi
 
-if [ "${BUMP_LEVEL_EXEMPT:-false}" = "true" ]; then
-  echo "::warning::Exempt via the bump-level-exempt label. Migrations changed:"
-  echo "$MIGRATIONS" | sed 's/^/  /'
-  exit 0
-fi
-
 CHANGESETS=$(git diff --name-only "$BASE" "$HEAD_REF" | grep -E '^\.changeset/.*\.md$' | grep -v 'README.md' || true)
 if [ -z "$CHANGESETS" ]; then
-  echo "::error::This PR adds migrations but no changeset. A schema change is a feature: run 'pnpm exec changeset' and pick minor. If the migration genuinely is not a feature — a re-captured baseline, a comment fix — label the PR 'bump-level-exempt'. Migrations changed:"
+  echo "::error::This PR adds migrations but no changeset. A schema change is a feature: run 'pnpm exec changeset' and pick minor. Migrations changed:"
   echo "$MIGRATIONS" | sed 's/^/  /'
   exit 1
 fi
@@ -106,6 +98,6 @@ for f in $CHANGESETS; do
   fi
 done
 
-echo "::error::This PR adds migrations, and its changeset(s) only request a patch. A consumer upgrading on a patch would not expect the schema to change — raise one to minor. If the migration genuinely is not a feature, label the PR 'bump-level-exempt'. Changesets in this PR:"
+echo "::error::This PR adds migrations, and its changeset(s) only request a patch. A consumer upgrading on a patch would not expect the schema to change — raise one to minor. Changesets in this PR:"
 echo "$CHANGESETS" | sed 's/^/  /'
 exit 1
