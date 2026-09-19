@@ -16,19 +16,16 @@ import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
 
 // Import Generated Components
 import { mjBizAppsIssuesIssueCommentFormComponent } from "./Entities/mjBizAppsIssuesIssueComment/mjbizappsissuesissuecomment.form.component";
+import { mjBizAppsIssuesIssueFormComponent } from "./Entities/mjBizAppsIssuesIssue/mjbizappsissuesissue.form.component";
 import { mjBizAppsIssuesIssueNumberSequenceFormComponent } from "./Entities/mjBizAppsIssuesIssueNumberSequence/mjbizappsissuesissuenumbersequence.form.component";
 import { mjBizAppsIssuesIssueStatusFormComponent } from "./Entities/mjBizAppsIssuesIssueStatus/mjbizappsissuesissuestatus.form.component";
 import { mjBizAppsIssuesIssueTypeFormComponent } from "./Entities/mjBizAppsIssuesIssueType/mjbizappsissuesissuetype.form.component";
-import { mjBizAppsIssuesIssueFormComponent } from "./Entities/mjBizAppsIssuesIssue/mjbizappsissuesissue.form.component";
    
 
 @NgModule({
 declarations: [
-    mjBizAppsIssuesIssueCommentFormComponent,
-    mjBizAppsIssuesIssueNumberSequenceFormComponent,
-    mjBizAppsIssuesIssueStatusFormComponent,
-    mjBizAppsIssuesIssueTypeFormComponent,
-    mjBizAppsIssuesIssueFormComponent],
+    mjBizAppsIssuesIssueStatusFormComponent
+],
 imports: [
     CommonModule,
     FormsModule,
@@ -39,7 +36,62 @@ imports: [
 exports: [
 ]
 })
-export class GeneratedForms_SubModule_0 { }
+export class GeneratedForms_SubModule_1 { }
+    
+
+
+@NgModule({
+declarations: [
+    mjBizAppsIssuesIssueCommentFormComponent
+],
+imports: [
+    CommonModule,
+    FormsModule,
+    BaseFormsModule,
+    EntityViewerModule,
+    LinkDirectivesModule
+],
+exports: [
+]
+})
+export class GeneratedForms_SubModule_8 { }
+    
+
+
+@NgModule({
+declarations: [
+    mjBizAppsIssuesIssueFormComponent,
+    mjBizAppsIssuesIssueTypeFormComponent
+],
+imports: [
+    CommonModule,
+    FormsModule,
+    BaseFormsModule,
+    EntityViewerModule,
+    LinkDirectivesModule
+],
+exports: [
+]
+})
+export class GeneratedForms_SubModule_11 { }
+    
+
+
+@NgModule({
+declarations: [
+    mjBizAppsIssuesIssueNumberSequenceFormComponent
+],
+imports: [
+    CommonModule,
+    FormsModule,
+    BaseFormsModule,
+    EntityViewerModule,
+    LinkDirectivesModule
+],
+exports: [
+]
+})
+export class GeneratedForms_SubModule_23 { }
     
 
 
@@ -47,7 +99,10 @@ export class GeneratedForms_SubModule_0 { }
 declarations: [
 ],
 imports: [
-    GeneratedForms_SubModule_0
+    GeneratedForms_SubModule_1,
+    GeneratedForms_SubModule_8,
+    GeneratedForms_SubModule_11,
+    GeneratedForms_SubModule_23
 ]
 })
 export class GeneratedFormsModule { }

@@ -37,6 +37,8 @@ const baseState = {
   Severity: 'Medium',
   ID: 'ISS-X',
   ContextCurrentUser: {} as unknown,
+  PredictedCriticalEscalationProbability: null as number | null,
+  PredictedEscalationRiskBand: null as 'Critical' | 'High' | 'Low' | 'Medium' | null,
 };
 
 vi.mock('@mj-biz-apps/issues-entities', () => {
@@ -56,6 +58,10 @@ vi.mock('@mj-biz-apps/issues-entities', () => {
     get Priority() { return baseState.Priority; }
     get Severity() { return baseState.Severity; }
     get ContextCurrentUser() { return baseState.ContextCurrentUser; }
+    get PredictedCriticalEscalationProbability() { return baseState.PredictedCriticalEscalationProbability; }
+    set PredictedCriticalEscalationProbability(v: number | null) { baseState.PredictedCriticalEscalationProbability = v; }
+    get PredictedEscalationRiskBand() { return baseState.PredictedEscalationRiskBand; }
+    set PredictedEscalationRiskBand(v: 'Critical' | 'High' | 'Low' | 'Medium' | null) { baseState.PredictedEscalationRiskBand = v; }
     GetFieldByName(name: string) { return fieldInfo[name] ?? { Dirty: false, OldValue: null }; }
     RegisterEventHandler(h: (event: { type: string }) => void) { savedHandler = h; }
     async Save() { return baseSaveMock(); }
@@ -123,6 +129,8 @@ beforeEach(() => {
     IsSaved: false, IssueNumber: null, AppScope: null, StatusID: 'S-NEW',
     IssueTypeID: 'T-BUG', ResolvedAt: null, ClosedAt: null,
     AssigneeEntityID: null, AssigneeRecordID: null,
+    PredictedCriticalEscalationProbability: null,
+    PredictedEscalationRiskBand: null,
   });
   engine.resolved = new Set(['S-RESOLVED']);
   engine.terminal = new Set(['S-CLOSED']);
@@ -237,5 +245,44 @@ describe('IssueEntityServer — action hooks (post-save event)', () => {
     runActionMock.mockRejectedValueOnce(new Error('action boom'));
     await new IssueEntityServer().Save();
     await expect(fireSaveEvent()).resolves.toBeUndefined(); // logged, not thrown
+  });
+});
+
+// ─── 4. Predictive escalation risk band sync ──────────────────────────────────
+describe('IssueEntityServer — predictive escalation risk band sync', () => {
+  it('assigns Low when probability < 0.30', async () => {
+    baseState.PredictedCriticalEscalationProbability = 0.15;
+    fieldInfo['PredictedCriticalEscalationProbability'] = { Dirty: true, OldValue: null };
+    await new IssueEntityServer().Save();
+    expect(baseState.PredictedEscalationRiskBand).toBe('Low');
+  });
+
+  it('assigns Medium when probability is between 0.30 and 0.6999', async () => {
+    baseState.PredictedCriticalEscalationProbability = 0.45;
+    fieldInfo['PredictedCriticalEscalationProbability'] = { Dirty: true, OldValue: null };
+    await new IssueEntityServer().Save();
+    expect(baseState.PredictedEscalationRiskBand).toBe('Medium');
+  });
+
+  it('assigns High when probability is between 0.70 and 0.8999', async () => {
+    baseState.PredictedCriticalEscalationProbability = 0.82;
+    fieldInfo['PredictedCriticalEscalationProbability'] = { Dirty: true, OldValue: null };
+    await new IssueEntityServer().Save();
+    expect(baseState.PredictedEscalationRiskBand).toBe('High');
+  });
+
+  it('assigns Critical when probability >= 0.90', async () => {
+    baseState.PredictedCriticalEscalationProbability = 0.95;
+    fieldInfo['PredictedCriticalEscalationProbability'] = { Dirty: true, OldValue: null };
+    await new IssueEntityServer().Save();
+    expect(baseState.PredictedEscalationRiskBand).toBe('Critical');
+  });
+
+  it('does not overwrite existing risk band if probability is not dirty', async () => {
+    baseState.PredictedCriticalEscalationProbability = 0.95;
+    baseState.PredictedEscalationRiskBand = 'Medium';
+    fieldInfo['PredictedCriticalEscalationProbability'] = { Dirty: false, OldValue: 0.95 };
+    await new IssueEntityServer().Save();
+    expect(baseState.PredictedEscalationRiskBand).toBe('Medium');
   });
 });
