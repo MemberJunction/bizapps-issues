@@ -40,9 +40,7 @@ jobs:
     # A job skipped by `if:` still reports a conclusion, which satisfies a required check —
     # unlike a workflow filtered out at the `on:` level, which creates no check run at all.
     if: >-
-      github.event_name != 'pull_request' ||
-      (github.event.pull_request.draft == false &&
-       github.head_ref != 'changeset-release/next')
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
