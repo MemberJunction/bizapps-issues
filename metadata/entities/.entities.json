@@ -5,6 +5,7 @@
     },
     "fields": {
       "BaseViewGenerated": false,
+      "GeneratedBaseViewName": "vwIssuesGenerated",
       "AllowUserSearchAPI": true,
       "AutoUpdateAllowUserSearchAPI": false
     },

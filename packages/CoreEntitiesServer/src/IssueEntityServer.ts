@@ -58,38 +58,10 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
       await this.stampLifecycleTimestamps();
     }
 
-    // 3. Predictive escalation risk band sync
-    this.syncPredictiveEscalationFieldsPreSave();
-
     // Stash what the post-save hook handler needs (dirty flags are gone after save).
     this._pendingHookContext = { isNew, statusChanged: statusChanged && !isNew, oldStatusID, assigneeChanged: assigneeChanged && !isNew };
 
     return super.Save(options);
-  }
-
-  // ------------------------------------------------------------------
-  // 0. Predictive Escalation Risk Band synchronization
-  // ------------------------------------------------------------------
-
-  /**
-   * Synchronizes PredictedEscalationRiskBand when PredictedCriticalEscalationProbability changes or is set.
-   * Low (<0.30), Medium (0.30-0.70), High (>0.70), or Critical (>=0.90).
-   */
-  private syncPredictiveEscalationFieldsPreSave(): void {
-    const probField = this.GetFieldByName('PredictedCriticalEscalationProbability');
-    const probDirty = probField?.Dirty ?? false;
-    if (this.PredictedCriticalEscalationProbability != null && (probDirty || !this.PredictedEscalationRiskBand)) {
-      const p = this.PredictedCriticalEscalationProbability;
-      if (p < 0.30) {
-        this.PredictedEscalationRiskBand = 'Low';
-      } else if (p < 0.70) {
-        this.PredictedEscalationRiskBand = 'Medium';
-      } else if (p < 0.90) {
-        this.PredictedEscalationRiskBand = 'High';
-      } else {
-        this.PredictedEscalationRiskBand = 'Critical';
-      }
-    }
   }
 
   // ------------------------------------------------------------------
