@@ -215,8 +215,12 @@ GO
 EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='', @IncludedSchemaNames='${flyway:defaultSchema}';
 
 /* SQL text to insert 8 new entity field(s) */
+DECLARE @IssueEntityID UNIQUEIDENTIFIER =
+    (SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues');
+IF @IssueEntityID IS NULL RAISERROR('Issues entity not registered', 16, 1);
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e3da291a-9919-4fbd-b2ac-453baebfb788' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'PredictedCriticalEscalationProbability')) BEGIN
+
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'e3da291a-9919-4fbd-b2ac-453baebfb788' OR (EntityID = @IssueEntityID AND Name = 'PredictedCriticalEscalationProbability')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -250,8 +254,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             'e3da291a-9919-4fbd-b2ac-453baebfb788',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'PredictedCriticalEscalationProbability',
             'Predicted Critical Escalation Probability',
             'Predicted probability (0.0000 - 1.0000) that this issue escalates to critical or high back-and-forth severity.',
@@ -279,7 +283,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5bdfcefb-787b-49dc-8508-8d3e2cc9ade3' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'PredictedEscalationRiskBand')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '5bdfcefb-787b-49dc-8508-8d3e2cc9ade3' OR (EntityID = @IssueEntityID AND Name = 'PredictedEscalationRiskBand')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -313,8 +317,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             '5bdfcefb-787b-49dc-8508-8d3e2cc9ade3',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'PredictedEscalationRiskBand',
             'Predicted Escalation Risk Band',
             'Operational escalation risk tier: Low (<0.30), Medium (0.30-0.70), High (>0.70), or Critical (>=0.90).',
@@ -342,7 +346,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f1263060-2773-46bb-b829-460e777e4d3a' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'PredictedEscalationScoredAt')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'f1263060-2773-46bb-b829-460e777e4d3a' OR (EntityID = @IssueEntityID AND Name = 'PredictedEscalationScoredAt')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -376,8 +380,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             'f1263060-2773-46bb-b829-460e777e4d3a',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'PredictedEscalationScoredAt',
             'Predicted Escalation Scored At',
             'Timestamp when this issue was last scored by the predictive escalation model.',
@@ -405,7 +409,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '228da02b-55f1-4de0-824f-dc74320e737b' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'IsCriticalEscalation')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '228da02b-55f1-4de0-824f-dc74320e737b' OR (EntityID = @IssueEntityID AND Name = 'IsCriticalEscalation')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -439,8 +443,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             '228da02b-55f1-4de0-824f-dc74320e737b',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'IsCriticalEscalation',
             'Is Critical Escalation',
             NULL,
@@ -468,7 +472,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '6361dba4-094e-4055-94a4-bd74cdbe4487' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'CommentsCount')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '6361dba4-094e-4055-94a4-bd74cdbe4487' OR (EntityID = @IssueEntityID AND Name = 'CommentsCount')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -502,8 +506,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             '6361dba4-094e-4055-94a4-bd74cdbe4487',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'CommentsCount',
             'Comments Count',
             NULL,
@@ -531,7 +535,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b64ccbdf-1742-4c34-a63d-07da4ef151b5' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'HasAssignee')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'b64ccbdf-1742-4c34-a63d-07da4ef151b5' OR (EntityID = @IssueEntityID AND Name = 'HasAssignee')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -565,8 +569,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             'b64ccbdf-1742-4c34-a63d-07da4ef151b5',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'HasAssignee',
             'Has Assignee',
             NULL,
@@ -594,7 +598,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '153fbaf4-8251-4f52-bf87-f6e1aedf98df' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'TitleLength')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = '153fbaf4-8251-4f52-bf87-f6e1aedf98df' OR (EntityID = @IssueEntityID AND Name = 'TitleLength')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -628,8 +632,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             '153fbaf4-8251-4f52-bf87-f6e1aedf98df',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'TitleLength',
             'Title Length',
             NULL,
@@ -657,7 +661,7 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          )
       END;
 
-      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a0aace31-0601-457a-b4d1-d87a27c6f47d' OR (EntityID = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND Name = 'DescriptionLength')) BEGIN
+      IF NOT EXISTS (SELECT 1 FROM [${mjSchema}].[EntityField] WHERE ID = 'a0aace31-0601-457a-b4d1-d87a27c6f47d' OR (EntityID = @IssueEntityID AND Name = 'DescriptionLength')) BEGIN
          INSERT INTO [${mjSchema}].[EntityField]
          (
             [ID],
@@ -691,8 +695,8 @@ EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='',
          VALUES
          (
             'a0aace31-0601-457a-b4d1-d87a27c6f47d',
-            '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', -- Entity: MJ_BizApps_Issues: Issues
-            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'),
+            @IssueEntityID, -- Entity: MJ_BizApps_Issues: Issues
+            (SELECT COALESCE(MAX([Sequence]), 0) + 1 FROM [${mjSchema}].[EntityField] WHERE [EntityID] = @IssueEntityID),
             'DescriptionLength',
             'Description Length',
             NULL,
@@ -1192,10 +1196,9 @@ REVOKE EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssue] FROM [cdp_Integratio
 GRANT EXECUTE ON [${flyway:defaultSchema}].[spDeleteIssue] TO [cdp_Developer], [cdp_Integration];
 
 /* SQL text to delete unneeded entity fields (1 scoped entities) */
-EXEC [${mjSchema}].[spDeleteUnneededEntityFields] @ExcludedSchemaNames='', @EntityIDs='(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', @IncludedSchemaNames='${flyway:defaultSchema}';
 
 /* SQL text to update existing entity fields from schema (1 scoped entities) */
-EXEC [${mjSchema}].[spUpdateExistingEntityFieldsFromSchema] @ExcludedSchemaNames='', @EntityIDs='(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', @IncludedSchemaNames='${flyway:defaultSchema}';
+EXEC [${mjSchema}].[spUpdateExistingEntityFieldsFromSchema] @ExcludedSchemaNames='', @IncludedSchemaNames='${flyway:defaultSchema}';
 
 /* SQL text to set default column width where needed */
 EXEC [${mjSchema}].[spSetDefaultColumnWidthWhereNeeded] @ExcludedSchemaNames='', @IncludedSchemaNames='${flyway:defaultSchema}';
@@ -1477,18 +1480,20 @@ WHERE
    ID = 'A0AACE31-0601-457A-B4D1-D87A27C6F47D';
 
 /* Set entity icon to fa fa-bug */
+DECLARE @IssueEntityID_Settings UNIQUEIDENTIFIER =
+    (SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues');
 
                UPDATE [${mjSchema}].[Entity]
                SET [Icon] = 'fa fa-bug', [__mj_UpdatedAt] = GETUTCDATE()
-               WHERE [ID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')';
+               WHERE [ID] = @IssueEntityID_Settings;
 
 /* Insert FieldCategoryInfo setting for entity */
 IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntitySetting] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND [Name] = 'FieldCategoryInfo'
+      SELECT 1 FROM [${mjSchema}].[EntitySetting] WHERE [EntityID] = @IssueEntityID_Settings AND [Name] = 'FieldCategoryInfo'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntitySetting] ([ID], [EntityID], [Name], [Value], [__mj_CreatedAt], [__mj_UpdatedAt])
-               VALUES ('3c710b93-00ae-5f44-9f14-d91e4e4ededf', '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', 'FieldCategoryInfo', '{
+               VALUES ('3c710b93-00ae-5f44-9f14-d91e4e4ededf', @IssueEntityID_Settings, 'FieldCategoryInfo', '{
   "Classification": {
     "description": "Categorization, status, and priority settings for the issue.",
     "icon": "fa fa-tags"
@@ -1522,11 +1527,11 @@ IF NOT EXISTS (
 
 /* Insert FieldCategoryIcons setting (legacy) */
 IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[EntitySetting] WHERE [EntityID] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')' AND [Name] = 'FieldCategoryIcons'
+      SELECT 1 FROM [${mjSchema}].[EntitySetting] WHERE [EntityID] = @IssueEntityID_Settings AND [Name] = 'FieldCategoryIcons'
    )
    BEGIN
       INSERT INTO [${mjSchema}].[EntitySetting] ([ID], [EntityID], [Name], [Value], [__mj_CreatedAt], [__mj_UpdatedAt])
-               VALUES ('be0c082c-2519-577a-b073-31c764d4aade', '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')', 'FieldCategoryIcons', '{
+               VALUES ('be0c082c-2519-577a-b073-31c764d4aade', @IssueEntityID_Settings, 'FieldCategoryIcons', '{
   "Classification": "fa fa-tags",
   "Context": "fa fa-link",
   "Escalation Intelligence": "fa fa-exclamation-triangle",
@@ -1562,7 +1567,7 @@ VALUES ('16a7d7b8-23af-4a58-baf5-f43eff764f80', (SELECT [ID] FROM [${mjSchema}].
 /* Generated Validation Functions for MJ_BizApps_Issues: Issues */
 -- CHECK constraint for MJ_BizApps_Issues: Issues @ Table Level was newly set or modified since the last generation of the validation function, the code was regenerated and updating the GeneratedCode table with the new generated validation function
 IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[GeneratedCode] WHERE [CategoryID] = (SELECT [ID] FROM [${mjSchema}].[vwGeneratedCodeCategories] WHERE [Name]='CodeGen: Validators') AND [LinkedEntityID] = 'E0238F34-2837-EF11-86D4-6045BDEE16E6' AND [LinkedRecordPrimaryKey] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'
+      SELECT 1 FROM [${mjSchema}].[GeneratedCode] WHERE [CategoryID] = (SELECT [ID] FROM [${mjSchema}].[vwGeneratedCodeCategories] WHERE [Name]='CodeGen: Validators') AND [LinkedEntityID] = 'E0238F34-2837-EF11-86D4-6045BDEE16E6' AND [LinkedRecordPrimaryKey] = @IssueEntityID_Settings
    )
    BEGIN
       INSERT INTO [${mjSchema}].[GeneratedCode] ([ID], [CategoryID], [GeneratedByModelID], [GeneratedAt], [Language], [Status], [Source], [Code], [Description], [Name], [LinkedEntityID], [LinkedRecordPrimaryKey])
@@ -1578,12 +1583,12 @@ VALUES ('6f29640b-081c-435e-a766-c1fdf055df7f', (SELECT [ID] FROM [${mjSchema}].
 			ValidationErrorType.Failure
 		));
 	}
-}', 'Both Assignee Entity and Assignee Record must either be provided together or both left blank to ensure the assignee reference is complete.', 'ValidateAssigneeFieldsCoexistence', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')')
+}', 'Both Assignee Entity and Assignee Record must either be provided together or both left blank to ensure the assignee reference is complete.', 'ValidateAssigneeFieldsCoexistence', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', @IssueEntityID_Settings)
    END;
 
 -- CHECK constraint for MJ_BizApps_Issues: Issues @ Table Level was newly set or modified since the last generation of the validation function, the code was regenerated and updating the GeneratedCode table with the new generated validation function
 IF NOT EXISTS (
-      SELECT 1 FROM [${mjSchema}].[GeneratedCode] WHERE [CategoryID] = (SELECT [ID] FROM [${mjSchema}].[vwGeneratedCodeCategories] WHERE [Name]='CodeGen: Validators') AND [LinkedEntityID] = 'E0238F34-2837-EF11-86D4-6045BDEE16E6' AND [LinkedRecordPrimaryKey] = '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')'
+      SELECT 1 FROM [${mjSchema}].[GeneratedCode] WHERE [CategoryID] = (SELECT [ID] FROM [${mjSchema}].[vwGeneratedCodeCategories] WHERE [Name]='CodeGen: Validators') AND [LinkedEntityID] = 'E0238F34-2837-EF11-86D4-6045BDEE16E6' AND [LinkedRecordPrimaryKey] = @IssueEntityID_Settings
    )
    BEGIN
       INSERT INTO [${mjSchema}].[GeneratedCode] ([ID], [CategoryID], [GeneratedByModelID], [GeneratedAt], [Language], [Status], [Source], [Code], [Description], [Name], [LinkedEntityID], [LinkedRecordPrimaryKey])
@@ -1599,6 +1604,6 @@ VALUES ('4020813c-2edb-49f2-ab51-4d3a7f9dc661', (SELECT [ID] FROM [${mjSchema}].
 				ValidationErrorType.Failure
 			));
 		}
-	}', 'Both Source Entity and Source Record must be provided together, or both must be left empty.', 'ValidateSourceEntityAndRecordCoexistence', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', '(SELECT [ID] FROM [${mjSchema}].[Entity] WHERE [Name] = 'MJ_BizApps_Issues: Issues')')
+	}', 'Both Source Entity and Source Record must be provided together, or both must be left empty.', 'ValidateSourceEntityAndRecordCoexistence', 'E0238F34-2837-EF11-86D4-6045BDEE16E6', @IssueEntityID_Settings)
    END;
 
