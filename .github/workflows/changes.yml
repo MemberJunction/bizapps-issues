@@ -188,6 +188,19 @@ jobs:
 
   # Does the T-SQL actually parse? Stands up a real SQL Server rather than pattern-matching,
   # which is why it is the most expensive job here — and why the draft guard matters most on it.
+  # Its own job, not a step inside another: it has nothing to do with migrations, needs no
+  # merge base and no fetch depth, and finishes in seconds. Folding it into a migration job
+  # would make a green migration check mean two unrelated things.
+  script-references:
+    name: 'script references'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every script a workflow calls must exist
+        run: ./.github/scripts/check-script-references.sh
+
   parse-migrations:
     name: 'Parse migrations (T-SQL syntax check)'
     needs: migration-naming
