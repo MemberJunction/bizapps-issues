@@ -106,15 +106,20 @@ SELECT
     g.*,
     -- Engineered features for Predictive Studio escalation modeling
     CASE 
-        WHEN (SELECT COUNT(*) FROM [${flyway:defaultSchema}].[IssueComment] c WHERE c.[IssueID] = g.[ID]) >= 3 THEN 'Escalated' 
+        WHEN ISNULL(c.[CommentsCount], 0) >= 3 THEN 'Escalated' 
         ELSE 'Standard' 
     END AS [IsCriticalEscalation],
-    ISNULL((SELECT COUNT(*) FROM [${flyway:defaultSchema}].[IssueComment] c WHERE c.[IssueID] = g.[ID]), 0) AS [CommentsCount],
+    ISNULL(c.[CommentsCount], 0) AS [CommentsCount],
     CASE WHEN g.[AssigneeRecordID] IS NOT NULL THEN 1 ELSE 0 END AS [HasAssignee],
     ISNULL(LEN(g.[Title]), 0) AS [TitleLength],
     ISNULL(LEN(g.[Description]), 0) AS [DescriptionLength]
 FROM
-    [${flyway:defaultSchema}].[vwIssuesGenerated] AS g;
+    [${flyway:defaultSchema}].[vwIssuesGenerated] AS g
+LEFT OUTER JOIN (
+    SELECT [IssueID], COUNT(*) AS [CommentsCount]
+    FROM [${flyway:defaultSchema}].[IssueComment]
+    GROUP BY [IssueID]
+) AS c ON c.[IssueID] = g.[ID];
 GO
 
 IF DATABASE_PRINCIPAL_ID('cdp_UI') IS NOT NULL
