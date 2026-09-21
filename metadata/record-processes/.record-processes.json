@@ -1,0 +1,30 @@
+[
+  {
+    "fields": {
+      "Name": "Score MJ_BizApps_Issues: Issues with model 8766EFF7-4305-4C47-B3C5-BA8B968A850B (Monthly)",
+      "EntityID": "65E7DAD5-9930-4140-9A38-2184EB0097DA",
+      "Status": "Active",
+      "WorkType": "ML Model",
+      "ScopeType": "Filter",
+      "ScopeFilter": "ClosedAt IS NULL AND ResolvedAt IS NULL",
+      "OnChangeEnabled": false,
+      "ScheduleEnabled": true,
+      "CronExpression": "0 0 1 * *",
+      "Timezone": "UTC",
+      "OnDemandEnabled": true,
+      "OutputMapping": "{\"PredictedCriticalEscalationProbability\":\"$.score\",\"PredictedEscalationRiskBand\":\"$.band\",\"PredictedEscalationScoredAt\":\"$.scoredAt\"}",
+      "SkipUnchanged": true,
+      "BatchSize": 100,
+      "MaxConcurrency": 1,
+      "Configuration": "{\"modelId\":\"8766EFF7-4305-4C47-B3C5-BA8B968A850B\",\"primaryKeyField\":\"ID\"}",
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "74377EE7-FB5C-44D7-B42A-E3EC0AFA9ACB"
+    },
+    "sync": {
+      "lastModified": "2026-09-20T23:03:26.203Z",
+      "checksum": "56b74e25e965a1771a502a7ed189c2959f7995f59d658e576fd4e6d216f4e125"
+    }
+  }
+]

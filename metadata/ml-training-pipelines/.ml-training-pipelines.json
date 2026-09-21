@@ -1,0 +1,77 @@
+[
+  {
+    "fields": {
+      "Name": "IsCriticalEscalation Prediction (LightGBM)",
+      "Description": "Identify critical escalations among issues to prioritize resources for high-impact cases.",
+      "Version": 1,
+      "Status": "Draft",
+      "TargetEntityID": "65E7DAD5-9930-4140-9A38-2184EB0097DA",
+      "TargetVariable": "IsCriticalEscalation",
+      "ProblemType": "classification",
+      "AlgorithmID": "B2FD5E4A-75D4-401A-A1DA-F223A5234FDA",
+      "SourceBindings": "[{\"Kind\":\"Entity\",\"Ref\":\"MJ_BizApps_Issues: Issues\"}]",
+      "FeatureSteps": "{\"Steps\":[{\"Id\":\"select-raw\",\"Kind\":\"select\",\"Columns\":[\"Priority\",\"Severity\",\"IssueType\",\"HasAssignee\",\"TitleLength\",\"DescriptionLength\"]},{\"Id\":\"onehot-Priority\",\"Kind\":\"onehot\",\"Column\":\"Priority\"},{\"Id\":\"onehot-Severity\",\"Kind\":\"onehot\",\"Column\":\"Severity\"},{\"Id\":\"onehot-IssueType\",\"Kind\":\"onehot\",\"Column\":\"IssueType\"},{\"Id\":\"onehot-HasAssignee\",\"Kind\":\"onehot\",\"Column\":\"HasAssignee\"}]}",
+      "AsOfStrategy": "{\"Mode\":\"none\"}",
+      "LeakageGuard": "{\"DenyFields\":[\"Status\",\"CommentsCount\"],\"SingleFeatureDominanceThreshold\":0.6}",
+      "ValidationStrategy": "{\"Strategy\":\"kfold\",\"K\":5,\"LockedHoldoutFraction\":0.2}",
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "0A2536DE-1D34-45A2-AAB6-6465F1F000E3"
+    },
+    "sync": {
+      "lastModified": "2026-09-19T17:53:43.101Z",
+      "checksum": "fd3a3afa6a0fd6e50274f59530ce68ee4892bb5a30ce998ef350f634033ca274"
+    }
+  },
+  {
+    "fields": {
+      "Name": "IsCriticalEscalation Prediction (RandomForest)",
+      "Description": "Identify critical escalations among issues to prioritize resources for high-impact cases.",
+      "Version": 1,
+      "Status": "Draft",
+      "TargetEntityID": "65E7DAD5-9930-4140-9A38-2184EB0097DA",
+      "TargetVariable": "IsCriticalEscalation",
+      "ProblemType": "classification",
+      "AlgorithmID": "F966965D-3A87-4DD6-91E0-4F9D1AF17796",
+      "SourceBindings": "[{\"Kind\":\"Entity\",\"Ref\":\"MJ_BizApps_Issues: Issues\"}]",
+      "FeatureSteps": "{\"Steps\":[{\"Id\":\"select-raw\",\"Kind\":\"select\",\"Columns\":[\"Priority\",\"Severity\",\"IssueType\",\"HasAssignee\",\"TitleLength\",\"DescriptionLength\"]},{\"Id\":\"onehot-Priority\",\"Kind\":\"onehot\",\"Column\":\"Priority\"},{\"Id\":\"onehot-Severity\",\"Kind\":\"onehot\",\"Column\":\"Severity\"},{\"Id\":\"onehot-IssueType\",\"Kind\":\"onehot\",\"Column\":\"IssueType\"},{\"Id\":\"onehot-HasAssignee\",\"Kind\":\"onehot\",\"Column\":\"HasAssignee\"}]}",
+      "AsOfStrategy": "{\"Mode\":\"none\"}",
+      "LeakageGuard": "{\"DenyFields\":[\"Status\",\"CommentsCount\"],\"SingleFeatureDominanceThreshold\":0.6}",
+      "ValidationStrategy": "{\"Strategy\":\"kfold\",\"K\":5,\"LockedHoldoutFraction\":0.2}",
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "5643A39C-7E9E-40DC-884F-AF4CBFC01170"
+    },
+    "sync": {
+      "lastModified": "2026-09-19T17:53:43.101Z",
+      "checksum": "825d7c56357ee385b072f44476712ecbe61515599243aa57ae4cce2f75beec36"
+    }
+  },
+  {
+    "fields": {
+      "Name": "IsCriticalEscalation Prediction (XGBoost)",
+      "Description": "Identify critical escalations among issues to prioritize resources for high-impact cases.",
+      "Version": 1,
+      "Status": "Draft",
+      "TargetEntityID": "65E7DAD5-9930-4140-9A38-2184EB0097DA",
+      "TargetVariable": "IsCriticalEscalation",
+      "ProblemType": "classification",
+      "AlgorithmID": "25E83BF9-C5EE-4BDF-A891-D36D871B73E3",
+      "SourceBindings": "[{\"Kind\":\"Entity\",\"Ref\":\"MJ_BizApps_Issues: Issues\"}]",
+      "FeatureSteps": "{\"Steps\":[{\"Id\":\"select-raw\",\"Kind\":\"select\",\"Columns\":[\"Priority\",\"Severity\",\"IssueType\",\"HasAssignee\",\"TitleLength\",\"DescriptionLength\"]},{\"Id\":\"onehot-Priority\",\"Kind\":\"onehot\",\"Column\":\"Priority\"},{\"Id\":\"onehot-Severity\",\"Kind\":\"onehot\",\"Column\":\"Severity\"},{\"Id\":\"onehot-IssueType\",\"Kind\":\"onehot\",\"Column\":\"IssueType\"},{\"Id\":\"onehot-HasAssignee\",\"Kind\":\"onehot\",\"Column\":\"HasAssignee\"}]}",
+      "AsOfStrategy": "{\"Mode\":\"none\"}",
+      "LeakageGuard": "{\"DenyFields\":[\"Status\",\"CommentsCount\"],\"SingleFeatureDominanceThreshold\":0.6}",
+      "ValidationStrategy": "{\"Strategy\":\"kfold\",\"K\":5,\"LockedHoldoutFraction\":0.2}",
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "7331D233-E135-490D-B524-FE36BB4F3C4E"
+    },
+    "sync": {
+      "lastModified": "2026-09-19T17:53:43.101Z",
+      "checksum": "44c9060426525a409fa489cad2af7f33d653cea763c40ecf1b80fe01b26577df"
+    }
+  }
+]
