@@ -72,3 +72,10 @@ jobs:
 
       - name: Build all packages
         run: pnpm run build:packages
+
+      # Runs in the same job so it reuses the tree that was just built rather than paying for
+      # another install and compile. Three packages carry real vitest suites (Core,
+      # CoreEntitiesServer, IntegrationTests); the rest still echo a stub, which turbo treats
+      # as a pass — so a green here means "nothing that has tests is failing", not "tested".
+      - name: Run tests
+        run: pnpm run test
