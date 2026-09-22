@@ -75,18 +75,33 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
+# Same "what changed that matters" logic as the release gate — see ci/lib/release-surface.sh.
+# Without this the door and the gate can disagree about the same files.
+. "$(dirname "$0")/../../ci/lib/release-surface.sh"
+
 BASE="${1:?usage: check-migration-changeset.sh <base-ref> <head-ref>}"
 HEAD_REF="${2:?usage: check-migration-changeset.sh <base-ref> <head-ref>}"
 
-MIGRATIONS=$(git diff --name-only "$BASE" "$HEAD_REF" | grep -E '^migrations/.*\.sql$' || true)
-if [ -z "$MIGRATIONS" ]; then
+MIGRATIONS=$(git diff --name-only "$BASE" "$HEAD_REF" | grep -E '^migrations(-pg)?/.*\.sql$' || true)
+
+# metadata/ counts too. It is seeded into a customer's database by a Metadata_Sync migration,
+# so a metadata change is as observable as a schema change — and the release gate already
+# judges it that way. Judging it only at the gate meant a PR could pass the door and the
+# release fail for the same files, with nobody to attribute it to.
+METADATA=$(substantive_metadata_changes "$BASE" "$HEAD_REF" || true)
+
+SURFACE=""
+[ -n "$MIGRATIONS" ] && SURFACE="migrations"
+[ -n "$METADATA" ] && SURFACE="${SURFACE:+$SURFACE and }metadata"
+
+if [ -z "$SURFACE" ]; then
   echo "No migration changes — any bump level is fine"
   exit 0
 fi
 
 CHANGESETS=$(git diff --name-only "$BASE" "$HEAD_REF" | grep -E '^\.changeset/.*\.md$' | grep -v 'README.md' || true)
 if [ -z "$CHANGESETS" ]; then
-  echo "::error::This PR adds migrations but no changeset. A schema change is a feature: run 'pnpm exec changeset' and pick minor. Migrations changed:"
+  echo "::error::This PR changes $SURFACE but carries no changeset. A schema or seeded-metadata change is a feature: run 'pnpm exec changeset' and pick minor. Changed:"
   echo "$MIGRATIONS" | sed 's/^/  /'
   exit 1
 fi
@@ -98,6 +113,6 @@ for f in $CHANGESETS; do
   fi
 done
 
-echo "::error::This PR adds migrations, and its changeset(s) only request a patch. A consumer upgrading on a patch would not expect the schema to change — raise one to minor. Changesets in this PR:"
+echo "::error::This PR changes $SURFACE, and its changeset(s) only request a patch. A consumer upgrading on a patch would not expect the schema or seeded metadata to change — raise one to minor. Changesets in this PR:"
 echo "$CHANGESETS" | sed 's/^/  /'
 exit 1

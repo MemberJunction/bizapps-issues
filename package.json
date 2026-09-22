@@ -13,6 +13,7 @@
     "build:stream": "turbo --log-order=stream build --filter=\"@mj-biz-apps/*\"",
     "build:generated": "turbo --log-order=stream build --filter=\"@mj-biz-apps/issues-entities\" --filter=\"@mj-biz-apps/issues-actions\"",
     "build:packages": "turbo --log-order=stream build --filter=\"@mj-biz-apps/issues-*\"",
+    "test": "turbo --log-order=stream test --filter=\"@mj-biz-apps/issues-*\"",
     "mj": "mj",
     "mj:migrate": "mj migrate --schema __mj_BizAppsIssues --dir ./migrations",
     "mj:codegen": "mj codegen",

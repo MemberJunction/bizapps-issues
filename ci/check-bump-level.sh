@@ -21,6 +21,9 @@
 # cheaper answer than an escape hatch people have to reason about.
 set -euo pipefail
 
+# The "what changed that matters" logic is shared with the door check — see the header there.
+. "$(dirname "$0")/lib/release-surface.sh"
+
 # --- metadata: tell a real edit apart from bookkeeping -------------------------------------
 #
 # Every MetadataSync record carries a `sync` block that `mj sync push` rewrites on every run:
@@ -37,13 +40,6 @@ set -euo pipefail
 # reserialization — key order, indentation, a trailing newline — is not a change either.
 # `sync` is the only key dropped: `fields` and `primaryKey` are both substantive, and a new
 # `primaryKey` is a new record.
-normalize_metadata_json() {
-  jq -S 'def strip:
-           if   type == "object" then with_entries(select(.key != "sync")) | map_values(strip)
-           elif type == "array"  then map(strip)
-           else . end;
-         strip'
-}
 
 # Echoes the metadata files that changed substantively between two refs, one per line, and
 # explains each decision on stderr so a CI log says WHY a file counted rather than just that it
@@ -56,58 +52,6 @@ normalize_metadata_json() {
 #                     than asking a human.
 #   compared          both sides parsed; counted only if they differ once every `sync` block is
 #                     stripped, so a rewritten checksum or a reserialized file is not a change.
-substantive_metadata_changes() {
-  local base="$1" head="$2" file base_json head_json changed=""
-  local in_base in_head
-
-  # `while read`, not `for $(...)`: a metadata path containing a space would otherwise be split
-  # into fragments and silently mis-handled.
-  while IFS= read -r file; do
-    [ -n "$file" ] || continue
-
-    in_base=false; in_head=false
-    git cat-file -e "$base:$file" 2>/dev/null && in_base=true
-    git cat-file -e "$head:$file" 2>/dev/null && in_head=true
-
-    if [ "$in_base" = false ] && [ "$in_head" = true ]; then
-      echo "  ADDED    $file — a new metadata file is a substantive change" >&2
-      changed="${changed}${file}"$'\n'; continue
-    fi
-    if [ "$in_base" = true ] && [ "$in_head" = false ]; then
-      echo "  DELETED  $file — a removed metadata file is a substantive change" >&2
-      changed="${changed}${file}"$'\n'; continue
-    fi
-    if [ "$in_base" = false ] && [ "$in_head" = false ]; then
-      echo "  MISSING  $file — git reported it as changed but it exists at neither ref; counting it" >&2
-      changed="${changed}${file}"$'\n'; continue
-    fi
-
-    case "$file" in
-      *.json) ;;
-      *) echo "  NOT JSON $file — cannot strip sync bookkeeping from a non-JSON file; counting it" >&2
-         changed="${changed}${file}"$'\n'; continue ;;
-    esac
-
-    if ! base_json=$(git show "$base:$file" 2>/dev/null | normalize_metadata_json 2>&1); then
-      echo "  UNREADABLE $file at $base — not valid JSON, so a cosmetic-vs-real comparison is" >&2
-      echo "             impossible; counting it as changed. jq said: ${base_json%%$'\n'*}" >&2
-      changed="${changed}${file}"$'\n'; continue
-    fi
-    if ! head_json=$(git show "$head:$file" 2>/dev/null | normalize_metadata_json 2>&1); then
-      echo "  UNREADABLE $file at $head — not valid JSON, so a cosmetic-vs-real comparison is" >&2
-      echo "             impossible; counting it as changed. jq said: ${head_json%%$'\n'*}" >&2
-      changed="${changed}${file}"$'\n'; continue
-    fi
-
-    if [ "$base_json" != "$head_json" ]; then
-      changed="${changed}${file}"$'\n'
-    fi
-  done <<EOF
-$(git diff --name-only "$base" "$head" -- metadata/ || true)
-EOF
-
-  printf '%s' "$changed"
-}
 
 LAST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -1)
 if [ -z "$LAST_TAG" ]; then

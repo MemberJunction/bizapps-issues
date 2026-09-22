@@ -71,6 +71,37 @@ jobs:
       - name: A release carrying migrations or metadata must be at least a minor
         run: ./ci/check-bump-level.sh
 
+  # The installer runs migrations and never reads metadata/, so a metadata change reaches a
+  # customer only through a Metadata_Sync migration. A gate check rather than a door one: a
+  # feature PR may land metadata before its sync migration is written. What must be true is
+  # that by release time every change since the last tag has one.
+  metadata-shipped:
+    name: 'rr: metadata shipped'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - run: ./ci/check-metadata-shipped.sh
+
+  # Until the back-merge lands, `next` still holds the changesets the last release consumed and
+  # the version before it, so a version PR built from it proposes a number already on npm.
+  # publish.yml catches the result, but only after the merge; this catches it on the PR.
+  release-base-current:
+    name: 'rr: release base current'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - run: ./ci/check-release-base-current.sh
+
   # A migration that has already shipped is frozen: Flyway checksums it at apply time, so
   # editing it breaks every database that ran it while a fresh one silently gets the new text.
   migration-immutability:
