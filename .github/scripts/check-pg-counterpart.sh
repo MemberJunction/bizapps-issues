@@ -9,6 +9,11 @@
 #   migrations/V<stamp>__<name>.sql          T-SQL
 #   migrations-pg/V<stamp>__<name>.pg.sql    its Postgres counterpart   (227 in MJ)
 #   migrations-pg/V<stamp>__<name>.pg-only.sql   Postgres-only, no T-SQL side   (36 in MJ)
+#
+# Only NEW migrations are held to this. One existing file here spells it `.pgonly.sql`, which
+# is not MJ's convention — and it stays that way: renaming a released migration is the very
+# thing the immutability check forbids, because Flyway checksums the file and every database
+# that already ran it would fail validation. The convention binds what we add, not what shipped.
 set -euo pipefail
 
 BASE="${1:?usage: check-pg-counterpart.sh <base-ref> <head-ref>}"
