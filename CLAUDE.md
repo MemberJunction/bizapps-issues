@@ -342,6 +342,36 @@ git branch -vv
 # * my-feature [origin/next] BAD - tracks next!            ❌
 ```
 
+### Branching Model: `next` → `main` Release Flow
+
+- **`next`** — integration branch. All feature work merges here. It is the default branch.
+- **`main`** — release branch. Only updated by a coordinating PR from `next`. Pushes to `main` publish.
+
+**Feature work:** cut from `next`, open a PR into `next`, merge.
+
+**Releases:** versioning and publishing are separate, and neither writes to a protected branch.
+
+1. `version.yml` fires on every push to `next` and maintains a **"Version Packages" PR** into
+   `next` — every package bumped, CHANGELOGs generated, `mj-app.json`'s `version` and
+   `mjVersionRange` synced, and `pnpm-lock.yaml` refreshed. A GitHub App opens it, so its checks
+   run without anyone clicking "Approve and run". Merge it when you are ready to cut a release.
+2. Open a single PR from `next` → `main` ("Release vX.Y.Z") and merge it. That merge is the
+   decision to publish.
+3. Merging triggers `publish.yml`, which validates, builds, runs `changeset publish` (publishing
+   every package whose version is not already on the registry), and tags `vX.Y.Z`. It computes no
+   version and writes to no branch.
+
+**Rules:**
+- **Never commit directly to `main`.** Always go through `next`.
+- **Never publish by dispatching `publish.yml` on `next`** — the job is guarded to
+  `refs/heads/main` and will not run.
+- **Never hand-edit a version bump.** It is `changeset version`'s output, delivered by the Version
+  Packages PR. `changeset version` rewrites internal dependency ranges and does **not** touch the
+  lockfile, which is why `version:prepare` refreshes it in the same PR.
+- **A fix needed after the Version Packages PR has merged** should carry **no changeset** — nothing
+  re-versions and the fix ships inside the pending release. Adding one mints a second version
+  number and leaves the first published nowhere.
+
 ### Fix Incorrect Tracking
 If a branch is tracking the wrong remote:
 ```bash
