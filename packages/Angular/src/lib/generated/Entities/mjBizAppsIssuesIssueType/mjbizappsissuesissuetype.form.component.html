@@ -131,7 +131,7 @@
     <mj-collapsible-panel
         SectionKey="mJBizAppsIssuesIssues"
         SectionName="Issues"
-        Icon="fa fa-table"
+        Icon="fa fa-bug"
         Variant="related-entity"
         [Form]="this"
         [FormContext]="formContext"
@@ -141,9 +141,9 @@
         <div>
             <mj-explorer-entity-data-grid
                 [Params]="BuildRelationshipViewParamsByEntityName('MJ_BizApps_Issues: Issues','IssueTypeID')"
-                [NewRecordValues]="NewRecordValues('MJ_BizApps_Issues: Issues')"
+                [NewRecordValues]="NewRecordValues('MJ_BizApps_Issues: Issues','IssueTypeID')"
                 [AllowLoad]="IsSectionExpanded('mJBizAppsIssuesIssues')"
-                [ShowToolbar]="false"
+                [ShowToolbar]="true"
                 (Navigate)="OnFormNavigate($event)"
                 (AfterDataLoad)="SetSectionRowCount('mJBizAppsIssuesIssues', $event.totalRowCount)"
                 >
