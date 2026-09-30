@@ -1,5 +1,6 @@
 #!/bin/bash
-# Validates repository.url in all @mj-biz-apps packages
+# Validates repository.url in every publishable workspace package.
+# The package list comes from ci/lib/workspace-packages.sh -- no scope is hardcoded here.
 # Required for npm provenance verification (OIDC trusted publishing)
 
 # Derive the expected URL from the ROOT package.json so this script survives
@@ -12,16 +13,14 @@ fi
 ERRORS=0
 PRIVATE_SKIPPED=0
 
-echo "Checking repository.url in all @mj-biz-apps packages..."
+. "$(dirname "$0")/../../ci/lib/workspace-packages.sh"
+PACKAGE_JSONS=$(workspace_package_jsons) || exit 1
 
-for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/dist/*"); do
+echo "Checking repository.url in all publishable packages..."
+
+for pkg_json in $PACKAGE_JSONS; do
   name=$(jq -r '.name // ""' "$pkg_json")
-
-  # Only check @mj-biz-apps scoped packages
-  if [[ "$name" != @mj-biz-apps/* ]]; then
-    continue
-  fi
-
+  [ -n "$name" ] || continue   # a nameless package.json cannot be published
 
   # Skip packages marked private. repository.url exists for npm sigstore provenance, which
   # only applies to published packages -- npm refuses to attest a private one, and changesets
@@ -55,7 +54,7 @@ if [ $ERRORS -gt 0 ]; then
   echo ""
   echo "::error::Found $ERRORS package(s) with missing or invalid repository.url"
   echo ""
-  echo "All @mj-biz-apps packages must have:"
+  echo "Every publishable package must have:"
   echo '  "repository": {'
   echo '    "type": "git",'
   echo "    \"url\": \"$EXPECTED_URL\""
@@ -63,4 +62,4 @@ if [ $ERRORS -gt 0 ]; then
   exit 1
 fi
 
-echo "All @mj-biz-apps packages have valid repository.url"
+echo "All publishable packages have valid repository.url"
