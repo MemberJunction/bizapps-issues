@@ -2,6 +2,8 @@
 # Detects case-sensitivity mismatches between pnpm-lock.yaml and git
 # macOS is case-insensitive; Linux CI (GitHub Actions) is case-sensitive
 
+set -uo pipefail
+
 echo "Validating pnpm-lock.yaml for case-sensitivity issues..."
 
 LOCKFILE="${1:-pnpm-lock.yaml}"
