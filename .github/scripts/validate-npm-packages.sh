@@ -1,5 +1,6 @@
 #!/bin/bash
-# Validates that all @mj-biz-apps packages exist on npm before publishing
+# Validates that every publishable workspace package exists on npm before publishing.
+# The package list comes from ci/lib/workspace-packages.sh -- no scope is hardcoded here.
 
 echo "Checking for new packages that need npm placeholders..."
 
@@ -9,14 +10,12 @@ PRIVATE_SKIPPED=0
 MAX_RETRIES=3
 RETRY_DELAY=2
 
-for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*"); do
+. "$(dirname "$0")/../../ci/lib/workspace-packages.sh"
+PACKAGE_JSONS=$(workspace_package_jsons) || exit 1
+
+for pkg_json in $PACKAGE_JSONS; do
   name=$(jq -r '.name // ""' "$pkg_json")
-
-  # Only check @mj-biz-apps scoped packages
-  if [[ "$name" != @mj-biz-apps/* ]]; then
-    continue
-  fi
-
+  [ -n "$name" ] || continue   # a nameless package.json cannot be published
 
   # Skip packages marked private. This gate exists to predict whether `changeset publish`
   # will succeed, and changesets never publishes a private package
@@ -33,20 +32,28 @@ for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/n
 
   CHECKED=$((CHECKED + 1))
 
-  # Check if package exists on npm with retry logic
+  # Check if package exists on npm with retry logic.
+  # npm view returns exit 1 for BOTH "not found" (E404) and transient errors
+  # (rate-limiting from rapid calls, network blips), so a single exit-1 is not
+  # conclusive. Retry on the first failure and only treat as missing if it
+  # consistently fails — this distinguishes a real 404 from a flaky lookup.
   EXISTS=false
   for attempt in $(seq 1 $MAX_RETRIES); do
-    if timeout 10 npm view "$name" version > /dev/null 2>&1; then
+    # Use timeout if available (Linux/GitHub Actions), otherwise run without
+    # timeout (macOS, where `timeout` is not installed by default).
+    if command -v timeout > /dev/null 2>&1; then
+      timeout 10 npm view "$name" version > /dev/null 2>&1
+    else
+      npm view "$name" version > /dev/null 2>&1
+    fi
+    if [ $? -eq 0 ]; then
       EXISTS=true
       break
     fi
-    exit_code=$?
-    if [ $exit_code -eq 1 ]; then
-      # Package not found (E404) — no point retrying
-      break
+    # Ambiguous failure — wait and retry rather than assuming 404
+    if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+      sleep $RETRY_DELAY
     fi
-    # Network error or timeout — retry
-    sleep $RETRY_DELAY
   done
 
   if [ "$EXISTS" = false ]; then
@@ -55,7 +62,7 @@ for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/n
 
   # Progress indicator
   if [ $((CHECKED % 10)) -eq 0 ]; then
-    echo "  Checked $CHECKED @mj-biz-apps packages..."
+    echo "  Checked $CHECKED packages..."
   fi
 done
 
@@ -72,7 +79,7 @@ if [ ${#MISSING[@]} -gt 0 ]; then
   echo "cannot be published by CI at all -- it fails with an auth error partway through the"
   echo "release, possibly after other packages have shipped. This check stops the run first."
   echo ""
-  echo "Required actions (once per missing package, by an @mj-biz-apps npm org owner):"
+  echo "Required actions (once per missing package, by an owner of the package's npm scope):"
   echo ""
   echo "  1. Create the package with a placeholder version:"
   echo "       npx setup-npm-trusted-publish <package-name>"
@@ -85,7 +92,7 @@ if [ ${#MISSING[@]} -gt 0 ]; then
   exit 1
 fi
 
-echo "All $CHECKED publishable @mj-biz-apps packages exist on npm"
+echo "All $CHECKED publishable packages exist on npm"
 if [ $PRIVATE_SKIPPED -gt 0 ]; then
   echo "   ($PRIVATE_SKIPPED private package(s) skipped - never published)"
 fi
