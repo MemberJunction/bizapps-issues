@@ -4,12 +4,7 @@
 
 set -uo pipefail
 
-# The lockfile to check: pnpm's by default, or a path passed as $1. Every message below names
-# $LOCKFILE rather than a literal filename, so the output is always about the file actually read.
-# Note the parser further down reads pnpm's `importers:` block; a different package manager's
-# lockfile (this repo moved npm -> pnpm once already) needs that extraction changed too, not just
-# this line.
-LOCKFILE="${1:-pnpm-lock.yaml}"
+LOCKFILE=pnpm-lock.yaml
 
 echo "Validating $LOCKFILE for case-sensitivity issues..."
 
@@ -19,7 +14,7 @@ echo "Validating $LOCKFILE for case-sensitivity issues..."
 # fail-open-quietly shape the sibling guards in this directory are written against, and it is
 # reachable here for a mundane reason: this repo has no lockfile until the first `pnpm install`.
 if [ ! -f "$LOCKFILE" ]; then
-  echo "::error::'$LOCKFILE' not found (resolved from $(pwd)). This gate validated nothing; it has not passed. Run 'pnpm install' to generate it, or pass the correct path."
+  echo "::error::'$LOCKFILE' not found (resolved from $(pwd)). This gate validated nothing; it has not passed. Run 'pnpm install' to generate it."
   exit 1
 fi
 

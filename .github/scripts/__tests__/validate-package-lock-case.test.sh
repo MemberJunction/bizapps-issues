@@ -120,41 +120,5 @@ else
 fi
 rm -rf "$MISSING_DIR"
 
-# The lockfile path is a parameter (default pnpm-lock.yaml). Prove the override is honoured, not
-# just accepted: move the fixture's lockfile somewhere non-default, pass that path, and require both
-# the verdict and the messages to be about THAT file. If the script ignored $1 it would read the
-# (now absent) default and fail with "not found" instead.
-check_path_arg() {
-  local name="$1" lock_paths="$2" want="$3" expect_text="$4"
-  local dir out rc
-  dir=$(make_repo "$lock_paths")
-  if [ -z "$dir" ] || [ ! -d "$dir" ]; then
-    FAIL=$((FAIL + 1)); echo "  FAIL — $name (fixture repo could not be built)"; return
-  fi
-  mkdir -p "$dir/locks" && mv "$dir/pnpm-lock.yaml" "$dir/locks/alt-lock.yaml"
-  out=$(cd "$dir" && bash "$SCRIPT" locks/alt-lock.yaml 2>&1); rc=$?
-  if [ "$rc" -eq "$want" ] && grep -qF "$expect_text" <<<"$out"; then
-    PASS=$((PASS + 1)); echo "  ok   — $name"
-  else
-    FAIL=$((FAIL + 1)); echo "  FAIL — $name (exit $rc, wanted $want)"; sed 's/^/         | /' <<<"$out"
-  fi
-  rm -rf "$dir"
-}
-check_path_arg "a lockfile passed by path is the one validated (clean)" \
-  "packages/Entities packages/Server" 0 "No case-sensitivity issues found in locks/alt-lock.yaml"
-check_path_arg "a lockfile passed by path is the one validated (mis-cased)" \
-  "packages/entities" 1 "case mismatch(es) in locks/alt-lock.yaml"
-
-# A path that does not exist fails and names the path it was given.
-ARG_DIR=$(mktemp -d); git -C "$ARG_DIR" init -q
-out=$(cd "$ARG_DIR" && bash "$SCRIPT" no/such-lock.yaml 2>&1); rc=$?
-if [ "$rc" -eq 1 ] && grep -qF "'no/such-lock.yaml' not found" <<<"$out"; then
-  PASS=$((PASS + 1)); echo "  ok   — a missing lockfile passed by path fails and names it"
-else
-  FAIL=$((FAIL + 1)); echo "  FAIL — a missing lockfile passed by path fails and names it (exit $rc)"
-  sed 's/^/         | /' <<<"$out"
-fi
-rm -rf "$ARG_DIR"
-
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
