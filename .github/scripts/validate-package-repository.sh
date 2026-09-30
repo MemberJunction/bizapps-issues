@@ -1,6 +1,7 @@
 #!/bin/bash
 # Validates repository.url in every publishable workspace package.
-# The package list comes from ci/lib/workspace-packages.sh -- no scope is hardcoded here.
+# Every package.json under packages/ is checked -- no scope or name filter, so a copied script checks
+# whatever packages its repo has. `private: true` is the only exclusion.
 # Required for npm provenance verification (OIDC trusted publishing)
 
 # Derive the expected URL from the ROOT package.json so this script survives
@@ -11,14 +12,12 @@ if [ -z "$EXPECTED_URL" ]; then
   exit 1
 fi
 ERRORS=0
+CHECKED=0
 PRIVATE_SKIPPED=0
-
-. "$(dirname "$0")/../../ci/lib/workspace-packages.sh"
-PACKAGE_JSONS=$(workspace_package_jsons) || exit 1
 
 echo "Checking repository.url in all publishable packages..."
 
-for pkg_json in $PACKAGE_JSONS; do
+for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/dist/*"); do
   name=$(jq -r '.name // ""' "$pkg_json")
   [ -n "$name" ] || continue   # a nameless package.json cannot be published
 
@@ -35,6 +34,7 @@ for pkg_json in $PACKAGE_JSONS; do
     continue
   fi
 
+  CHECKED=$((CHECKED + 1))
   repo_url=$(jq -r '.repository.url // ""' "$pkg_json")
 
   if [ -z "$repo_url" ]; then
@@ -45,6 +45,12 @@ for pkg_json in $PACKAGE_JSONS; do
     ERRORS=$((ERRORS + 1))
   fi
 done
+
+# Zero packages found means this looked in the wrong place, not that everything passed.
+if [ $((CHECKED + PRIVATE_SKIPPED)) -eq 0 ]; then
+  echo "::error::No package.json found under packages/ -- nothing was validated"
+  exit 1
+fi
 
 if [[ $PRIVATE_SKIPPED -gt 0 ]]; then
   echo "   ($PRIVATE_SKIPPED private package(s) skipped - never published)"
