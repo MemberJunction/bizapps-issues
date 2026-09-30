@@ -1,6 +1,7 @@
 #!/bin/bash
 # Validates that every publishable workspace package exists on npm before publishing.
-# The package list comes from ci/lib/workspace-packages.sh -- no scope is hardcoded here.
+# Every package.json under packages/ is checked -- no scope or name filter, so a copied script checks
+# whatever packages its repo has. `private: true` is the only exclusion.
 
 echo "Checking for new packages that need npm placeholders..."
 
@@ -10,10 +11,7 @@ PRIVATE_SKIPPED=0
 MAX_RETRIES=3
 RETRY_DELAY=2
 
-. "$(dirname "$0")/../../ci/lib/workspace-packages.sh"
-PACKAGE_JSONS=$(workspace_package_jsons) || exit 1
-
-for pkg_json in $PACKAGE_JSONS; do
+for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/dist/*"); do
   name=$(jq -r '.name // ""' "$pkg_json")
   [ -n "$name" ] || continue   # a nameless package.json cannot be published
 
@@ -65,6 +63,12 @@ for pkg_json in $PACKAGE_JSONS; do
     echo "  Checked $CHECKED packages..."
   fi
 done
+
+# Zero packages found means this looked in the wrong place, not that everything passed.
+if [ $((CHECKED + PRIVATE_SKIPPED)) -eq 0 ]; then
+  echo "::error::No package.json found under packages/ -- nothing was validated"
+  exit 1
+fi
 
 if [ ${#MISSING[@]} -gt 0 ]; then
   echo ""

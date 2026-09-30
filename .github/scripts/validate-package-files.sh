@@ -1,6 +1,7 @@
 #!/bin/bash
 # Validates that every publishable workspace package restricts what it ships.
-# The package list comes from ci/lib/workspace-packages.sh -- no scope is hardcoded here.
+# Every package.json under packages/ is checked -- no scope or name filter, so a copied script checks
+# whatever packages its repo has. `private: true` is the only exclusion.
 #
 # WHY THIS GATE EXISTS. npm includes EVERYTHING not excluded when a package declares neither a
 # `files` field nor an `.npmignore`. Contracts declared neither, and `pnpm publish -r --dry-run`
@@ -25,12 +26,9 @@ ERRORS=0
 CHECKED=0
 PRIVATE_SKIPPED=0
 
-. "$(dirname "$0")/../../ci/lib/workspace-packages.sh"
-PACKAGE_JSONS=$(workspace_package_jsons) || exit 1
-
 echo "Checking files + publishConfig in all publishable packages..."
 
-for pkg_json in $PACKAGE_JSONS; do
+for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/dist/*"); do
   name=$(jq -r '.name // ""' "$pkg_json")
   [ -n "$name" ] || continue   # a nameless package.json cannot be published
 
@@ -57,6 +55,12 @@ for pkg_json in $PACKAGE_JSONS; do
     ERRORS=$((ERRORS + 1))
   fi
 done
+
+# Zero packages found means this looked in the wrong place, not that everything passed.
+if [ $((CHECKED + PRIVATE_SKIPPED)) -eq 0 ]; then
+  echo "::error::No package.json found under packages/ -- nothing was validated"
+  exit 1
+fi
 
 if [[ $PRIVATE_SKIPPED -gt 0 ]]; then
   echo "   ($PRIVATE_SKIPPED private package(s) skipped - never published)"
