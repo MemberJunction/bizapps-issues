@@ -18,7 +18,7 @@ for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/n
   name=$(jq -r '.name // ""' "$pkg_json")
 
   # Only check @mj-biz-apps scoped packages
-  if [[ "$name" != @mj-biz-apps/common-* ]]; then
+  if [[ "$name" != @mj-biz-apps/* ]]; then
     continue
   fi
 

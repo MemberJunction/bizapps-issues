@@ -29,7 +29,7 @@ echo "Checking files + publishConfig in all publishable @mj-biz-apps packages...
 for pkg_json in $(find packages -name "package.json" -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/dist/*"); do
   name=$(jq -r '.name // ""' "$pkg_json")
 
-  if [[ "$name" != @mj-biz-apps/common-* ]]; then
+  if [[ "$name" != @mj-biz-apps/* ]]; then
     continue
   fi
 
