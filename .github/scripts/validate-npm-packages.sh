@@ -66,8 +66,22 @@ if [ ${#MISSING[@]} -gt 0 ]; then
     echo "  - $pkg"
   done
   echo ""
-  echo "For each missing package, publish a 0.0.0 placeholder manually before"
-  echo "the automated workflow can take over."
+  echo "Why this fails the publish: this repo publishes over npm OIDC trusted publishing"
+  echo "(publish.yml has id-token: write, and there is no NPM_TOKEN secret). npm only lets you"
+  echo "attach a trusted publisher to a package that already exists, so a brand-new package"
+  echo "cannot be published by CI at all -- it fails with an auth error partway through the"
+  echo "release, possibly after other packages have shipped. This check stops the run first."
+  echo ""
+  echo "Required actions (once per missing package, by an @mj-biz-apps npm org owner):"
+  echo ""
+  echo "  1. Create the package with a placeholder version:"
+  echo "       npx setup-npm-trusted-publish <package-name>"
+  echo "  2. Attach this repo as its trusted publisher (repository MemberJunction/<this repo>,"
+  echo "     workflow publish.yml) at:"
+  echo "       https://www.npmjs.com/package/<package-name>/access"
+  echo "  3. Re-run this workflow. From then on CI publishes the package like any other."
+  echo ""
+  echo "Full walkthrough: PUBLISH_SETUP.md (\"npm authentication\" and \"First publish\")."
   exit 1
 fi
 
