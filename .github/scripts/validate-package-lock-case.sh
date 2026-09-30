@@ -4,9 +4,14 @@
 
 set -uo pipefail
 
-echo "Validating pnpm-lock.yaml for case-sensitivity issues..."
-
+# The lockfile to check: pnpm's by default, or a path passed as $1. Every message below names
+# $LOCKFILE rather than a literal filename, so the output is always about the file actually read.
+# Note the parser further down reads pnpm's `importers:` block; a different package manager's
+# lockfile (this repo moved npm -> pnpm once already) needs that extraction changed too, not just
+# this line.
 LOCKFILE="${1:-pnpm-lock.yaml}"
+
+echo "Validating $LOCKFILE for case-sensitivity issues..."
 
 # A missing or unreadable lockfile is NOT "no issues found". Without this guard the extraction
 # below came back empty, the loop ran zero times, and the script closed with "No case-sensitivity
@@ -62,7 +67,7 @@ done
 
 if [ ${#MISMATCHES[@]} -gt 0 ]; then
   echo ""
-  echo "::error::Found ${#MISMATCHES[@]} case mismatch(es) in pnpm-lock.yaml"
+  echo "::error::Found ${#MISMATCHES[@]} case mismatch(es) in $LOCKFILE"
   echo ""
   for m in "${MISMATCHES[@]}"; do echo "  $m"; done
   echo ""
@@ -73,8 +78,8 @@ if [ ${#MISMATCHES[@]} -gt 0 ]; then
   echo "To fix:"
   echo "  1. Check actual casing: git ls-files packages/ | grep -i <package>"
   echo "  2. Rename via temp: mv packages/Path packages/temp && mv packages/temp packages/path"
-  echo "  3. Regenerate lockfile: rm pnpm-lock.yaml && pnpm install"
+  echo "  3. Regenerate lockfile: rm $LOCKFILE && pnpm install"
   exit 1
 fi
 
-echo "No case-sensitivity issues found in pnpm-lock.yaml"
+echo "No case-sensitivity issues found in $LOCKFILE"
