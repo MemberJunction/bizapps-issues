@@ -190,9 +190,13 @@ jobs:
       # this workflow run could write anything to `next`. The App can only propose.
       #
       # Merged directly rather than with `gh pr merge --auto`: auto-merge is refused on a PR
-      # that is already mergeable, and `protect-next` requires no checks and no reviews, so
-      # every one of these is mergeable the moment it opens. If required checks are ever added
-      # to `next`, switch this to `--auto` and let them adjudicate.
+      # that is already mergeable. `protect-next` requires nothing today, and once the rulesets
+      # land the App is a `pull_request`-mode bypass actor on both, so a direct merge stays valid.
+      #
+      # If the back-merge cannot be opened or merged, this step FAILS. The packages are already
+      # on npm by then, so a red run here means "action needed", not "the release failed" -- but
+      # a warning on a green run is easy to miss, and until the back-merge lands the next release
+      # PR is blocked by `rr: release base current`. Red is what makes someone look.
       - name: Carry the release back to next
         if: steps.tag.outputs.released == 'true'
         env:
@@ -212,11 +216,14 @@ jobs:
                      --body "$BODY" || true)
 
           if [ -z "${PR_URL:-}" ]; then
-            echo "::warning::Could not open the back-merge PR. Open $BRANCH -> next by hand; next is stale until it lands."
-            exit 0
+            echo "::error::$VERSION is published, but the back-merge PR could not be opened. Open $BRANCH -> next by hand and merge it; the next release PR is blocked (rr: release base current) until it lands."
+            echo "Back-merge: NOT OPENED — open $BRANCH -> next by hand" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
 
           if ! gh pr merge "$PR_URL" --merge --delete-branch; then
-            echo "::warning::Back-merge $PR_URL could not be merged automatically. Merge it by hand — next is stale until it lands."
+            echo "::error::$VERSION is published, but back-merge $PR_URL could not be merged automatically. Merge it by hand; the next release PR is blocked (rr: release base current) until it lands."
+            echo "Back-merge: NOT MERGED — $PR_URL" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
           echo "Back-merge: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
