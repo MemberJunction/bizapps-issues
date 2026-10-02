@@ -4,6 +4,7 @@
       "PipelineID": "7331D233-E135-490D-B524-FE36BB4F3C4E",
       "Version": 1,
       "AlgorithmID": "25E83BF9-C5EE-4BDF-A891-D36D871B73E3",
+      "ArtifactFileID": "46A76077-66C2-4B1B-A90E-148D36818AE8",
       "FittedPreprocessing": "{\"ops\":[{\"op\":\"onehot\",\"col\":\"Priority\",\"vocabulary\":[\"Critical\",\"High\",\"Low\",\"Medium\"]},{\"op\":\"onehot\",\"col\":\"Severity\",\"vocabulary\":[\"Critical\",\"High\",\"Low\",\"Medium\"]},{\"op\":\"onehot\",\"col\":\"IssueType\",\"vocabulary\":[\"Billing\",\"Data Correction\",\"Events\",\"General\"]},{\"op\":\"onehot\",\"col\":\"HasAssignee\",\"vocabulary\":[\"0\",\"1\"]}],\"output_columns\":[\"Priority=Critical\",\"Priority=High\",\"Priority=Low\",\"Priority=Medium\",\"Severity=Critical\",\"Severity=High\",\"Severity=Low\",\"Severity=Medium\",\"IssueType=Billing\",\"IssueType=Data Correction\",\"IssueType=Events\",\"IssueType=General\",\"HasAssignee=0\",\"HasAssignee=1\",\"TitleLength\",\"DescriptionLength\",\"DescriptionLength\"]}",
       "FeatureSchema": "[{\"Name\":\"Priority\",\"Kind\":\"numeric\"},{\"Name\":\"Severity\",\"Kind\":\"numeric\"},{\"Name\":\"IssueType\",\"Kind\":\"numeric\"},{\"Name\":\"HasAssignee\",\"Kind\":\"numeric\"},{\"Name\":\"TitleLength\",\"Kind\":\"numeric\"},{\"Name\":\"DescriptionLength\",\"Kind\":\"numeric\"},{\"Name\":\"DescriptionLength\",\"Kind\":\"numeric\"}]",
       "TargetVariable": "IsCriticalEscalation",
