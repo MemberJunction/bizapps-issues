@@ -2011,3 +2011,13 @@ npx playwright-cli close
 ## Angular pinning model
 
 **Angular pinning model** (family-wide, 2026-08-07, with MemberJunction/MJ#3580): `@angular/*` peers in `packages/*` are **caret ranges at the platform pin** (`^21.1.3`) — compatibility claims, never exact. Each package that consumes Angular **anchors** the concrete version with exact `21.1.3` entries in its own `devDependencies`; the anchor is what actually installs. In the shared pnpm dev workspace `auto-install-peers=true` turns unanchored peer ranges into install instructions, which is how two copies of `@angular/core` ended up installed family-wide. Rev anchors with the era platform pin, never with MJ pins.
+
+## Metadata ships as release migrations
+
+`mj app install` and upgrades run migrations only. There is no metadata phase, by design. A record that exists only as JSON under `metadata/` reaches no host until a release ships it inside a migration.
+
+- **PRs carry metadata JSON only.** Never hand-write or generate a `*__Metadata_Sync.sql` in a feature PR.
+- **The build engineer** generates one differential `Metadata_Sync` migration per release, from a fresh database.
+- **Rows missing after a fresh install** usually mean a release shipped without its metadata migration. Hand that to the build engineer. Do not change the installer or add a post-install push.
+
+Full process: [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md).
