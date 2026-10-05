@@ -8,29 +8,32 @@ helpers, and Changesets config are already in place.
 ## Branch model
 
 ```
-feature branch ──PR──▶ next ──(merge)──▶ main ──(push triggers publish.yml)──▶ npm
+feature PR ──▶ next ──(version.yml)──▶ Version Packages PR (changeset-release/main ──▶ main)
+                                              │ reviewed + merged = the release
+                                              ▼
+                               main ──(publish.yml)──▶ npm + tag vX.Y.Z
+                                              │
+                                              ▼
+                               back-merge PR main ──▶ next (opened + merged by the App)
 ```
 
-- PRs land on **`next`**. `build.yml` + `changes.yml` run as checks.
-- Changesets (`.changeset/*.md`) accumulate on `next`. A migration-bearing PR to
-  `next` is *required* to include a changeset with at least a `minor` bump
-  (`changes.yml` enforces this).
-- Releasing = merging **`next` → `main`**. The push to `main` fires `publish.yml`,
-  which (if pending changesets exist) bumps the fixed version across all six
-  packages, builds, `changeset publish` to npm, tags `vX.Y.Z`, commits the bump
-  back to `main`, then merges `main` → `next` and refreshes the lockfile.
-- If there are **no** pending changesets, a push to `main` is a no-op.
+- Feature PRs land on **`next`** with a changeset. `build.yml` and `changes.yml` run as checks.
+  A migration-bearing PR must carry at least a `minor` changeset.
+- Every push to `next` refreshes one **Version Packages** PR (`version.yml`, using
+  `changesets/action@v1` with `branch: main`). It runs `changeset version`, so its diff shows the
+  exact version bump, changelog entries and `mj-app.json` version. **That PR is the release.**
+- PRs into `main` run the `rr:` gates (`release-readiness.yml`) plus `build`.
+- Merging the Version Packages PR pushes to `main`, which fires `publish.yml`: build,
+  `changeset publish`, and a `vX.Y.Z` tag **only if something actually shipped**.
+- `publish.yml` then opens and merges a `main → next` back-merge PR with the GitHub App token,
+  so `next` always contains the released versions. `rr: release base current` fails the next
+  release if that back-merge never landed.
+- A push to `main` with nothing new to publish ships nothing and creates no tag.
 
-> **Setup required:** the remote currently has only `main`. Before this flow
-> works you must create a **`next`** branch (`git push origin main:next`) and
-> make it the repository's default branch on GitHub, so PRs target `next`.
-> The Changesets `baseBranch` stays `main` (matching bizapps-tasks) — it is the
-> comparison base for `changeset version`, not the PR target.
-
-> **Branch protection:** like bizapps-tasks, `main` is **not** protected. The
-> "publish only flows next→main" rule is a *convention*, enforced by discipline,
-> not by a ruleset. `publish.yml` pushes the version-bump commit back to `main`
-> using the default `GITHUB_TOKEN`, which works because `main` is open.
+> **Branch protection:** planned, not yet applied. `next` gets two rulesets (required checks,
+> required review) and `main` gets one (the gate contexts, a required review, and
+> dismiss-stale-reviews). The App is a `pull_request`-mode bypass actor on `next`, so the
+> back-merge can land without a human review.
 
 ## npm authentication — OIDC (no NPM_TOKEN secret)
 
@@ -45,29 +48,28 @@ each package's **Settings → Trusted Publisher**, add this repo
 publishing can only be configured *after* the package exists, so it happens
 together with the placeholder publish below.
 
-## First publish — npm placeholders
+## First publish — npm placeholders (done for the current six)
 
-The six packages do **not** yet exist on npm (all return 404), and
-`validate-npm-packages.sh` fails the publish job until every package has at least
-a placeholder version published. Publish a `0.0.0` placeholder for each **once,
-manually**, then the automated flow takes over:
+All six packages exist on npm (1.3.0 as of 2026-09-30), so this is only needed when a **new**
+package is added. `validate-npm-packages.sh` fails the publish job while any publishable
+`@mj-biz-apps/*` package is missing from npm, because CI cannot create a package over OIDC.
 
-- `@mj-biz-apps/issues-entities`
-- `@mj-biz-apps/issues-core`
-- `@mj-biz-apps/issues-core-entities-server`
-- `@mj-biz-apps/issues-actions`
-- `@mj-biz-apps/issues-server`
-- `@mj-biz-apps/issues-ng`
+For each new package, once, by an `@mj-biz-apps` org owner:
 
-After publishing each placeholder, configure its **Trusted Publisher** on npm
-(see above) so the automated OIDC publish works.
+1. `npx setup-npm-trusted-publish <package-name>` — publishes a placeholder so the package exists.
+2. Configure its **Trusted Publisher** at `https://www.npmjs.com/package/<package-name>/access`
+   → `MemberJunction/bizapps-issues`, workflow `publish.yml`.
+3. Re-run the publish. CI handles every later version.
 
-## Checklist
+Packages marked `"private": true` (e.g. `issues-integration-tests`) are skipped — changesets never
+publishes them.
 
-- [ ] Create `next` branch on the remote (`git push origin main:next`) and set it as the default branch
-- [ ] Publish `0.0.0` placeholders for all six packages (manually, with a token)
-- [ ] Configure npm Trusted Publisher for each package → `MemberJunction/bizapps-issues` / `publish.yml`
-- [ ] Land a changeset on `next`, merge `next` → `main`, confirm `publish.yml` publishes + tags
+## Checklist for a release
+
+- [ ] Changesets merged to `next`; the Version Packages PR shows the expected version
+- [ ] All `rr:` gates and `build` green on that PR
+- [ ] Merge it; confirm `publish.yml` published and tagged
+- [ ] Confirm the `release-back-merge/vX.Y.Z` PR merged into `next`
 
 ## Notes / divergences from bizapps-tasks
 
