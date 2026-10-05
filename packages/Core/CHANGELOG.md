@@ -1,5 +1,12 @@
 # @mj-biz-apps/issues-core
 
+## 1.3.1
+
+### Patch Changes
+
+- 4594fae: fix ci
+  - @mj-biz-apps/issues-entities@1.3.1
+
 ## 1.3.0
 
 ### Patch Changes
