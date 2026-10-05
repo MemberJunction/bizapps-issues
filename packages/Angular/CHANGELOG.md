@@ -1,5 +1,11 @@
 # @mj-biz-apps/issues-ng
 
+## 1.3.1
+
+### Patch Changes
+
+- @mj-biz-apps/issues-entities@1.3.1
+
 ## 1.3.0
 
 ### Minor Changes

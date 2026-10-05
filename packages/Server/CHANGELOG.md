@@ -1,5 +1,15 @@
 # @mj-biz-apps/issues-server
 
+## 1.3.1
+
+### Patch Changes
+
+- Updated dependencies [4594fae]
+  - @mj-biz-apps/issues-core@1.3.1
+  - @mj-biz-apps/issues-core-entities-server@1.3.1
+  - @mj-biz-apps/issues-actions@1.3.1
+  - @mj-biz-apps/issues-entities@1.3.1
+
 ## 1.3.0
 
 ### Minor Changes
