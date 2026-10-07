@@ -1,5 +1,17 @@
 # @mj-biz-apps/issues-integration-tests
 
+## 1.3.2
+
+### Patch Changes
+
+- @mj-biz-apps/issues-entities@1.3.2
+
+## 1.3.1
+
+### Patch Changes
+
+- @mj-biz-apps/issues-entities@1.3.1
+
 ## 1.3.0
 
 ### Patch Changes
