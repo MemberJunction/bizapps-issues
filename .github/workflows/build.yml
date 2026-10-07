@@ -67,15 +67,22 @@ jobs:
       - name: CI guard script tests
         run: ./.github/scripts/__tests__/validate-package-lock-case.test.sh
 
+      # Specs for the migration guards (and any repo-specific *.spec.mjs placed next to them).
+      # Plain node:test, no dependencies, so it runs before the install.
+      - name: CI guard specs
+        run: node --test .github/scripts/__tests__/*.spec.mjs
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: pnpm run build:packages
 
-      # Runs in the same job so it reuses the tree that was just built rather than paying for
-      # another install and compile. Three packages carry real vitest suites (Core,
-      # CoreEntitiesServer, IntegrationTests); the rest still echo a stub, which turbo treats
-      # as a pass — so a green here means "nothing that has tests is failing", not "tested".
+      # Runs even when the build failed (but not when the run was cancelled), so one run reports
+      # both the build error and any test failures. A failed step still fails the job, so the
+      # required `build` check blocks exactly as before. The repo's own `test` script: per-package
+      # turbo or a root `vitest run`, whichever really runs the suite. Packages that still echo a
+      # stub pass, so green means "nothing that has tests is failing", not "tested".
       - name: Run tests
+        if: ${{ !cancelled() }}
         run: pnpm run test

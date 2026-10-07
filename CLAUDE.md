@@ -345,32 +345,38 @@ git branch -vv
 ### Branching Model: `next` → `main` Release Flow
 
 - **`next`** — integration branch. All feature work merges here. It is the default branch.
-- **`main`** — release branch. Only updated by a coordinating PR from `next`. Pushes to `main` publish.
+- **`main`** — release branch. Only updated by the "Version Packages" PR. Pushes to `main` publish.
 
-**Feature work:** cut from `next`, open a PR into `next`, merge.
+**Feature work:** cut from `next`, open a PR into `next` with a changeset (`pnpm exec changeset`),
+merge. A migration or metadata change needs at least a `minor` changeset. A new T-SQL migration
+should come with its `migrations-pg/` counterpart; the PR only warns without one, but the release
+is blocked until it exists.
 
-**Releases:** versioning and publishing are separate, and neither writes to a protected branch.
+**Releases:** versioning and publishing are separate, and nothing pushes to a protected branch.
 
-1. `version.yml` fires on every push to `next` and maintains a **"Version Packages" PR** into
-   `next` — every package bumped, CHANGELOGs generated, `mj-app.json`'s `version` and
-   `mjVersionRange` synced, and `pnpm-lock.yaml` refreshed. A GitHub App opens it, so its checks
-   run without anyone clicking "Approve and run". Merge it when you are ready to cut a release.
-2. Open a single PR from `next` → `main` ("Release vX.Y.Z") and merge it. That merge is the
-   decision to publish.
-3. Merging triggers `publish.yml`, which validates, builds, runs `changeset publish` (publishing
-   every package whose version is not already on the registry), and tags `vX.Y.Z`. It computes no
-   version and writes to no branch.
+1. `version.yml` fires on every push to `next` and maintains ONE **"Version Packages" PR** from
+   `changeset-release/main` into **`main`**: every package bumped, CHANGELOGs generated,
+   `mj-app.json`'s `version` and `mjVersionRange` synced, and `pnpm-lock.yaml` refreshed. A GitHub
+   App opens it, so its checks run. **That PR is the release.** Do not open a `next` → `main` PR
+   yourself; one with no version bump publishes nothing.
+2. The Version Packages PR runs the `rr:` gates (`release-readiness.yml`) and `build`. Review the
+   version and merge it. That merge is the decision to publish.
+3. The push to `main` triggers `publish.yml`: validate, build, `changeset publish` (every package
+   whose version is not already on the registry), tag `vX.Y.Z` only if something shipped, then the
+   App opens and merges a `release-back-merge/vX.Y.Z` PR into `next`. If that back-merge cannot
+   merge, the run goes red and names the PR; merge it by hand.
 
 **Rules:**
-- **Never commit directly to `main`.** Always go through `next`.
+- **Never commit directly to `main`**, and never open a `next` → `main` PR.
 - **Never publish by dispatching `publish.yml` on `next`** — the job is guarded to
   `refs/heads/main` and will not run.
 - **Never hand-edit a version bump.** It is `changeset version`'s output, delivered by the Version
   Packages PR. `changeset version` rewrites internal dependency ranges and does **not** touch the
   lockfile, which is why `version:prepare` refreshes it in the same PR.
-- **A fix needed after the Version Packages PR has merged** should carry **no changeset** — nothing
-  re-versions and the fix ships inside the pending release. Adding one mints a second version
-  number and leaves the first published nowhere.
+- **A fix merged into `next` while the Version Packages PR is open** is picked up automatically:
+  the PR refreshes. Add a changeset only if consumers should see it in the CHANGELOG.
+
+Full procedure: the "Publishing an Open App" SOP.
 
 ### Fix Incorrect Tracking
 If a branch is tracking the wrong remote:
