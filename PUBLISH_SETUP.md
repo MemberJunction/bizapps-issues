@@ -34,7 +34,8 @@ feature PR ──▶ next ──(version.yml)──▶ Version Packages PR (chan
 > the door checks required and the branch up to date, and **no approval required**. The App is a
 > `pull_request`-mode bypass actor, so the back-merge can merge the moment it opens. `main`
 > (`protect-main`): the `rr:` checks and `build` required, **one approval** with
-> dismiss-stale-reviews, no bypass.
+> dismiss-stale-reviews. Bypass: the Repository admin role, "for pull requests only", as the
+> override for a failure case (no second reviewer, a stuck check). Use it deliberately.
 
 ## npm authentication — OIDC (no NPM_TOKEN secret)
 
