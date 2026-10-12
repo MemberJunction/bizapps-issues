@@ -71,34 +71,34 @@ importers:
 
   packages/Actions:
     dependencies:
+      zod:
+        specifier: ^3.25.28
+        version: 3.25.76
+    devDependencies:
       '@memberjunction/actions':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/actions-base':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/ai':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/aiengine':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4(encoding@0.1.13)(typescript@5.9.3)
       '@memberjunction/core':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/core-entities':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/core-entities-server':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)
       '@memberjunction/global':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
-      zod:
-        specifier: ^3.25.28
-        version: 3.25.76
-    devDependencies:
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@25.9.5)(typescript@5.9.3)
@@ -108,39 +108,6 @@ importers:
 
   packages/Angular:
     dependencies:
-      '@memberjunction/actions-base':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/core':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/core-entities':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/global':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/graphql-dataprovider':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(ws@8.21.3)
-      '@memberjunction/ng-base-forms':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(bf6ac071190ce68e1b1d3784adfe2dc2)
-      '@memberjunction/ng-entity-viewer':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(a6a8b44abd5c78d6157895340b7cb10b)
-      '@memberjunction/ng-link-directives':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
-      '@memberjunction/ng-shared':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
-      '@memberjunction/ng-shared-generic':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
-      '@memberjunction/ng-ui-components':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@mj-biz-apps/issues-entities':
         specifier: 1.3.2
         version: link:../Entities
@@ -163,40 +130,73 @@ importers:
       '@angular/forms':
         specifier: 21.1.3
         version: 21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
+      '@memberjunction/actions-base':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/core':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/core-entities':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/global':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/graphql-dataprovider':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(ws@8.21.3)
+      '@memberjunction/ng-base-forms':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(bf6ac071190ce68e1b1d3784adfe2dc2)
+      '@memberjunction/ng-entity-viewer':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(a6a8b44abd5c78d6157895340b7cb10b)
+      '@memberjunction/ng-link-directives':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
+      '@memberjunction/ng-shared':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
+      '@memberjunction/ng-shared-generic':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
+      '@memberjunction/ng-ui-components':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   packages/Core:
     dependencies:
+      '@mj-biz-apps/issues-entities':
+        specifier: 1.3.2
+        version: link:../Entities
+    devDependencies:
       '@memberjunction/actions':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/actions-base':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/core':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/core-entities':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/global':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/sqlserver-dataprovider':
-        specifier: ^6.1.0-edge.4
+        specifier: 6.1.0-edge.4
         version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/common-entities':
-        specifier: ^5.34.0
+        specifier: 5.34.0
         version: 5.34.0(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
-      '@mj-biz-apps/issues-entities':
-        specifier: 1.3.2
-        version: link:../Entities
       '@mj-biz-apps/tasks-entities':
-        specifier: ^1.2.3
+        specifier: 1.2.3
         version: 1.2.3(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
-    devDependencies:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
@@ -212,24 +212,6 @@ importers:
 
   packages/CoreEntitiesServer:
     dependencies:
-      '@memberjunction/actions':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/actions-base':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/core':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/core-entities':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/generic-database-provider':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
-      '@memberjunction/global':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
       '@mj-biz-apps/issues-core':
         specifier: 1.3.2
         version: link:../Core
@@ -237,6 +219,24 @@ importers:
         specifier: 1.3.2
         version: link:../Entities
     devDependencies:
+      '@memberjunction/actions':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/actions-base':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/core':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/core-entities':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/generic-database-provider':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@memberjunction/global':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -249,16 +249,16 @@ importers:
 
   packages/Entities:
     dependencies:
+      zod:
+        specifier: ^3.25.28
+        version: 3.25.76
+    devDependencies:
       '@memberjunction/core':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
       '@memberjunction/global':
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4
-      zod:
-        specifier: ^3.25.28
-        version: 3.25.76
-    devDependencies:
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@25.9.5)(typescript@5.9.3)
@@ -299,21 +299,6 @@ importers:
 
   packages/Server:
     dependencies:
-      '@memberjunction/core':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/global':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4
-      '@memberjunction/server':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@aws-sdk/credential-providers@3.1107.0)(@azure/identity@4.13.1)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(socks@2.8.9)(typescript@5.9.3)
-      '@memberjunction/sqlserver-dataprovider':
-        specifier: ^6.1.0-edge.4
-        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
-      '@mj-biz-apps/common-entities':
-        specifier: 5.34.0
-        version: 5.34.0(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
       '@mj-biz-apps/issues-actions':
         specifier: 1.3.2
         version: link:../Actions
@@ -326,13 +311,28 @@ importers:
       '@mj-biz-apps/issues-entities':
         specifier: 1.3.2
         version: link:../Entities
-      '@mj-biz-apps/tasks-entities':
-        specifier: 1.2.3
-        version: 1.2.3(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
       class-validator:
         specifier: ^0.14.3
         version: 0.14.4
     devDependencies:
+      '@memberjunction/core':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/global':
+        specifier: ^6.1.0-edge.4
+        version: 6.1.0-edge.4
+      '@memberjunction/server':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@aws-sdk/credential-providers@3.1107.0)(@azure/identity@4.13.1)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(socks@2.8.9)(typescript@5.9.3)
+      '@memberjunction/sqlserver-dataprovider':
+        specifier: 6.1.0-edge.4
+        version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+      '@mj-biz-apps/common-entities':
+        specifier: 5.34.0
+        version: 5.34.0(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
+      '@mj-biz-apps/tasks-entities':
+        specifier: 1.2.3
+        version: 1.2.3(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.1
@@ -2379,12 +2379,15 @@ packages:
 
   '@microsoft/mgt-element@4.6.1':
     resolution: {integrity: sha512-zfbAIQRRLzUVJFM4LYcL3UbQnSgKCB+iOutaSXa3g8gaph3dl2iilgzwoSp2Qi6ySocsbd7RzOT3G4xLu+7PTw==}
+    deprecated: 'Microsoft Graph Toolkit was retired on 2026-08-28 and is no longer maintained. You are welcome to fork the repository to maintain your own version: https://github.com/microsoftgraph/microsoft-graph-toolkit'
 
   '@microsoft/mgt-msal2-provider@4.6.1':
     resolution: {integrity: sha512-UCWPhYiQTKBzAF/0omyZLTzJZK+2pQaDz50ZFdLEEpSmH2b8UKFn4uLn28p4oXfkt2w8UR0Oc/BgZJ8eFz1gHA==}
+    deprecated: 'Microsoft Graph Toolkit was retired on 2026-08-28 and is no longer maintained. You are welcome to fork the repository to maintain your own version: https://github.com/microsoftgraph/microsoft-graph-toolkit'
 
   '@microsoft/mgt-sharepoint-provider@4.6.1':
     resolution: {integrity: sha512-897s5D0X5wssdk9hHVWbmQJUG3bro9+eYdSwd16tTA2nbDxhu18z+II2V4jpf81sWybFXBz8E9ZM7X/0LTk/lQ==}
+    deprecated: 'Microsoft Graph Toolkit was retired on 2026-08-28 and is no longer maintained. You are welcome to fork the repository to maintain your own version: https://github.com/microsoftgraph/microsoft-graph-toolkit'
 
   '@microsoft/microsoft-graph-client@3.0.2':
     resolution: {integrity: sha512-eYDiApYmiGsm1s1jfAa/rhB2xQCsX4pWt0vCTd1LZmiApMQfT/c0hXj2hvpuGz5GrcLdugbu05xB79rIV57Pjw==}
