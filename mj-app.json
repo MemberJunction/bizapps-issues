@@ -44,6 +44,14 @@
       {
         "name": "@mj-biz-apps/issues-core-entities-server",
         "role": "library"
+      },
+      {
+        "name": "@mj-biz-apps/issues-actions",
+        "role": "library"
+      },
+      {
+        "name": "@mj-biz-apps/issues-core",
+        "role": "library"
       }
     ],
     "client": [
@@ -56,14 +64,6 @@
     "shared": [
       {
         "name": "@mj-biz-apps/issues-entities",
-        "role": "library"
-      },
-      {
-        "name": "@mj-biz-apps/issues-actions",
-        "role": "library"
-      },
-      {
-        "name": "@mj-biz-apps/issues-core",
         "role": "library"
       }
     ]
