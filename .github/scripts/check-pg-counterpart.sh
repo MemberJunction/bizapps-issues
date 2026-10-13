@@ -19,6 +19,13 @@
 # Only newly-added T-SQL migrations are held to the pairing rule, so one-sided files of any
 # spelling are simply never examined.
 #
+# A PostgreSQL BASELINE covers what came before it. An app whose PostgreSQL support started late
+# ships one `migrations-pg/B<stamp>__<name>.pg.sql` carrying the whole history up to <stamp>
+# instead of one counterpart per T-SQL file — and on a fresh PostgreSQL install Skyway applies the
+# baseline and skips every migration at or below its version. So a T-SQL migration whose stamp is
+# at or below the newest PostgreSQL baseline's is covered by that baseline and needs no file of its
+# own. One added after the baseline still needs its own counterpart.
+#
 # Two levels, set by PG_COUNTERPART_LEVEL:
 #   warning  at the door (PRs into next): annotate the PR, never fail it. Authors may add the
 #            converted file in a later PR before the release.
@@ -37,12 +44,18 @@ if [ -z "$ADDED" ]; then
   exit 0
 fi
 
+# Newest PostgreSQL baseline's stamp (digits after the B), or empty when there is none.
+PG_BASELINE=$( (ls migrations-pg/B*.pg.sql 2>/dev/null || true) | sed -n 's#^migrations-pg/B\([0-9][0-9]*\)__.*#\1#p' | sort | tail -1)
+
 MISSING=""
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   stem=$(basename "$f" .sql)
+  stamp=$(echo "$stem" | sed -n 's#^[VB]\([0-9][0-9]*\)__.*#\1#p')
   if [ -e "migrations-pg/${stem}.pg.sql" ]; then
     echo "  ok       $f  ->  migrations-pg/${stem}.pg.sql"
+  elif [ -n "$PG_BASELINE" ] && [ -n "$stamp" ] && [ "${#stamp}" -eq "${#PG_BASELINE}" ] && [[ ! "$stamp" > "$PG_BASELINE" ]]; then
+    echo "  ok       $f  ->  covered by PostgreSQL baseline B${PG_BASELINE}"
   else
     echo "  MISSING  $f  ->  migrations-pg/${stem}.pg.sql"
     MISSING="${MISSING}migrations-pg/${stem}.pg.sql"$'\n'

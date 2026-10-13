@@ -70,7 +70,9 @@ jobs:
       # path at all. These fixtures drive the real script against throwaway repos, including the
       # mis-cased cases that fail without the fix.
       - name: CI guard script tests
-        run: ./.github/scripts/__tests__/validate-package-lock-case.test.sh
+        run: |
+          ./.github/scripts/__tests__/validate-package-lock-case.test.sh
+          ./.github/scripts/__tests__/check-pg-counterpart.test.sh
 
       # Specs for the migration guards (and any repo-specific *.spec.mjs placed next to them).
       # Plain node:test, no dependencies, so it runs before the install.
