@@ -1,5 +1,11 @@
 # @mj-biz-apps/issues-entities
 
+## 1.3.3
+
+### Patch Changes
+
+- adb05c5: `mj-app.json` now lists `@mj-biz-apps/issues-actions`, `@mj-biz-apps/issues-core` under `server` instead of `shared`. They use server-only code (Node built-ins, or MemberJunction's actions, AI engine, storage or server packages), and `shared` installs a package into MJExplorer too. The Open App client bootstrap imports every `shared` package, so Explorer's browser build failed on a host with this app installed (`Could not resolve "node:crypto"`, `"node:net"`, `"stream"`). The server still loads them exactly as before.
+
 ## 1.3.2
 
 ## 1.3.1
