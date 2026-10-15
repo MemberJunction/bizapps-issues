@@ -4,7 +4,7 @@
   "name": "mj-bizapps-issues",
   "displayName": "Issues",
   "description": "Reusable case / issue / ticket primitives — Issue, IssueType, IssueStatus, IssueComment — the shared foundation for ticketing UX (Izzy) and the cloud-feedback destination",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "license": "BUSL-1.1",
   "icon": "fa-solid fa-life-ring",
   "publisher": {
@@ -44,6 +44,14 @@
       {
         "name": "@mj-biz-apps/issues-core-entities-server",
         "role": "library"
+      },
+      {
+        "name": "@mj-biz-apps/issues-actions",
+        "role": "library"
+      },
+      {
+        "name": "@mj-biz-apps/issues-core",
+        "role": "library"
       }
     ],
     "client": [
@@ -56,14 +64,6 @@
     "shared": [
       {
         "name": "@mj-biz-apps/issues-entities",
-        "role": "library"
-      },
-      {
-        "name": "@mj-biz-apps/issues-actions",
-        "role": "library"
-      },
-      {
-        "name": "@mj-biz-apps/issues-core",
         "role": "library"
       }
     ]

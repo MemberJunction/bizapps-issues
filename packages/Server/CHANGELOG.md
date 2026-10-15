@@ -1,5 +1,15 @@
 # @mj-biz-apps/issues-server
 
+## 1.3.3
+
+### Patch Changes
+
+- Updated dependencies [adb05c5]
+  - @mj-biz-apps/issues-entities@1.3.3
+  - @mj-biz-apps/issues-core@1.3.3
+  - @mj-biz-apps/issues-core-entities-server@1.3.3
+  - @mj-biz-apps/issues-actions@1.3.3
+
 ## 1.3.2
 
 ### Patch Changes

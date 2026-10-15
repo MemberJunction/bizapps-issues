@@ -28,6 +28,13 @@ substantive_metadata_changes() {
   while IFS= read -r file; do
     [ -n "$file" ] || continue
 
+    # Markdown under metadata/ (folder READMEs) is documentation. The sync tool never pushes it,
+    # so no Metadata_Sync migration carries it and a consumer cannot observe it. Same reasoning as
+    # changed_migrations() skipping a README under migrations/.
+    case "$file" in
+      *.md) echo "  DOC      $file — documentation, not seeded metadata; not counted" >&2; continue ;;
+    esac
+
     in_base=false; in_head=false
     git cat-file -e "$base:$file" 2>/dev/null && in_base=true
     git cat-file -e "$head:$file" 2>/dev/null && in_head=true
@@ -75,5 +82,6 @@ EOF
 # Migrations are compared as paths — any add, edit or delete to a migration is observable.
 changed_migrations() {
   local base="$1" head="$2"
-  git --no-pager diff --name-only "$base" "$head" -- migrations/ migrations-pg/ || true
+  # .sql only: a README under migrations/ is documentation, not something consumers apply.
+  git --no-pager diff --name-only "$base" "$head" -- 'migrations/*.sql' 'migrations-pg/*.sql' || true
 }
