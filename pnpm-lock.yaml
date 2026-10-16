@@ -7,19 +7,19 @@ settings:
 overrides:
   '@memberjunction/core': ^6.1.0-edge.4
   '@memberjunction/global': ^6.1.0-edge.4
-  '@angular/animations': 21.1.3
-  '@angular/build': 21.1.3
-  '@angular/cli': 21.1.3
-  '@angular/common': 21.1.3
-  '@angular/compiler': 21.1.3
-  '@angular/compiler-cli': 21.1.3
-  '@angular/core': 21.1.3
-  '@angular/forms': 21.1.3
-  '@angular/localize': 21.1.3
-  '@angular/platform-browser': 21.1.3
-  '@angular/platform-browser-dynamic': 21.1.3
-  '@angular/router': 21.1.3
-  '@angular-devkit/build-angular': 21.1.3
+  '@angular/animations': ^21.1.3
+  '@angular/build': ^21.1.3
+  '@angular/cli': ^21.1.3
+  '@angular/common': ^21.1.3
+  '@angular/compiler': ^21.1.3
+  '@angular/compiler-cli': ^21.1.3
+  '@angular/core': ^21.1.3
+  '@angular/forms': ^21.1.3
+  '@angular/localize': ^21.1.3
+  '@angular/platform-browser': ^21.1.3
+  '@angular/platform-browser-dynamic': ^21.1.3
+  '@angular/router': ^21.1.3
+  '@angular-devkit/build-angular': ^21.1.3
 
 importers:
 
@@ -146,22 +146,22 @@ importers:
         version: link:../Entities
     devDependencies:
       '@angular/animations':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))
       '@angular/common':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2)
       '@angular/compiler':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3
       '@angular/compiler-cli':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3(@angular/compiler@21.1.3)(typescript@5.9.3)
       '@angular/core':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)
       '@angular/forms':
-        specifier: 21.1.3
+        specifier: ^21.1.3
         version: 21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       typescript:
         specifier: ^5.9.3
@@ -312,7 +312,7 @@ importers:
         specifier: ^6.1.0-edge.4
         version: 6.1.0-edge.4(@aws-sdk/credential-provider-node@3.972.78)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.6.12)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/common-entities':
-        specifier: 5.34.0
+        specifier: ^5.34.0
         version: 5.34.0(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
       '@mj-biz-apps/issues-actions':
         specifier: 1.3.2
@@ -327,7 +327,7 @@ importers:
         specifier: 1.3.2
         version: link:../Entities
       '@mj-biz-apps/tasks-entities':
-        specifier: 1.2.3
+        specifier: ^1.2.3
         version: 1.2.3(@memberjunction/core@6.1.0-edge.4)(@memberjunction/global@6.1.0-edge.4)
       class-validator:
         specifier: ^0.14.3
@@ -345,22 +345,23 @@ packages:
   '@angular/animations@21.1.3':
     resolution: {integrity: sha512-UADMncDd9lkmIT1NPVFcufyP5gJHMPzxNaQpojiGrxT1aT8Du30mao0KSrB4aTwcicv6/cdD5bZbIyg+FL6LkQ==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+    deprecated: '@angular/animations is deprecated. Use `animate.enter` and `animate.leave` instead. For more information see: https://v22.angular.dev/guide/animations.'
     peerDependencies:
-      '@angular/core': 21.1.3
+      '@angular/core': ^21.1.3
 
   '@angular/cdk@21.1.3':
     resolution: {integrity: sha512-jMiEKCcZMIAnyx2jxrJHmw5c7JXAiN56ErZ4X+OuQ5yFvYRocRVEs25I0OMxntcXNdPTJQvpGwGlhWhS0yDorg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/platform-browser': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
       rxjs: ^6.5.3 || ^7.4.0
 
   '@angular/common@21.1.3':
     resolution: {integrity: sha512-Wdbln/UqZM5oVnpfIydRdhhL8A9x3bKZ9Zy1/mM0q+qFSftPvmFZIXhEpFqbDwNYbGUhGzx7t8iULC4sVVp/zA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/core': 21.1.3
+      '@angular/core': ^21.1.3
       rxjs: ^6.5.3 || ^7.4.0
 
   '@angular/compiler-cli@21.1.3':
@@ -368,7 +369,7 @@ packages:
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     hasBin: true
     peerDependencies:
-      '@angular/compiler': 21.1.3
+      '@angular/compiler': ^21.1.3
       typescript: '>=5.9 <6.0'
     peerDependenciesMeta:
       typescript:
@@ -382,7 +383,7 @@ packages:
     resolution: {integrity: sha512-TbhQxRC7Lb/3WBdm1n8KRsktmVEuGBBp0WRF5mq0Ze4s1YewIM6cULrSw9ACtcL5jdcq7c74ms+uKQsaP/gdcQ==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/compiler': 21.1.3
+      '@angular/compiler': ^21.1.3
       rxjs: ^6.5.3 || ^7.4.0
       zone.js: ~0.15.0 || ~0.16.0
     peerDependenciesMeta:
@@ -395,18 +396,18 @@ packages:
     resolution: {integrity: sha512-YW/YdjM9suZUeJam9agHFXIEE3qQIhGYXMjnnX7xGjOe+CuR2R0qsWn1AR0yrKrNmFspb0lKgM7kTTJyzt8gZg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/platform-browser': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
       rxjs: ^6.5.3 || ^7.4.0
 
   '@angular/platform-browser@21.1.3':
     resolution: {integrity: sha512-W+ZMXAioaP7CsACafBCHsIxiiKrRTPOlQ+hcC7XNBwy+bn5mjGONoCgLreQs76M8HNWLtr/OAUAr6h26OguOuA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/animations': 21.1.3
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/animations': ^21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
     peerDependenciesMeta:
       '@angular/animations':
         optional: true
@@ -415,9 +416,9 @@ packages:
     resolution: {integrity: sha512-uAw4LAMHXAPCe4SywhlUEWjMYVbbLHwTxLyduSp1b+9aVwep0juy5O/Xttlxd/oigVe0NMnOyJG9y1Br/ubnrg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/platform-browser': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
       rxjs: ^6.5.3 || ^7.4.0
 
   '@antfu/install-pkg@1.1.0':
@@ -2030,58 +2031,58 @@ packages:
   '@memberjunction/ng-base-application@6.1.0-edge.4':
     resolution: {integrity: sha512-M6A85dvIjpvhGc9oJNyaAmEXJslttKUGp2jQAipaouERJXaXaLCt/vL9vvRQtWLjGNid4Zc9QmIgotENGGZKeg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-base-forms@6.1.0-edge.4':
     resolution: {integrity: sha512-hroSUQL8/AT7pjvCB5eQ/hh3/APLlhJDvN9vGYL+kJ7rJ5nXfLmN0KLCN1aCJ0TAx+5KpN81aBXOkKQ+7eneCw==}
     peerDependencies:
-      '@angular/animations': 21.1.3
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/animations': ^21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       primeng: 21.1.1
 
   '@memberjunction/ng-base-types@6.1.0-edge.4':
     resolution: {integrity: sha512-IiDqDBLqJingSFV1NW6rT2UVRKcF/OmY6A5pb9OjbbXRG5nZtK+nB7NT3jJFPuwMbC+zNxCIzIvConkVsNR5Jw==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-code-editor@6.1.0-edge.4':
     resolution: {integrity: sha512-SSgjh03NGOYOhNAb88Du4rPmdVo/iPYvBReCrg81QHCMSrZYdDxzgvJynm9ZYVpUsdaP9cRNjDeKnq6dtiDXrw==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-container-directives@6.1.0-edge.4':
     resolution: {integrity: sha512-HH5bw6rCu5S3YOzbpIHlsS6kYWXfSExU8ZYiz/er+n34sg2pwQGtVAqx+VZt8mrKlXi3V3jaRKlZe4UH61fF5Q==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-credentials@6.1.0-edge.4':
     resolution: {integrity: sha512-UKVHm+GQiWlyu7q2c2Tu/kpHZRyLNDwS939FyK8MdV17PO7g6QYc0iqOAK7JgHKEbJwx5MHUrBWoSiiyQe4AcQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
 
   '@memberjunction/ng-entity-action-ux@6.1.0-edge.4':
     resolution: {integrity: sha512-tYmerUPa52wQTrsgH/w7f/LXh5JGF/THxUFtHV0wsCPGiLKS47BJ/No+GlzMQ5ZkwxHjoy5jWR/s3j6DieIFPg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-entity-viewer@6.1.0-edge.4':
     resolution: {integrity: sha512-tmieb2QwCNQZvyXPE2WMDPG8+KaLv4lAIyvbGDH4X73UmKJNhrHZMDPAvj/d4Z7RjyodpmRKG27FvUlCW1SC/A==}
     peerDependencies:
-      '@angular/animations': 21.1.3
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/animations': ^21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       ag-grid-angular: ^35.0.1
       ag-grid-community: ^35.0.1
 
@@ -2089,75 +2090,75 @@ packages:
     resolution: {integrity: sha512-pXWsXFUJ2Atg4TmF+yIPTn2EcfAJeDJBo7niCDfD4kWmryR2WgksUC/xNs6IXFwm/yahvQic//zu+mas0rXZMA==}
     peerDependencies:
       '@angular/cdk': ^21.1.3
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
 
   '@memberjunction/ng-file-storage@6.1.0-edge.4':
     resolution: {integrity: sha512-jP0p4tKrndSF0tMWRO1UwXYg61HtrKp1vp6RtiFCHZkNaTV7iyQzAEMb+5JMfLmw08E+DLjpqECbM5xPEWWJLw==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
 
   '@memberjunction/ng-filter-builder@6.1.0-edge.4':
     resolution: {integrity: sha512-YpkL0UB6mhrrRGv+NE02tpZZD7ml8HSsE91E+PI0ejBkpW9A1/5gHi1zsxhM9w/H5CLgRtaw1Fdhr8QmN6jhlQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-gantt@6.1.0-edge.1':
     resolution: {integrity: sha512-Q5X4q0CK0bYs1yWWfGtu/erd4XGJBmaNqge003xdFWpyZhgsKWv64vMipDOAJVUs6uXeh4uTPIvuK8NtvS5jeg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-kanban@6.1.0-edge.1':
     resolution: {integrity: sha512-y0K4Fs0DlCPvdHavj8wXeRQF2mvM+r10cZ5I/Z57tylOJOgUSldApVG+ddTxoxhE30w+NlqyKwOwG5X1AMh58w==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-link-directives@6.1.0-edge.4':
     resolution: {integrity: sha512-eoxDHRxuSw5B+rCGAgUvIhU4fEVDqswKqeC0Kvd40um2EXXE/VUOXD6ttYGQOC3W+rhVod0Jb19BP+arvAD5pA==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-list-management@6.1.0-edge.4':
     resolution: {integrity: sha512-Y35oBKp/TX+vSGHAgf6f4O+B/6WtmmOwBN6uMTnzzCfJWYTCuovjV7i6c4Ad8YPJ6wtfhycZEZRph0iUHPwxKQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-map-view@6.1.0-edge.4':
     resolution: {integrity: sha512-T+IcP3ESMhm/tV7KAnvWszRZX5g9IhfVEGJ2GTIfcmEFR43kK659ElERmVbh0HEctg3jieuijaTP3Dnd8589NQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-markdown@6.1.0-edge.4':
     resolution: {integrity: sha512-IQ2vbQHTqJBt8p1xMKR96ZroLlXqCgoJ0Hz9sPhkLwWioykS6KLNtimZwoz+VCpCQU0SBsy5UGQno+HRMhwa/g==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/platform-browser': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
 
   '@memberjunction/ng-notifications@6.1.0-edge.4':
     resolution: {integrity: sha512-piej6gsj4Cy5STzSLpFkqkOPhPy4LhNkoO+7f6Kl4u/APzF3ONljS0U9mxG5p+UhrYfeL2KVYHgsBp9aK6Kohg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-pagination@6.1.0-edge.4':
     resolution: {integrity: sha512-K3nRiaLLL25epzc/ipJ2MCoN9ITCqdxYOw6EWqgFExUt9siYGC14tW5Aw36IfHtcqrmf4UfWpgB1Stz294AX/Q==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-react@6.1.0-edge.4':
     resolution: {integrity: sha512-QfF0aW6iT6BjsP0Xoio5gNhmsHuzXj0Xzk4ZHW0qQxYx9JE7vr/LMCdm5eyOwBXt8JZg/VM17ycq1SHAIrdXPA==}
@@ -2165,57 +2166,57 @@ packages:
   '@memberjunction/ng-record-changes@6.1.0-edge.4':
     resolution: {integrity: sha512-O7kqssA4f9eMuEqC7NLLucEmtHOuIAd4qykRu0GWGjTR2owh7B644QCGz2c3N3yPrh6Fk41wwhZGdc+eePkvHA==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
 
   '@memberjunction/ng-record-tags@6.1.0-edge.4':
     resolution: {integrity: sha512-OqqCkp9gsnStElXn3P3OQ1Cu9jBQBfaD4TjffbtwCfPHMEr7cP1Nt0OHO6d4947XQm/dksefXtxhFyKztTxr+Q==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-shared-generic@6.1.0-edge.4':
     resolution: {integrity: sha512-RywteGBDM0zqNdT0BYsM6gPY9xrheVBuWH906LneT7bexOz/17+YG+PYGv3+N7XO7dB7u5aoLrJGx9OqP8f2dg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/platform-browser': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-shared@6.1.0-edge.4':
     resolution: {integrity: sha512-cRce/2cln9qVCRrcOx7pZuWc9ZIVO3h99RlbNh3ZwvGrEpRh9ZIDqb9cpZmrV5pbzVcUtmMK9YgLoUOjcbIZlA==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/router': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/router': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-timeline@6.1.0-edge.4':
     resolution: {integrity: sha512-l/zAWiB1zSWz4Pp7pYmW/Bhv4pRFBATMVYbVr5iw7qV9q6mTdbN/Min63J0p1f5F8VQKYTZuALaniaW61TIzsw==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/ng-ui-components@6.1.0-edge.4':
     resolution: {integrity: sha512-MHROVVv6N+u/o67nCYT/N7z05KmbkGLcSekprCn+wE4t9mGe3rKf16SsYeBpxrgBt5bTTjdbjiu7ugN6SwpwyQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
       rxjs: ^7.8.2
 
   '@memberjunction/ng-versions@6.1.0-edge.4':
     resolution: {integrity: sha512-5GzoILJK8qK+rhCEKaLexTmBMGhAH3vM0qwmCwW1JtgOA1SyqiIK8bh54Ls2QGCaH7o3w3I9YDXivdjNbVe09Q==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
 
   '@memberjunction/ng-word-cloud@6.1.0-edge.4':
     resolution: {integrity: sha512-+oaCElmwNpBp+H+1OGTyN6Y0sszeod7O3pdIxBnZ8IDEpLRp0kq+zs9NWj8ZAx64DpVc2Tez28frhwJtUdYTZg==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   '@memberjunction/notifications@6.1.0-edge.4':
     resolution: {integrity: sha512-C3AYEPQfZcpacOBBj1zaMpRP7zF23BnRecx1NQZbo2qtE1tbHi+WaiOzZV3sxZzLCvoZQ27MCV2u9Lycw9Bz2Q==}
@@ -2467,10 +2468,10 @@ packages:
   '@mj-biz-apps/tasks-ng@1.2.3':
     resolution: {integrity: sha512-yzj0WzTKDMi9iHHLxIm+rdhru8XtlYtqQQ8fyOQc7C89MiMKUSJ1/Xm9JRGZgpaF1uiz6vGHXjDONhwozUHO9w==}
     peerDependencies:
-      '@angular/animations': 21.1.3
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
+      '@angular/animations': ^21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
       '@memberjunction/core': ^6.1.0-edge.4
       '@memberjunction/global': ^6.1.0-edge.4
       '@memberjunction/graphql-dataprovider': ^6.1.0-edge.2
@@ -3583,8 +3584,8 @@ packages:
   ag-grid-angular@35.3.1:
     resolution: {integrity: sha512-oTM1Na5jI16nOyVfuFBiN/xDDoYRpjKTHxqgP4TGfFBM34Z8en/ZS9liE9AEg8LnfaXGXvYDkPXPnBYoWtX3wA==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
 
   ag-grid-community@35.3.1:
     resolution: {integrity: sha512-Wmkd/xYTCbAApcZZO74nBggZCnd/oX753NY3MJ4zYARVpfBHRWWhIBJ2sFTFKbDWwHZOWsx3YT9+kkyeuyLKlw==}
@@ -3623,8 +3624,8 @@ packages:
   angular-split@20.0.0:
     resolution: {integrity: sha512-MtoR8NeFgzBDqiXaSbXPGFqpYsNsaI5W8w2mM/JpYyyU9hkrQ8b3GVhxraR/kGFGEDVmfEUGaqmy2yG0hraOHQ==}
     peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
       rxjs: '>=7.0.0'
 
   ansi-colors@4.1.3:
@@ -6583,11 +6584,11 @@ packages:
     resolution: {integrity: sha512-ArX5X+psJjL37/5mRzIbeedYOtxDwjLrbBoTTw9hV6+kQt4v8xKy9R1dKuiIFG9OeQTQwzIaJ74OREBAJJmvoA==}
     peerDependencies:
       '@angular/cdk': ^21.0.0
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      '@angular/forms': 21.1.3
-      '@angular/platform-browser': 21.1.3
-      '@angular/router': 21.1.3
+      '@angular/common': ^21.1.3
+      '@angular/core': ^21.1.3
+      '@angular/forms': ^21.1.3
+      '@angular/platform-browser': ^21.1.3
+      '@angular/router': ^21.1.3
       rxjs: ^6.0.0 || ^7.8.1
 
   prismjs@1.30.0:
