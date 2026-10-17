@@ -85,6 +85,7 @@ erDiagram
         nvarchar OnboardingStatus "NotStarted | InProgress | Completed"
         nvarchar CoordinationMode "Observer | Coordinator | Autonomous"
         nvarchar EmailChannelMode "Disabled | ReadOnly | DraftOnly | SendAsAgent | SendAsUser"
+        nvarchar CalendarChannelMode "Disabled | ReadOnly | ProposeWithApproval | Autonomous"
         nvarchar PhoneChannelMode "Disabled | InboundOnly | OutboundWithApproval | OutboundAutonomous"
         nvarchar MessagingChannelMode "Disabled | Enabled"
         nvarchar DefaultDataAccessMode "UserCeiling | ReadOnly | AllowListOnly"
@@ -188,15 +189,18 @@ When a user interacts with their Chief of Staff for the first time (`OnboardingS
 sequenceDiagram
     participant U as User
     participant CoS as Chief of Staff Agent
+    participant Gate as Verify My Communication Capabilities
     participant Policy as Configure Agent User Policy
     participant Wake as Schedule Next Agent Wake
 
     U->>CoS: First message / voice session
-    CoS->>U: Greets user, explains role (vs. Sage), asks for preferred name & CoordinationMode
-    U->>CoS: "Call yourself Atlas. Coordinator mode—ask before emailing externals."
-    CoS->>U: Confirms Email/Phone/Messaging channel modes, approval thresholds & top Q4 priorities
+    CoS->>Gate: Verify My Communication Capabilities (TestMailboxAccess=true)
+    Gate-->>CoS: Returns EnterpriseScopeMode, AllowedEmailDomains, UtilityMailbox, PersonalMailboxAccessible
+    CoS->>U: Greets user, explains role (vs. Sage), asks for preferred name, CoordinationMode & permitted Email/Calendar modes
+    U->>CoS: "Call yourself Atlas. Coordinator mode—DraftOnly for email, ProposeWithApproval for calendar."
+    CoS->>U: Confirms Phone/Messaging channel modes, approval thresholds & top Q4 priorities
     U->>CoS: Shares 3 Q4 priorities + 8:00 AM weekday check-in preference
-    CoS->>Policy: Configure Agent User Policy (OnboardingStatus='Completed', DisplayNameOverride='Atlas', ...)
+    CoS->>Policy: Configure Agent User Policy (OnboardingStatus='Completed', DisplayNameOverride='Atlas', CalendarChannelMode='ProposeWithApproval', ...)
     Policy-->>CoS: PolicyID saved
     CoS->>Wake: Schedule Next Agent Wake (ScheduleMode='Adaptive', WakeConfigurationJSON={...})
     Wake-->>CoS: RoutineID & ScheduledWakeTime
@@ -234,7 +238,39 @@ sequenceDiagram
 
 ---
 
-## 6. Multi-Channel & Peer Coordination Guardrails
+## 6. Enterprise Mailbox Security Gates & User-Scoped Email, Calendar & External Scheduling
+
+### 6.1 The 4-Layer Enterprise Mailbox Security Gate (`BaseUserScopedCommunicationAction`)
+
+Because enterprise communication credentials (such as Microsoft Entra app registrations or Google Workspace service accounts) are often scoped by IT administrators to **utility/shared mailboxes only** or to a specific **Exchange Online `ApplicationAccessPolicy` security group**, Chief of Staff actions enforce four server-side security gates before any mailbox or calendar operation:
+
+1. **Identity Pinning (Zero LLM Mailbox Parameter)**:
+   - None of the Chief of Staff email or calendar actions accept a `MailboxEmail` parameter from the LLM.
+   - On the server, the target mailbox is derived strictly from `params.ContextUser.Email` (or, when `EmailChannelMode = 'SendAsAgent'`, from the agent's registered utility mailbox in `MJ: AI Bridge Agent Identities`).
+   - This makes it architecturally impossible for a prompt injection or hallucination to read or send from another employee's or executive's mailbox.
+2. **Enterprise Scope Mode (`MJ: Communication Providers.EnterpriseScopeMode`)**:
+   - `'UtilityMailboxesOnly'` (Default): Enterprise credentials may **only** access dedicated agent utility mailboxes registered in `MJ: AI Bridge Agent Identities`. Personal user inbox and calendar access (`SendAsUser`, personal `ReadOnly`/`DraftOnly`, or personal calendar read/write) is blocked at the server gate.
+   - `'SecurityGroupScoped'`: Enterprise credentials are restricted by an Exchange Online `ApplicationAccessPolicy` or Google Workspace Organizational Unit. Personal mailbox access requires passing a live `VerifyMailboxAccess` preflight check.
+   - `'TenantWide'`: Enterprise credentials can access corporate user mailboxes matching `AllowedEmailDomains`.
+3. **Corporate Domain Allow-List (`MJ: Communication Providers.AllowedEmailDomains`)**:
+   - Verifies that `params.ContextUser.Email` belongs to one of the comma-separated corporate domains configured on the provider (e.g., `bluecypress.io, memberjunction.org`).
+4. **Live Provider Preflight (`provider.VerifyMailboxAccess`)**:
+   - Performs a lightweight live probe against Microsoft Graph (`/users/{email}/mailFolders/inbox` + `/users/{email}/calendar`) or Gmail/Google Calendar before offering or executing personal mailbox/calendar operations.
+
+### 6.2 Calendar, Free/Busy, Meeting Time Finder & External Scheduling (`Get My Calendar Events and Availability` & `Manage My Calendar Event`)
+
+- **Microsoft Graph (`@memberjunction/communication-ms-graph`) & Google Calendar (`@memberjunction/communication-gmail`)**:
+  - `GetCalendarEvents`: Reads events in `[StartTime, EndTime]`.
+  - `GetFreeBusy`: Queries busy blocks across the user and `AttendeeEmails` (`/calendar/getSchedule` in MS Graph, `/freeBusy` in Google Calendar v3) without exposing private event details of other colleagues.
+  - `FindMeetingTimes`: Uses MS Graph `/findMeetingTimes` or deterministic slot-sweep calculation to propose conflict-free meeting windows within working hours (`09:00–17:00`).
+  - `CreateCalendarEvent`, `UpdateCalendarEvent`, `RespondToCalendarEvent` (`accept` / `tentative` / `decline`), and `CancelCalendarEvent`: Governed by `CalendarChannelMode` (`Disabled`, `ReadOnly`, `ProposeWithApproval`, `Autonomous`) and `RequireApprovalForExternalComms`.
+- **External Scheduling Systems (HubSpot Meetings API v3 & Calendly API v2)**:
+  - `ProviderName = 'HubSpot'`: Queries `/scheduler/v3/meetings/meeting-links` and `/scheduler/v3/meetings/meeting-links/book/availability-page/{slug}` using an enterprise or user-scoped MJ Credential (`HubSpotMeetingsCredentialName`).
+  - `ProviderName = 'Calendly'`: Queries `/users/me`, `/event_types`, and `/user_availability_schedules` (or `/ event_type_available_times`) using an MJ Credential (`CalendlyCredentialName`).
+
+---
+
+## 7. Multi-Channel & Peer Coordination Guardrails
 
 1. **Inter-Agent Coordination (`Chief of Staff Inter-Agent Request`)**:
    - Enables User A's Chief of Staff to send a structured coordination request to User B's Chief of Staff (resolving User B via `TargetUserID` or `People.LinkedUserID` from `TargetPersonID`).
@@ -242,3 +278,4 @@ sequenceDiagram
 2. **Outbound Telephony (`Prepare Chief of Staff Outbound Call`)**:
    - Validates the user's `PhoneChannelMode` (`Disabled`, `InboundOnly`, `OutboundWithApproval`, `OutboundAutonomous`).
    - Generates a mandatory `DisclosureGreeting` (*"Hello [Recipient], I am [AgentName], an AI assistant calling on behalf of [UserName]..."*), enforces `ProhibitedCommitments`, and structures a tight `Objective` and `FallbackPlan`.
+
