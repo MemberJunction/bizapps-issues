@@ -30,10 +30,12 @@ feature PR ──▶ next ──(version.yml)──▶ Version Packages PR (chan
   release if that back-merge never landed.
 - A push to `main` with nothing new to publish ships nothing and creates no tag.
 
-> **Branch protection:** planned, not yet applied. `next` gets two rulesets (required checks,
-> required review) and `main` gets one (the gate contexts, a required review, and
-> dismiss-stale-reviews). The App is a `pull_request`-mode bypass actor on `next`, so the
-> back-merge can land without a human review.
+> **Branch protection** (applied). `next` (`protect-next`): changes arrive by pull request with
+> the door checks required and the branch up to date, and **no approval required**. The App is a
+> `pull_request`-mode bypass actor, so the back-merge can merge the moment it opens. `main`
+> (`protect-main`): the `rr:` checks and `build` required, **one approval** with
+> dismiss-stale-reviews. Bypass: the Repository admin role, "for pull requests only", as the
+> override for a failure case (no second reviewer, a stuck check). Use it deliberately.
 
 ## npm authentication — OIDC (no NPM_TOKEN secret)
 

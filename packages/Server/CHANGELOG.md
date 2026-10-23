@@ -1,5 +1,19 @@
 # @mj-biz-apps/issues-server
 
+## 1.4.0
+
+### Patch Changes
+
+- a6e8a16: Dependency ranges are caret: `@mj-biz-apps/common-entities` is `^5.34.0` and `@mj-biz-apps/tasks-entities` is `^1.2.3` instead of exact pins, so a host on a later release keeps one copy.
+- Updated dependencies [37605c8]
+- Updated dependencies [adb05c5]
+- Updated dependencies [6a7b1d7]
+- Updated dependencies [3a03cbd]
+  - @mj-biz-apps/issues-entities@1.4.0
+  - @mj-biz-apps/issues-core@1.4.0
+  - @mj-biz-apps/issues-core-entities-server@1.4.0
+  - @mj-biz-apps/issues-actions@1.4.0
+
 ## 1.3.2
 
 ### Patch Changes
