@@ -4,6 +4,15 @@ import { resolveDbPlatformFromEnv } from '@memberjunction/generic-database-provi
 const ISSUES_SCHEMA = '__mj_BizAppsIssues';
 
 /**
+ * Strict shape for a client-settable AppScope that is inlined into SQL below:
+ * alphanumeric only, capped at 50 characters — the length of
+ * IssueNumberSequence.ScopeCode, which is what spAssignNextIssueNumber actually
+ * stores (its @Scope variable is NVARCHAR(50), so anything longer would be
+ * silently truncated there anyway; Issue.AppScope itself is NVARCHAR(255)).
+ */
+const APP_SCOPE_SHAPE = /^[A-Za-z0-9]{1,50}$/;
+
+/**
  * SequenceService — calls the DB-level atomic numbering routine (spAssignNextIssueNumber)
  * from TypeScript so the IssueEntityServer hook can assign IssueNumber before
  * super.Save() commits the row.
@@ -38,6 +47,17 @@ export class SequenceService {
     appScope: string | null,
     entity: BaseEntity,
   ): Promise<string> {
+    // AppScope is client-settable and is inlined into the SQL below as a literal.
+    // Validate it strictly before any SQL is built; null/blank stays allowed (the
+    // routine defaults those to 'ISS', and it trims the value itself). The quote-
+    // doubling in the dialect builders stays as belt-and-braces.
+    const trimmedScope = appScope?.trim() ?? '';
+    if (trimmedScope !== '' && !APP_SCOPE_SHAPE.test(trimmedScope)) {
+      throw new Error(
+        `SequenceService.assignNextIssueNumber: invalid AppScope '${appScope}' — ` +
+        `an AppScope must be 1-50 alphanumeric characters (A-Z, a-z, 0-9).`,
+      );
+    }
     // ProviderToUse is typed IEntityDataProvider, but every concrete MJ provider (SQL Server /
     // PostgreSQL) is a DatabaseProviderBase subclass that also implements IEntityDataProvider. The two
     // interfaces don't structurally overlap, so TS requires the widening cast through `unknown` — this
