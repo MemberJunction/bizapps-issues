@@ -1,5 +1,27 @@
 # @mj-biz-apps/issues-integration-tests
 
+## 1.4.0
+
+### Patch Changes
+
+- Updated dependencies [37605c8]
+- Updated dependencies [adb05c5]
+- Updated dependencies [6a7b1d7]
+- Updated dependencies [3a03cbd]
+  - @mj-biz-apps/issues-entities@1.4.0
+
+## 1.3.2
+
+### Patch Changes
+
+- @mj-biz-apps/issues-entities@1.3.2
+
+## 1.3.1
+
+### Patch Changes
+
+- @mj-biz-apps/issues-entities@1.3.1
+
 ## 1.3.0
 
 ### Patch Changes

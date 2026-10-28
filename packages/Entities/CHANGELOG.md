@@ -1,5 +1,21 @@
 # @mj-biz-apps/issues-entities
 
+## 1.4.0
+
+### Minor Changes
+
+- 37605c8: Release seed for 1.4: `V202610231900__v1.4.x__Metadata_Sync.sql` and its PostgreSQL counterpart carry `EntityIDFieldName` on the Issues polymorphic links (AssigneeRecordID, SourceRecordID) and the user-search settings from `metadata/entities/` to hosts, which install by migration and never read `metadata/`. The predictive-escalation ML metadata is not included: its model's trained artifact file exists only on the database it was trained on.
+- 6a7b1d7: Populate `EntityField.EntityIDFieldName` metadata on polymorphic foreign-key record-ID fields so MemberJunction forms, grids, cards, and detail panels resolve target record names and render smart clickable record links.
+- 3a03cbd: `metadata/entities/.polymorphic-fk-entity-fields.json` gives every `MJ: Entity Fields` entry a `primaryKey` lookup (`@lookup:MJ: Entity Fields.EntityID=@lookup:MJ: Entities.Name=<entity>&Name=<field>`). The entries had none, and `mj sync push` creates a new row for any record without a `primaryKey`, so on a fresh database it tried to insert a second field row with a NULL `EntityID` and the app's whole metadata push rolled back. With the lookup, push updates the field row CodeGen created and sets its `EntityIDFieldName`.
+
+### Patch Changes
+
+- adb05c5: `mj-app.json` now lists `@mj-biz-apps/issues-actions`, `@mj-biz-apps/issues-core` under `server` instead of `shared`. They use server-only code (Node built-ins, or MemberJunction's actions, AI engine, storage or server packages), and `shared` installs a package into MJExplorer too. The Open App client bootstrap imports every `shared` package, so Explorer's browser build failed on a host with this app installed (`Could not resolve "node:crypto"`, `"node:net"`, `"stream"`). The server still loads them exactly as before.
+
+## 1.3.2
+
+## 1.3.1
+
 ## 1.3.0
 
 ### Minor Changes

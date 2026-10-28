@@ -342,6 +342,42 @@ git branch -vv
 # * my-feature [origin/next] BAD - tracks next!            ❌
 ```
 
+### Branching Model: `next` → `main` Release Flow
+
+- **`next`** — integration branch. All feature work merges here. It is the default branch.
+- **`main`** — release branch. Only updated by the "Version Packages" PR. Pushes to `main` publish.
+
+**Feature work:** cut from `next`, open a PR into `next` with a changeset (`pnpm exec changeset`),
+merge. A migration or metadata change needs at least a `minor` changeset. A new T-SQL migration
+should come with its `migrations-pg/` counterpart; the PR only warns without one, but the release
+is blocked until it exists.
+
+**Releases:** versioning and publishing are separate, and nothing pushes to a protected branch.
+
+1. `version.yml` fires on every push to `next` and maintains ONE **"Version Packages" PR** from
+   `changeset-release/main` into **`main`**: every package bumped, CHANGELOGs generated,
+   `mj-app.json`'s `version` and `mjVersionRange` synced, and `pnpm-lock.yaml` refreshed. A GitHub
+   App opens it, so its checks run. **That PR is the release.** Do not open a `next` → `main` PR
+   yourself; one with no version bump publishes nothing.
+2. The Version Packages PR runs the `rr:` gates (`release-readiness.yml`) and `build`. Review the
+   version and merge it. That merge is the decision to publish.
+3. The push to `main` triggers `publish.yml`: validate, build, `changeset publish` (every package
+   whose version is not already on the registry), tag `vX.Y.Z` only if something shipped, then the
+   App opens and merges a `release-back-merge/vX.Y.Z` PR into `next`. If that back-merge cannot
+   merge, the run goes red and names the PR; merge it by hand.
+
+**Rules:**
+- **Never commit directly to `main`**, and never open a `next` → `main` PR.
+- **Never publish by dispatching `publish.yml` on `next`** — the job is guarded to
+  `refs/heads/main` and will not run.
+- **Never hand-edit a version bump.** It is `changeset version`'s output, delivered by the Version
+  Packages PR. `changeset version` rewrites internal dependency ranges and does **not** touch the
+  lockfile, which is why `version:prepare` refreshes it in the same PR.
+- **A fix merged into `next` while the Version Packages PR is open** is picked up automatically:
+  the PR refreshes. Add a changeset only if consumers should see it in the CHANGELOG.
+
+Full procedure: the "Publishing an Open App" SOP.
+
 ### Fix Incorrect Tracking
 If a branch is tracking the wrong remote:
 ```bash
@@ -1886,7 +1922,7 @@ When a migration creates a new lookup or reference table (e.g., `AIAgentRequestT
      }
    }
    ```
-3. Create the seed data file (e.g., `.agent-request-types.json`) as a JSON array of records. Each record has a `"fields"` object with the column values. **Omit `primaryKey` and `sync`** — these are auto-populated by mj-sync on first push.
+3. Create the seed data file (e.g., `.agent-request-types.json`) as a JSON array of records. Each record has a `"fields"` object with the column values and a `primaryKey` UUID from CLI `uuidgen`; omit `sync`, which the release-time `mj sync push` writes. A record without a `primaryKey` is inserted as a new row on every push (MJ's `metadata/CLAUDE.md` rule 1).
 4. Push with: `npx mj sync push --dir=metadata --include="agent-request-types"`
 
 **Why metadata files over SQL INSERTs:**
@@ -1906,7 +1942,7 @@ When creating new applications with custom dashboards:
    - `ResourceType`: Usually `"Custom"` for dashboard resources
    - `DriverClass`: Class name registered with `@RegisterClass(BaseResourceComponent, 'ClassName')`
    - `isDefault`: Set to `true` for the default tab (only one per app)
-4. For new apps, omit `primaryKey` and `sync` sections - they're populated by mj-sync
+4. For new apps, include a `primaryKey` from CLI `uuidgen` and omit `sync` (MJ's `metadata/CLAUDE.md` rule 1)
 5. Include `"relatedEntities": { "Application Entities": [] }` for the sync structure
 
 ### Resource Components for Custom Dashboards
@@ -2011,3 +2047,13 @@ npx playwright-cli close
 ## Angular pinning model
 
 **Angular pinning model** (family-wide, 2026-08-07, with MemberJunction/MJ#3580): `@angular/*` peers in `packages/*` are **caret ranges at the platform pin** (`^21.1.3`) — compatibility claims, never exact. Each package that consumes Angular **anchors** the concrete version with exact `21.1.3` entries in its own `devDependencies`; the anchor is what actually installs. In the shared pnpm dev workspace `auto-install-peers=true` turns unanchored peer ranges into install instructions, which is how two copies of `@angular/core` ended up installed family-wide. Rev anchors with the era platform pin, never with MJ pins.
+
+## Metadata ships as release migrations
+
+`mj app install` and upgrades run migrations only. There is no metadata phase, by design. A record that exists only as JSON under `metadata/` reaches no host until a release ships it inside a migration.
+
+- **PRs carry metadata JSON only.** Never hand-write or generate a `*__Metadata_Sync.sql` in a feature PR.
+- **The build engineer** generates one differential `Metadata_Sync` migration per release, from a fresh database.
+- **Rows missing after a fresh install** usually mean a release shipped without its metadata migration. Hand that to the build engineer rather than changing the installer.
+
+The model, and the Open App steps that differ from core (`--schema`, the `${mjSchema}` substitution): [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md).
