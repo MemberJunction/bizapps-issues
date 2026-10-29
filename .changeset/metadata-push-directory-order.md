@@ -1,5 +1,5 @@
 ---
-"@mj-biz-apps/issues-entities": patch
+"@mj-biz-apps/issues-entities": minor
 ---
 
 `mj sync push --dir metadata` now succeeds on a fresh database.
