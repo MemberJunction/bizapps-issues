@@ -227,6 +227,19 @@ jobs:
       - name: Every script a workflow calls must exist
         run: ./.github/scripts/check-script-references.sh
 
+  # A metadata folder left out of directoryOrder is pushed after the listed ones, in alphabetical
+  # order, so a folder can be pushed before the rows it references. On a fresh database that fails
+  # a foreign key and rolls back the whole push (bizapps-accounting#222, this repo's #52).
+  metadata-directory-order:
+    name: 'metadata directory order'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every metadata folder is in directoryOrder
+        run: ./.github/scripts/validate-metadata-directory-order.sh
+
   parse-migrations:
     name: 'Parse migrations (T-SQL syntax check)'
     needs: migration-naming
