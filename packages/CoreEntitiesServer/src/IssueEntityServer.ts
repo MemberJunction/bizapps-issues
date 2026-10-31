@@ -48,8 +48,12 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
     const assigneeChanged = (assigneeField?.Dirty ?? false) || (assigneeEntityField?.Dirty ?? false);
 
     // 1. IssueNumber (insert only, immutable)
-    if (isNew && !this.IssueNumber) {
+    if (isNew) {
+      // ALWAYS server-assigned on insert — overwrite any client-supplied value so a
+      // client cannot squat numbers or force UQ_Issue_IssueNumber collisions (create DoS).
       await this.assignIssueNumber();
+    } else {
+      this.restoreIssueNumberIfTampered();
     }
 
     // 2. Lifecycle timestamps — stamp inline so they're part of this write.
@@ -70,12 +74,47 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
 
   /** Allocates and sets IssueNumber for a new Issue based on its AppScope. */
   private async assignIssueNumber(): Promise<void> {
+    this.validateAppScope();
     try {
       this.IssueNumber = await SequenceService.assignNextIssueNumber(this.AppScope, this);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       LogError(`IssueEntityServer: failed to assign IssueNumber (AppScope=${this.AppScope ?? '(null)'}): ${msg}`);
       throw err;
+    }
+  }
+
+  /**
+   * Validates AppScope before it feeds the numbering routine. Null/blank is allowed
+   * (the routine defaults it to 'ISS'); anything else must be 1-50 characters of
+   * letters, digits, spaces, underscores or hyphens — preventing a client from
+   * minting unbounded junk sequence scopes or smuggling SQL metacharacters.
+   */
+  private validateAppScope(): void {
+    const scope = this.AppScope;
+    if (scope == null || scope.trim().length === 0) {
+      return;
+    }
+    if (!APP_SCOPE_PATTERN.test(scope)) {
+      throw new Error(
+        `IssueEntityServer: invalid AppScope '${scope}' — must be 1-50 characters of letters, digits, spaces, underscores or hyphens`,
+      );
+    }
+  }
+
+  /**
+   * IssueNumber is server-assigned and immutable. If a client dirtied it on an
+   * update, silently restore the stored value (and log) so the write cannot move
+   * an issue onto another number or trigger a UQ_Issue_IssueNumber collision.
+   */
+  private restoreIssueNumberIfTampered(): void {
+    const field = this.GetFieldByName('IssueNumber');
+    if (field?.Dirty) {
+      const oldValue = (field.OldValue as string | null) ?? null;
+      LogError(
+        `IssueEntityServer: IssueNumber is immutable — ignoring attempted change to '${this.IssueNumber ?? '(null)'}' on issue ${this.ID} and restoring '${oldValue ?? '(null)'}'`,
+      );
+      this.IssueNumber = oldValue;
     }
   }
 
@@ -208,6 +247,9 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
     }
   }
 }
+
+/** Allowed AppScope shape: 1-50 chars of letters, digits, spaces, underscores or hyphens. */
+const APP_SCOPE_PATTERN = /^[A-Za-z0-9 _-]{1,50}$/;
 
 /** Snapshot of which lifecycle events occurred during a save, consumed post-save. */
 interface HookContext {

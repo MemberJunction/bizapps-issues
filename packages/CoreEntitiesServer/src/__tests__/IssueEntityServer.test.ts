@@ -149,6 +149,60 @@ describe('IssueEntityServer — IssueNumber', () => {
     expect(assignMock).not.toHaveBeenCalled();
     expect(baseState.IssueNumber).toBe('MJC-7');
   });
+
+  it('overwrites a client-supplied IssueNumber on insert (server-assigned, no squatting)', async () => {
+    baseState.AppScope = 'MJC';
+    baseState.IssueNumber = 'MJC-999'; // forged by the client
+    const ok = await new IssueEntityServer().Save();
+    expect(ok).toBe(true);
+    expect(assignMock).toHaveBeenCalledOnce();
+    expect(baseState.IssueNumber).toBe('MJC-1');
+  });
+
+  it('restores the stored IssueNumber when a client dirties it on update', async () => {
+    baseState.IsSaved = true;
+    baseState.IssueNumber = 'MJC-9999'; // tampered value
+    fieldInfo['IssueNumber'] = { Dirty: true, OldValue: 'MJC-7' };
+    const ok = await new IssueEntityServer().Save();
+    expect(ok).toBe(true);
+    expect(assignMock).not.toHaveBeenCalled();
+    expect(baseState.IssueNumber).toBe('MJC-7');
+    expect(baseSaveMock).toHaveBeenCalledOnce();
+  });
+});
+
+// ─── 1b. AppScope validation (feeds the numbering routine) ────────────────────
+describe('IssueEntityServer — AppScope validation', () => {
+  it('rejects an AppScope with SQL metacharacters on insert', async () => {
+    baseState.AppScope = "x'; DROP TABLE Issue;--";
+    await expect(new IssueEntityServer().Save()).rejects.toThrow(/invalid AppScope/);
+    expect(assignMock).not.toHaveBeenCalled();
+    expect(baseSaveMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an AppScope longer than 50 characters', async () => {
+    baseState.AppScope = 'A'.repeat(51);
+    await expect(new IssueEntityServer().Save()).rejects.toThrow(/invalid AppScope/);
+    expect(assignMock).not.toHaveBeenCalled();
+  });
+
+  it('allows a null AppScope (routine defaults it to ISS)', async () => {
+    baseState.AppScope = null;
+    await expect(new IssueEntityServer().Save()).resolves.toBe(true);
+    expect(assignMock).toHaveBeenCalledOnce();
+  });
+
+  it('allows a blank AppScope (routine defaults it to ISS)', async () => {
+    baseState.AppScope = '   ';
+    await expect(new IssueEntityServer().Save()).resolves.toBe(true);
+    expect(assignMock).toHaveBeenCalledOnce();
+  });
+
+  it('allows a well-formed AppScope', async () => {
+    baseState.AppScope = 'MJ Central_2-X';
+    await expect(new IssueEntityServer().Save()).resolves.toBe(true);
+    expect(assignMock).toHaveBeenCalledWith('MJ Central_2-X', expect.anything());
+  });
 });
 
 // ─── 2. Lifecycle timestamp stamping ──────────────────────────────────────────

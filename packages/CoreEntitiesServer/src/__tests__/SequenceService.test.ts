@@ -69,6 +69,18 @@ describe('SequenceService.assignNextIssueNumber', () => {
       await SequenceService.assignNextIssueNumber('MJC', makeEntity() as never);
       expect(capturedSQL).toContain('EXEC __mj_BizAppsIssues.spAssignNextIssueNumber');
     });
+
+    it('truncates the scope to 50 characters before inlining', async () => {
+      const longScope = 'A'.repeat(60);
+      await SequenceService.assignNextIssueNumber(longScope, makeEntity() as never);
+      expect(capturedSQL).toContain(`N'${'A'.repeat(50)}'`);
+      expect(capturedSQL).not.toContain('A'.repeat(51));
+    });
+
+    it('collapses a blank scope to NULL (routine defaults it to ISS)', async () => {
+      await SequenceService.assignNextIssueNumber('   ', makeEntity() as never);
+      expect(capturedSQL).toContain('@AppScope = NULL');
+    });
   });
 
   describe('PostgreSQL dialect', () => {
