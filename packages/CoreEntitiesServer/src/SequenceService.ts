@@ -1,7 +1,11 @@
 import { BaseEntity, DatabaseProviderBase, LogError } from '@memberjunction/core';
+import { EscapeSQLString } from '@memberjunction/global';
 import { resolveDbPlatformFromEnv } from '@memberjunction/generic-database-provider';
 
 const ISSUES_SCHEMA = '__mj_BizAppsIssues';
+
+/** The proc normalizes AppScope to NVARCHAR(50); truncate before inlining so the literal is bounded. */
+const MAX_APP_SCOPE_LENGTH = 50;
 
 /**
  * SequenceService — calls the DB-level atomic numbering routine (spAssignNextIssueNumber)
@@ -48,12 +52,21 @@ export class SequenceService {
       throw new Error('SequenceService: no provider available on the entity');
     }
 
+    // Bound the user-controlled scope BEFORE it reaches SQL: trim (the proc trims too) and
+    // truncate to the proc's NVARCHAR(50) width; an all-blank scope collapses to NULL,
+    // which the routine defaults to 'ISS'.
+    const trimmedScope = appScope?.trim() ?? null;
+    const normalizedScope =
+      trimmedScope == null || trimmedScope.length === 0
+        ? null
+        : trimmedScope.slice(0, MAX_APP_SCOPE_LENGTH);
+
     // DB_PLATFORM defaults to SQL Server when unset (resolveDbPlatformFromEnv returns undefined).
     const platform = resolveDbPlatformFromEnv() ?? 'sqlserver';
     const sql =
       platform === 'postgresql'
-        ? this.buildPostgresSQL(appScope)
-        : this.buildSqlServerSQL(appScope);
+        ? this.buildPostgresSQL(normalizedScope)
+        : this.buildSqlServerSQL(normalizedScope);
 
     const rows = await provider.ExecuteSQL(
       sql,
@@ -73,11 +86,12 @@ export class SequenceService {
 
   /**
    * SQL Server: call the OUTPUT-parameter procedure and surface its value as a column.
-   * The proc re-normalizes the scope regardless of what we pass; we inline it as an escaped
-   * literal (the verified pattern across MJ's generated resolvers, which pass `undefined` params).
+   * The proc re-normalizes the scope regardless of what we pass; we inline it as a literal
+   * escaped via MJ's EscapeSQLString (the verified pattern across MJ's generated resolvers,
+   * which pass `undefined` params).
    */
   private static buildSqlServerSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `N'${appScope.replace(/'/g, "''")}'`;
+    const scopeLiteral = appScope == null ? 'NULL' : `N'${EscapeSQLString(appScope)}'`;
     return `
       DECLARE @issueNumber NVARCHAR(50);
       EXEC ${ISSUES_SCHEMA}.spAssignNextIssueNumber
@@ -94,7 +108,7 @@ export class SequenceService {
    * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG.
    */
   private static buildPostgresSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `'${appScope.replace(/'/g, "''")}'`;
+    const scopeLiteral = appScope == null ? 'NULL' : `'${EscapeSQLString(appScope)}'`;
     return `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(${scopeLiteral}) AS "IssueNumber";`;
   }
 }
