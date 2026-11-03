@@ -1,0 +1,32 @@
+name: Repo checks
+
+# Guards for the BizApps Open App dependency and manifest-tier model.
+on:
+  pull_request:
+    branches: [next, main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  repo-guards:
+    name: 'repo: guards'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      # A host installs one copy of MemberJunction and of each Open App: @memberjunction/* and other
+      # apps' @mj-biz-apps/* packages are caret peers, never `dependencies`, and `shared`/`client`
+      # packages in mj-app.json stay free of server-only dependencies. Self-test first, so a pass
+      # means the check can fail.
+      - name: Dependency model (MJ and sibling apps are caret peers; shared/client tiers are browser-safe)
+        run: |
+          node ./.github/scripts/check-dependency-model.mjs --self-test
+          node ./.github/scripts/check-dependency-model.mjs
