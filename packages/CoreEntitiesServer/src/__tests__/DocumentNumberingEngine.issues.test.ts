@@ -25,6 +25,7 @@ interface FakeField {
   Value: string | null;
   OldValue: string | null;
   Dirty: boolean;
+  EntityFieldInfo: { MaxLength: number };
 }
 
 function makeIssueEntityStub(opts: {
@@ -41,12 +42,14 @@ function makeIssueEntityStub(opts: {
       Value: opts.appScope,
       OldValue: opts.appScope,
       Dirty: false,
+      EntityFieldInfo: { MaxLength: 50 },
     },
     IssueNumber: {
       Name: 'IssueNumber',
       Value: issueNum,
       OldValue: oldNum,
       Dirty: issueNum !== oldNum,
+      EntityFieldInfo: { MaxLength: 50 },
     },
   };
 
