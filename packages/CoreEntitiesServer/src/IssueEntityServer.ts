@@ -5,7 +5,9 @@ import { ActionParam } from '@memberjunction/actions-base';
 import { mjBizAppsIssuesIssueEntity } from '@mj-biz-apps/issues-entities';
 import { IssueEngine } from '@mj-biz-apps/issues-core';
 
-import { SequenceService } from './SequenceService.js';
+import { SequenceService, registerIssueNumberingPolicy } from './SequenceService.js';
+
+registerIssueNumberingPolicy();
 
 /**
  * Server-side subclass of {@link mjBizAppsIssuesIssueEntity}.
@@ -148,7 +150,7 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
       if (!ctx) {
         return;
       }
-      this.fireLifecycleHooks(ctx).catch((err: unknown) => {
+      this.fireLifecycleHooks(ctx).catch((err: Error) => {
         const msg = err instanceof Error ? err.message : String(err);
         LogError(`IssueEntityServer: lifecycle hook firing failed for issue ${this.ID}: ${msg}`);
       });
