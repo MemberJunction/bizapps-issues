@@ -1,5 +1,14 @@
 # @mj-biz-apps/issues-core-entities-server
 
+## 1.5.0
+
+### Patch Changes
+
+- Updated dependencies [0220805]
+- Updated dependencies [6090587]
+  - @mj-biz-apps/issues-core@1.5.0
+  - @mj-biz-apps/issues-entities@1.5.0
+
 ## 1.4.0
 
 ### Patch Changes
