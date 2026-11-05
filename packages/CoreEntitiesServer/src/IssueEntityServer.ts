@@ -187,6 +187,8 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
         return;
       }
 
+      // Title (and any field a user can type) is untrusted input: hook actions must not
+      // interpolate these params into SQL, shell commands, URLs, or rendered HTML unescaped.
       const params: ActionParam[] = [
         { Name: 'IssueID', Value: this.ID, Type: 'Input' },
         { Name: 'IssueNumber', Value: this.IssueNumber, Type: 'Input' },
