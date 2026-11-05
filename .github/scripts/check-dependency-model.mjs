@@ -74,12 +74,18 @@ const SERVER_ONLY_MJ_PREFIXES = [
   '@memberjunction/actions-',
 ];
 
+/**
+ * Name-based stand-in for a sibling Open App's `packages.server` tier, which this repo cannot read.
+ * `-core` is not on the list: Open Apps ship browser-safe `-core` packages under `packages.shared`.
+ */
 const SERVER_ONLY_APP_SUFFIXES = [
   '-server',
   '-core-entities-server',
   '-actions',
-  '-core',
 ];
+
+/** Suffixes that name a server package outright; listing one under `shared` or `client` is a manifest error. */
+const SERVER_NAMED_APP_SUFFIXES = ['-server'];
 
 /** Every package.json under `dir` (node_modules and dot-directories skipped), to MAX_DEPTH levels. */
 function findManifests(dir, depth = 0) {
@@ -220,6 +226,10 @@ function checkAppManifestTiers(root, byName, problemsByFile) {
       const list = problemsByFile.get(relFile) ?? [];
       if (repoServerNames.has(name)) {
         list.push(`${name} is listed under both packages.${tier} and packages.server in mj-app.json.`);
+      }
+      if (SERVER_NAMED_APP_SUFFIXES.some((s) => name.endsWith(s))) {
+        list.push(`${name} is listed under packages.${tier} in mj-app.json, but its name marks it as a server `
+          + 'package: move it to packages.server.');
       }
       list.push(...findServerOnlyReachability(manifestEntry.json, tier, byName, repoServerNames));
       if (list.length > 0) {
@@ -391,6 +401,43 @@ const FIXTURES = [
       Server: {
         name: '@mj-biz-apps/demo-server',
         peerDependencies: { '@memberjunction/server': '^6.1.5' },
+      },
+    },
+  },
+  {
+    name: 'mj-app.json: client package depending on a -core package listed under shared passes',
+    expect: 0,
+    pkg: {
+      name: '@mj-biz-apps/demo-ng',
+      dependencies: { '@mj-biz-apps/demo-core': '1.0.0' },
+    },
+    app: {
+      packages: {
+        server: [],
+        client: [{ name: '@mj-biz-apps/demo-ng' }],
+        shared: [{ name: '@mj-biz-apps/demo-entities' }, { name: '@mj-biz-apps/demo-core' }],
+      },
+    },
+    extraPkgs: {
+      Core: {
+        name: '@mj-biz-apps/demo-core',
+        dependencies: { '@mj-biz-apps/demo-entities': '1.0.0' },
+        peerDependencies: { '@memberjunction/core': '^6.1.5' },
+      },
+    },
+  },
+  {
+    name: 'mj-app.json: -core-entities-server package listed under shared fails',
+    expect: 1,
+    pkg: {
+      name: '@mj-biz-apps/demo-core-entities-server',
+      peerDependencies: { '@memberjunction/core': '^6.1.5' },
+    },
+    app: {
+      packages: {
+        server: [],
+        client: [],
+        shared: [{ name: '@mj-biz-apps/demo-entities' }, { name: '@mj-biz-apps/demo-core-entities-server' }],
       },
     },
   },
