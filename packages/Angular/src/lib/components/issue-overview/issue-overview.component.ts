@@ -18,6 +18,14 @@ interface IssueCommentSummary {
     User: string;
 }
 
+/**
+ * Guards the ExtraFilter interpolation in LoadComments: Record.ID is interpolated into a SQL
+ * filter string, so it must be shaped like the UNIQUEIDENTIFIER it is — never free text. The
+ * ID normally comes from a server-loaded entity, but `Record` is an @Input any consumer can
+ * set, so the shape is enforced here rather than assumed.
+ */
+const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 const ISSUE_OVERVIEW_CSS = `
 .mji-overview {
     display: flex;
@@ -481,6 +489,10 @@ export class IssueOverviewComponent implements OnInit, OnChanges {
 
     public async LoadComments(): Promise<void> {
         if (!this.Record?.ID) return;
+        if (!UUID_PATTERN.test(this.Record.ID)) {
+            console.warn('[IssueOverview] Refusing to load comments: Record.ID is not a UUID');
+            return;
+        }
         this.IsLoading = true;
 
         try {

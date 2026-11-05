@@ -13,6 +13,14 @@ interface IssueCommentView {
     CreatedAt: Date;
 }
 
+/**
+ * Guards the ExtraFilter interpolation in LoadComments: Issue.ID is interpolated into a SQL
+ * filter string, so it must be shaped like the UNIQUEIDENTIFIER it is — never free text. The
+ * ID normally comes from server-loaded rows, but `Issue` is an @Input any consumer can set,
+ * so the shape is enforced here rather than assumed.
+ */
+const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 const ISSUE_DETAIL_CSS = `
 .mji-drawer-scrim {
     position: fixed;
@@ -331,6 +339,10 @@ export class IssueDetailPanelComponent implements OnInit, OnChanges {
 
     public async LoadComments(): Promise<void> {
         if (!this.Issue?.ID) return;
+        if (!UUID_PATTERN.test(this.Issue.ID)) {
+            console.warn('[IssueDetail] Refusing to load comments: Issue.ID is not a UUID');
+            return;
+        }
         try {
             const rv = new RunView();
             const res = await rv.RunView<Record<string, unknown>>({
