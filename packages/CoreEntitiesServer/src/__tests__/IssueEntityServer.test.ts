@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const baseSaveMock = vi.fn(async () => true);
 
 // Field dirty/old config the stub's GetFieldByName returns, keyed by field name.
-type FieldInfo = { Dirty: boolean; OldValue: unknown };
+type FieldInfo = { Dirty: boolean; OldValue: string | null };
 const fieldInfo: Record<string, FieldInfo> = {};
 
 // Captured save-event handler (RegisterEventHandler) so tests can fire it.
@@ -36,7 +36,7 @@ const baseState = {
   Priority: 'Medium',
   Severity: 'Medium',
   ID: 'ISS-X',
-  ContextCurrentUser: {} as unknown,
+  ContextCurrentUser: {} as Record<string, string>,
 };
 
 vi.mock('@mj-biz-apps/issues-entities', () => {
@@ -63,9 +63,10 @@ vi.mock('@mj-biz-apps/issues-entities', () => {
   return { mjBizAppsIssuesIssueEntity: StubIssueEntity };
 });
 
-const assignMock = vi.fn(async () => 'MJC-1');
+const assignMock = vi.fn(async (_scope: string | null, _entity: object) => 'MJC-1');
 vi.mock('../SequenceService.js', () => ({
-  SequenceService: { assignNextIssueNumber: (...a: unknown[]) => assignMock(...a) },
+  SequenceService: { assignNextIssueNumber: (scope: string | null, entity: object) => assignMock(scope, entity) },
+  registerIssueNumberingPolicy: vi.fn(),
 }));
 
 // IssueEngine: status flags + type (with On*ActionID) lookups.
@@ -85,7 +86,11 @@ vi.mock('@mj-biz-apps/issues-core', () => ({
   },
 }));
 
-const runActionMock = vi.fn(async () => undefined);
+interface RunActionInput {
+  Action: { ID: string };
+}
+
+const runActionMock = vi.fn(async (_input: RunActionInput) => undefined);
 vi.mock('@memberjunction/actions', () => ({
   ActionEngineServer: {
     Instance: {
@@ -93,7 +98,7 @@ vi.mock('@memberjunction/actions', () => ({
       get Actions() {
         return [{ ID: 'ACT-CREATE' }, { ID: 'ACT-STATUS' }, { ID: 'ACT-CLOSE' }, { ID: 'ACT-ASSIGN' }];
       },
-      RunAction: (...a: unknown[]) => runActionMock(...a),
+      RunAction: (input: RunActionInput) => runActionMock(input),
     },
   },
 }));
@@ -104,7 +109,7 @@ vi.mock('@memberjunction/core', () => ({
   LogError: vi.fn(),
 }));
 vi.mock('@memberjunction/global', () => ({
-  RegisterClass: () => (_t: unknown) => _t,
+  RegisterClass: () => <T>(t: T): T => t,
 }));
 
 import { IssueEntityServer } from '../IssueEntityServer.js';
@@ -198,7 +203,7 @@ describe('IssueEntityServer — action hooks (post-save event)', () => {
     baseState.StatusID = 'S-NEW';
     await new IssueEntityServer().Save();
     await fireSaveEvent();
-    const actions = runActionMock.mock.calls.map((c) => (c[0] as { Action: { ID: string } }).Action.ID);
+    const actions = runActionMock.mock.calls.map((c) => c[0].Action.ID);
     expect(actions).toEqual(['ACT-CREATE']);
   });
 
@@ -208,7 +213,7 @@ describe('IssueEntityServer — action hooks (post-save event)', () => {
     fieldInfo['StatusID'] = { Dirty: true, OldValue: 'S-PROG' };
     await new IssueEntityServer().Save();
     await fireSaveEvent();
-    const actions = runActionMock.mock.calls.map((c) => (c[0] as { Action: { ID: string } }).Action.ID);
+    const actions = runActionMock.mock.calls.map((c) => c[0].Action.ID);
     expect(actions).toEqual(['ACT-STATUS', 'ACT-CLOSE']);
   });
 
@@ -218,7 +223,7 @@ describe('IssueEntityServer — action hooks (post-save event)', () => {
     fieldInfo['StatusID'] = { Dirty: true, OldValue: 'S-PROG' };
     await new IssueEntityServer().Save();
     await fireSaveEvent();
-    const actions = runActionMock.mock.calls.map((c) => (c[0] as { Action: { ID: string } }).Action.ID);
+    const actions = runActionMock.mock.calls.map((c) => c[0].Action.ID);
     expect(actions).toEqual(['ACT-STATUS']);
   });
 
@@ -228,7 +233,7 @@ describe('IssueEntityServer — action hooks (post-save event)', () => {
     fieldInfo['AssigneeRecordID'] = { Dirty: true, OldValue: null };
     await new IssueEntityServer().Save();
     await fireSaveEvent();
-    const actions = runActionMock.mock.calls.map((c) => (c[0] as { Action: { ID: string } }).Action.ID);
+    const actions = runActionMock.mock.calls.map((c) => c[0].Action.ID);
     expect(actions).toEqual(['ACT-ASSIGN']);
   });
 
