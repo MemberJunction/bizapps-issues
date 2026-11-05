@@ -59,9 +59,18 @@ describe('SequenceService.assignNextIssueNumber', () => {
       expect(capturedSQL).toContain('@AppScope = NULL');
     });
 
-    it('escapes single quotes in the scope literal', async () => {
-      await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("N'O''Brien'");
+    it('refuses a scope with characters outside the allowed shape before building SQL', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+      expect(capturedSQL).toBe('');
+    });
+
+    it('refuses a scope longer than 50 characters', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber('A'.repeat(51), makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+      expect(capturedSQL).toBe('');
     });
 
     it('defaults to SQL Server when DB_PLATFORM is unset', async () => {
@@ -90,10 +99,11 @@ describe('SequenceService.assignNextIssueNumber', () => {
       expect(capturedSQL).toContain('spAssignNextIssueNumber(NULL)');
     });
 
-    it('escapes single quotes with a plain (non-N) literal', async () => {
-      await SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never);
-      expect(capturedSQL).toContain("'O''Brien'");
-      expect(capturedSQL).not.toContain("N'O''Brien'");
+    it('refuses a scope with characters outside the allowed shape before building SQL', async () => {
+      await expect(
+        SequenceService.assignNextIssueNumber("O'Brien", makeEntity() as never),
+      ).rejects.toThrow(/invalid AppScope/);
+      expect(capturedSQL).toBe('');
     });
   });
 
