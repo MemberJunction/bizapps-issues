@@ -2,9 +2,19 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RunView, CompositeKey, Metadata } from '@memberjunction/core';
+
 import { NavigationService } from '@memberjunction/ng-shared';
 import type { IssueCardItem } from '../issue-kanban/issue-kanban.component';
 import type { mjBizAppsIssuesIssueStatusEntity, mjBizAppsIssuesIssueCommentEntity } from '@mj-biz-apps/issues-entities';
+
+/**
+ * Escape a value for inlining into an ExtraFilter string literal (NUL-strip + quote doubling).
+ * Local mirror of @memberjunction/global's EscapeSQLString, which this repo's MJ floor
+ * (6.1.0-edge.4) predates; swap for the import when the floor is raised.
+ */
+function escapeFilterValue(value: string): string {
+    return value.replace(/\0/g, '').replace(/'/g, "''");
+}
 
 interface IssueCommentView {
     ID: string;
@@ -335,7 +345,7 @@ export class IssueDetailPanelComponent implements OnInit, OnChanges {
             const rv = new RunView();
             const res = await rv.RunView<Record<string, unknown>>({
                 EntityName: 'MJ_BizApps_Issues: Issue Comments',
-                ExtraFilter: `IssueID = '${this.Issue.ID}'`,
+                ExtraFilter: `IssueID = '${escapeFilterValue(this.Issue.ID)}'`,
                 OrderBy: '__mj_CreatedAt ASC',
                 ResultType: 'simple'
             });

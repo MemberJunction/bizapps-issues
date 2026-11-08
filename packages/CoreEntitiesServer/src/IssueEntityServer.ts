@@ -47,9 +47,16 @@ export class IssueEntityServer extends mjBizAppsIssuesIssueEntity {
     const assigneeEntityField = this.GetFieldByName('AssigneeEntityID');
     const assigneeChanged = (assigneeField?.Dirty ?? false) || (assigneeEntityField?.Dirty ?? false);
 
-    // 1. IssueNumber (insert only, immutable)
-    if (isNew && !this.IssueNumber) {
+    // 1. IssueNumber is server-assigned and immutable. On insert the sequence
+    //    service ALWAYS allocates it (overwriting anything a client supplied);
+    //    on update any attempted change is reverted to the stored value.
+    if (isNew) {
       await this.assignIssueNumber();
+    } else {
+      const issueNumberField = this.GetFieldByName('IssueNumber');
+      if (issueNumberField?.Dirty) {
+        this.IssueNumber = issueNumberField.OldValue as string;
+      }
     }
 
     // 2. Lifecycle timestamps — stamp inline so they're part of this write.

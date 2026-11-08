@@ -1,6 +1,16 @@
 import { BaseEntity, DatabaseProviderBase, LogError } from '@memberjunction/core';
 import { resolveDbPlatformFromEnv } from '@memberjunction/generic-database-provider';
 
+/**
+ * Escape a value for inlining as a SQL string literal: strip null bytes, double single quotes.
+ * Local mirror of @memberjunction/global's EscapeSQLString — this repo's MJ floor
+ * (6.1.0-edge.4) predates that export (published from 6.1.5); replace with the import
+ * when the floor is raised.
+ */
+function escapeSqlString(value: string): string {
+  return value.replace(/\0/g, '').replace(/'/g, "''");
+}
+
 const ISSUES_SCHEMA = '__mj_BizAppsIssues';
 
 /**
@@ -77,7 +87,7 @@ export class SequenceService {
    * literal (the verified pattern across MJ's generated resolvers, which pass `undefined` params).
    */
   private static buildSqlServerSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `N'${appScope.replace(/'/g, "''")}'`;
+    const scopeLiteral = appScope == null ? 'NULL' : `N'${escapeSqlString(appScope)}'`;
     return `
       DECLARE @issueNumber NVARCHAR(50);
       EXEC ${ISSUES_SCHEMA}.spAssignNextIssueNumber
@@ -94,7 +104,7 @@ export class SequenceService {
    * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG.
    */
   private static buildPostgresSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `'${appScope.replace(/'/g, "''")}'`;
+    const scopeLiteral = appScope == null ? 'NULL' : `'${escapeSqlString(appScope)}'`;
     return `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(${scopeLiteral}) AS "IssueNumber";`;
   }
 }

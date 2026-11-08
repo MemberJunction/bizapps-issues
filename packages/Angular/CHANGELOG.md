@@ -1,5 +1,16 @@
 # @mj-biz-apps/issues-ng
 
+## 1.5.0
+
+### Minor Changes
+
+- 0220805: Drop the unused `@memberjunction/actions-base` peer from `@mj-biz-apps/issues-ng` and move sibling app packages (`@mj-biz-apps/common-entities`, `@mj-biz-apps/tasks-entities`) to `peerDependencies` with `devDependencies` build anchors in `@mj-biz-apps/issues-core` and `@mj-biz-apps/issues-server` so the family dependency and manifest-tier guard passes cleanly.
+
+### Patch Changes
+
+- Updated dependencies [6090587]
+  - @mj-biz-apps/issues-entities@1.5.0
+
 ## 1.4.0
 
 ### Patch Changes
