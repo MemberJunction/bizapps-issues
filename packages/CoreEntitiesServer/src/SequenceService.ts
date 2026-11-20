@@ -1,17 +1,16 @@
 import { BaseEntity, DatabaseProviderBase, LogError } from '@memberjunction/core';
 import { resolveDbPlatformFromEnv } from '@memberjunction/generic-database-provider';
 
-/**
- * Escape a value for inlining as a SQL string literal: strip null bytes, double single quotes.
- * Local mirror of @memberjunction/global's EscapeSQLString — this repo's MJ floor
- * (6.1.0-edge.4) predates that export (published from 6.1.5); replace with the import
- * when the floor is raised.
- */
-function escapeSqlString(value: string): string {
-  return value.replace(/\0/g, '').replace(/'/g, "''");
-}
-
 const ISSUES_SCHEMA = '__mj_BizAppsIssues';
+
+/** The proc normalizes AppScope to NVARCHAR(50); bound the scope before passing it to SQL. */
+const MAX_APP_SCOPE_LENGTH = 50;
+
+/** A dialect-specific statement plus the bound parameters it expects. */
+interface SequenceSQL {
+  sql: string;
+  parameters: string[] | undefined;
+}
 
 /**
  * SequenceService — calls the DB-level atomic numbering routine (spAssignNextIssueNumber)
@@ -58,16 +57,25 @@ export class SequenceService {
       throw new Error('SequenceService: no provider available on the entity');
     }
 
+    // Sanitize and bound the scope BEFORE passing to SQL: strip NUL bytes (PostgreSQL
+    // rejects 0x00 in UTF-8 text even inside bound parameters), trim, collapse blank to
+    // NULL (proc defaults to 'ISS'), and truncate to the proc's NVARCHAR(50) width.
+    const cleanedScope = appScope?.replace(/\0/g, '').trim() ?? null;
+    const normalizedScope =
+      cleanedScope == null || cleanedScope.length === 0
+        ? null
+        : cleanedScope.slice(0, MAX_APP_SCOPE_LENGTH);
+
     // DB_PLATFORM defaults to SQL Server when unset (resolveDbPlatformFromEnv returns undefined).
     const platform = resolveDbPlatformFromEnv() ?? 'sqlserver';
-    const sql =
+    const { sql, parameters } =
       platform === 'postgresql'
-        ? this.buildPostgresSQL(appScope)
-        : this.buildSqlServerSQL(appScope);
+        ? this.buildPostgresSQL(normalizedScope)
+        : this.buildSqlServerSQL(normalizedScope);
 
     const rows = await provider.ExecuteSQL(
       sql,
-      undefined,
+      parameters,
       { isMutation: true, description: 'spAssignNextIssueNumber' },
       entity.ContextCurrentUser,
     );
@@ -83,15 +91,24 @@ export class SequenceService {
 
   /**
    * SQL Server: call the OUTPUT-parameter procedure and surface its value as a column.
-   * The proc re-normalizes the scope regardless of what we pass; we inline it as an escaped
-   * literal (the verified pattern across MJ's generated resolvers, which pass `undefined` params).
+   * The proc re-normalizes the scope regardless of what we pass. A non-null scope is bound as a
+   * positional parameter — SQLServerDataProvider rewrites `?` to `@p0` and binds via
+   * `request.input('p0', value)` — never inlined into the SQL text. NULL stays inline so the
+   * proc's NULL→'ISS' defaulting is untouched by parameter type inference.
    */
-  private static buildSqlServerSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `N'${escapeSqlString(appScope)}'`;
+  private static buildSqlServerSQL(appScope: string | null): SequenceSQL {
+    if (appScope == null) {
+      return { sql: this.sqlServerCallTemplate('NULL'), parameters: undefined };
+    }
+    return { sql: this.sqlServerCallTemplate('?'), parameters: [appScope] };
+  }
+
+  /** Shared T-SQL batch shape for the OUTPUT-parameter procedure call. */
+  private static sqlServerCallTemplate(scopePlaceholder: string): string {
     return `
       DECLARE @issueNumber NVARCHAR(50);
       EXEC ${ISSUES_SCHEMA}.spAssignNextIssueNumber
-          @AppScope = ${scopeLiteral},
+          @AppScope = ${scopePlaceholder},
           @IssueNumber = @issueNumber OUTPUT;
       SELECT @issueNumber AS IssueNumber;
     `;
@@ -101,10 +118,19 @@ export class SequenceService {
    * PostgreSQL: call the function form and alias its scalar result to the `IssueNumber` column the
    * caller reads. The function name is emitted UNQUOTED so PostgreSQL folds it to the same lowercase
    * identifier the `CREATE FUNCTION` produced. The schema is likewise unquoted (folds to lowercase),
-   * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG.
+   * matching how `mj codegen` and the MJServer runtime reference app-schema objects on PG. A non-null
+   * scope is bound as the `$1` positional parameter, never inlined.
    */
-  private static buildPostgresSQL(appScope: string | null): string {
-    const scopeLiteral = appScope == null ? 'NULL' : `'${escapeSqlString(appScope)}'`;
-    return `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(${scopeLiteral}) AS "IssueNumber";`;
+  private static buildPostgresSQL(appScope: string | null): SequenceSQL {
+    if (appScope == null) {
+      return {
+        sql: `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber(NULL) AS "IssueNumber";`,
+        parameters: undefined,
+      };
+    }
+    return {
+      sql: `SELECT ${ISSUES_SCHEMA}.spAssignNextIssueNumber($1) AS "IssueNumber";`,
+      parameters: [appScope],
+    };
   }
 }
