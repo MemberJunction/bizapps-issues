@@ -16,11 +16,15 @@ import { Pool } from 'pg';
 const S = '__mj_bizappsissues';
 const C = '__mj_bizappscommon';
 const T = '__mj_bizappstasks';
+if (!process.env.PGPASSWORD) {
+  console.error('PGPASSWORD is not set — export the database password before running this script.');
+  process.exit(1);
+}
 const pool = new Pool({
   host: process.env.PGHOST ?? 'localhost',
   port: +(process.env.PGPORT ?? 5436),
   user: process.env.PGUSER ?? 'mj_admin',
-  password: process.env.PGPASSWORD ?? 'Verify99',
+  password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE ?? 'Issues_OneShot',
 });
 const q = (sql, p) => pool.query(sql, p);

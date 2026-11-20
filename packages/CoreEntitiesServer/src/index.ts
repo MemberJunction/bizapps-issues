@@ -11,15 +11,18 @@
  */
 
 import { IssueEntityServer } from './IssueEntityServer.js';
+import { IssueCommentEntityServer } from './IssueCommentEntityServer.js';
 import { registerIssueNumberingPolicy } from './SequenceService.js';
 
 export { IssueEntityServer } from './IssueEntityServer.js';
+export { IssueCommentEntityServer } from './IssueCommentEntityServer.js';
 export {
   CustomRoutineDocumentSequenceStore,
   ISSUES_ENTITY_NAME,
   ISSUE_NUMBERING_POLICY,
   SequenceService,
   registerIssueNumberingPolicy,
+  type SequenceSQL,
 } from './SequenceService.js';
 
 /**
@@ -28,7 +31,8 @@ export {
  * ensures the Issues `DocumentNumberingEngine` policy is registered.
  */
 export function LoadBizAppsIssuesEntitiesServer(): void {
-  // Reference the class so the import is retained and its decorator runs.
+  // Reference the classes so the imports are retained and their decorators run.
   void IssueEntityServer;
+  void IssueCommentEntityServer;
   registerIssueNumberingPolicy();
 }

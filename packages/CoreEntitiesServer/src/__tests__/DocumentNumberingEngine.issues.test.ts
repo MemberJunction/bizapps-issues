@@ -137,15 +137,17 @@ describe('DocumentNumberingEngine integration for MJ_BizApps_Issues: Issues', ()
     );
   });
 
-  it('bridges DocumentNumberingEngine allocation to spAssignNextIssueNumber via CustomRoutineDocumentSequenceStore', async () => {
+  it('bridges DocumentNumberingEngine allocation to spAssignNextIssueNumber via CustomRoutineDocumentSequenceStore with bound parameters', async () => {
     const routineStore = new CustomRoutineDocumentSequenceStore();
     DocumentNumberingEngine.Instance.SetSequenceStore(routineStore);
 
     let capturedSQL = '';
+    let capturedParams: string[] | undefined;
     const provider = {
       PlatformKey: 'sqlserver',
-      ExecuteSQL: vi.fn(async (sql: string) => {
+      ExecuteSQL: vi.fn(async (sql: string, parameters?: string[]) => {
         capturedSQL = sql;
+        capturedParams = parameters;
         return [{ IssueNumber: 'MJC-55' }];
       }),
     } as object as DatabaseProviderBase;
@@ -155,6 +157,35 @@ describe('DocumentNumberingEngine integration for MJ_BizApps_Issues: Issues', ()
     expect(assigned).toEqual(['IssueNumber']);
     expect(issue.fields.IssueNumber.Value).toBe('MJC-55');
     expect(capturedSQL).toContain('spAssignNextIssueNumber');
+    expect(capturedSQL).toContain('@AppScope = ?');
+    expect(capturedSQL).not.toContain("N'MJC'");
+    expect(capturedParams).toEqual(['MJC']);
     expect(ISSUE_NUMBERING_POLICY.pattern).toBe('{Field:AppScope:UPPER:ISS}-{SEQ:1}');
+  });
+
+  it('sanitizes NUL bytes and caps scope length to 50 chars inside CustomRoutineDocumentSequenceStore', async () => {
+    const routineStore = new CustomRoutineDocumentSequenceStore();
+    let capturedSQL = '';
+    let capturedParams: string[] | undefined;
+    const provider = {
+      PlatformKey: 'sqlserver',
+      ExecuteSQL: vi.fn(async (sql: string, parameters?: string[]) => {
+        capturedSQL = sql;
+        capturedParams = parameters;
+        return [{ IssueNumber: 'MJC-56' }];
+      }),
+    } as object as DatabaseProviderBase;
+
+    const seq = await routineStore.AllocateNext({
+      sequenceKey: ISSUE_NUMBERING_POLICY.sequenceKey,
+      scopeKey: `Field:AppScope=MJC\0${'X'.repeat(60)}`,
+      startAt: 1,
+      incrementBy: 1,
+      provider,
+      contextUser: undefined,
+    });
+    expect(seq).toBe(56);
+    expect(capturedSQL).toContain('@AppScope = ?');
+    expect(capturedParams).toEqual([`MJC${'X'.repeat(47)}`]);
   });
 });

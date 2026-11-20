@@ -1,7 +1,8 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RunView } from '@memberjunction/core';
+import { Metadata, RunView } from '@memberjunction/core';
+import { EscapeSQLString } from '@memberjunction/global';
 import { IssueListComponent } from '../components/issue-list/issue-list.component';
 import { IssueDetailPanelComponent } from '../components/issue-detail-panel/issue-detail-panel.component';
 import type { IssueCardItem } from '../components/issue-kanban/issue-kanban.component';
@@ -125,9 +126,21 @@ export class MyIssuesPageComponent implements OnInit {
 
     public async LoadData(): Promise<void> {
         try {
+            // "My Issues" must only ever show the viewer's own reported issues — never
+            // other users' issues or reporter emails. Scope the query to the current
+            // user's email (the field report-issue stamps); with no identified user,
+            // show nothing rather than everything.
+            const currentUserEmail = new Metadata().CurrentUser?.Email?.trim();
+            if (!currentUserEmail) {
+                this.ReportedIssues = [];
+                this.OpenIssues = [];
+                return;
+            }
+
             const rv = new RunView();
             const res = await rv.RunView<Record<string, unknown>>({
                 EntityName: 'MJ_BizApps_Issues: Issues',
+                ExtraFilter: `ReporterEmail='${EscapeSQLString(currentUserEmail)}'`,
                 OrderBy: '__mj_CreatedAt DESC',
                 MaxRows: 50,
                 ResultType: 'simple'
