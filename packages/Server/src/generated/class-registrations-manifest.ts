@@ -20,8 +20,9 @@ import {
     mjBizAppsIssuesIssueTypeEntity,
 } from '@mj-biz-apps/issues-entities';
 
-// @mj-biz-apps/issues-core-entities-server (1 classes)
+// @mj-biz-apps/issues-core-entities-server (2 classes)
 import {
+    IssueCommentEntityServer,
     IssueEntityServer,
 } from '@mj-biz-apps/issues-core-entities-server';
 
@@ -36,6 +37,7 @@ export const CLASS_REGISTRATIONS: any[] = [
     mjBizAppsIssuesIssueNumberSequenceEntity,
     mjBizAppsIssuesIssueStatusEntity,
     mjBizAppsIssuesIssueTypeEntity,
+    IssueCommentEntityServer,
     IssueEntityServer,
 ];
 
@@ -43,7 +45,7 @@ export const CLASS_REGISTRATIONS: any[] = [
 export const CLASS_REGISTRATIONS_MANIFEST_LOADED = true;
 
 /** Total @RegisterClass decorated classes discovered in dependency tree */
-export const CLASS_REGISTRATIONS_COUNT = 6;
+export const CLASS_REGISTRATIONS_COUNT = 7;
 
 /** Packages imported by this manifest */
 export const CLASS_REGISTRATIONS_PACKAGES = [
