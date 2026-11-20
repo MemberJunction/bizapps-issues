@@ -1,5 +1,9 @@
 # @mj-biz-apps/issues-actions
 
+## 1.5.0
+
+No changes in this release.
+
 ## 1.4.0
 
 ## 1.3.2
