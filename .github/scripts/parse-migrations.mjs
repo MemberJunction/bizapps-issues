@@ -22,7 +22,9 @@ import { tmpdir } from 'node:os';
 const host = process.env.DB_HOST || 'localhost';
 const port = process.env.DB_PORT || '1433';
 const user = process.env.DB_USERNAME || 'sa';
-const password = process.env.DB_PASSWORD || 'KRiUffvIjuP5GoLtxYvVkWIQ1BxHQEEMO7j4T684oPR7';
+// No baked-in fallback: main() fails fast when DB_PASSWORD is unset. Read lazily so that
+// importing this module's helpers (see __tests__/) never requires the variable.
+const password = () => process.env.DB_PASSWORD;
 
 /**
  * gh-5: standard sqlcmd install locations to fall back to when `sqlcmd` isn't on PATH. Kept
@@ -49,14 +51,15 @@ function findExecutionMethod() {
                     const tempFile = join(tmpdir(), `parse_${Date.now()}_${Math.random().toString(36).slice(2)}.sql`);
                     try {
                         writeFileSync(tempFile, sql, 'utf8');
+                        // Password travels via SQLCMDPASSWORD, not `-P` argv — argv is
+                        // world-readable through /proc while the process runs.
                         execFileSync(c, [
                             '-S', `${host},${port}`,
                             '-U', user,
-                            '-P', password,
                             '-C',
                             '-b',
                             '-i', tempFile
-                        ], { stdio: 'pipe' });
+                        ], { stdio: 'pipe', env: { ...process.env, SQLCMDPASSWORD: password() } });
                     } finally {
                         try { unlinkSync(tempFile); } catch {}
                     }
@@ -116,6 +119,11 @@ function main() {
     const dir = process.argv.find((_, i, arr) => arr[i - 1] === '--dir') || './migrations';
     const defaultSchema = process.argv.find((_, i, arr) => arr[i - 1] === '--schema') || '__mj_BizAppsCommon';
     const mjSchema = process.argv.find((_, i, arr) => arr[i - 1] === '--core-schema') || '__mj';
+
+    if (!password()) {
+        console.error('::error::DB_PASSWORD environment variable is not set. Set it to the SQL Server password (CI sets it in changes.yml); there is no built-in fallback.');
+        process.exit(1);
+    }
 
     const runner = findExecutionMethod();
     if (!runner) {

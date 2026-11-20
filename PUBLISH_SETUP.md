@@ -7,35 +7,44 @@ helpers, and Changesets config are already in place.
 
 ## Branch model
 
+This repo follows release lines (`guides/RELEASE_LINES.md`):
+
 ```
-feature PR ──▶ next ──(version.yml)──▶ Version Packages PR (changeset-release/main ──▶ main)
-                                              │ reviewed + merged = the release
-                                              ▼
-                               main ──(publish.yml)──▶ npm + tag vX.Y.Z
-                                              │
-                                              ▼
-                               back-merge PR main ──▶ next (opened + merged by the App)
+feature PR ──▶ next ──backport label──▶ lts/6.1 ──(version.yml)──▶ Version Packages PR (changeset-release/main ──▶ main)
+                                                                          │ reviewed + merged = the release
+                                                                          ▼
+                                                                   main ──(publish.yml)──▶ npm + tag vX.Y.Z
+                                                                          │
+                                                                          ▼
+                                                                   back-merge PR main ──▶ lts/6.1 + cleanup PR on next
 ```
 
-- Feature PRs land on **`next`** with a changeset. `build.yml` and `changes.yml` run as checks.
-  A migration-bearing PR must carry at least a `minor` changeset.
-- Every push to `next` refreshes one **Version Packages** PR (`version.yml`, using
-  `changesets/action@v1` with `branch: main`). It runs `changeset version`, so its diff shows the
-  exact version bump, changelog entries and `mj-app.json` version. **That PR is the release.**
-- PRs into `main` run the `rr:` gates (`release-readiness.yml`) plus `build`.
-- Merging the Version Packages PR pushes to `main`, which fires `publish.yml`: build,
-  `changeset publish`, and a `vX.Y.Z` tag **only if something actually shipped**.
-- `publish.yml` then opens and merges a `main → next` back-merge PR with the GitHub App token,
-  so `next` always contains the released versions. `rr: release base current` fails the next
-  release if that back-merge never landed.
-- A push to `main` with nothing new to publish ships nothing and creates no tag.
+- `next` is built on MJ Edge and **never versions or publishes**. Feature PRs land on **`next`**
+  with a changeset. `build.yml`, `changes.yml` and `release-lines-gates.yml` run as checks.
+  A migration-bearing PR must carry at least a `minor` changeset and either `backport lts/X.Y`
+  labels for every open line or its files listed in `next.edgeOnlyMigrations`.
+- A `backport lts/X.Y` label on a PR into `next` makes `backport.yml` open the cherry-pick PR
+  into that line once it merges. The changeset travels with it.
+- Every push to a line refreshes one **Version Packages** PR (`version.yml`, using
+  `changesets/action@v2` with `pr-base-branch` resolved from `release-lines.json` on `next`).
+  - The newest line (`releasesThrough: main`): `changeset-release/main` → `main` (dist-tag `latest`),
+    with a `release-back-merge/vX.Y.Z` PR back into the line after publish.
+  - An older line (`releasesThrough: branch`): `changeset-release/lts/X.Y` → `lts/X.Y` (dist-tag
+    `lts-X.Y`, no back-merge needed).
+- PRs into `main` (and Version Packages PRs into `lts/*`) run the `rr:` gates
+  (`release-readiness.yml`), `lines: mj pin`, and `build`.
+- Merging the Version Packages PR (`Cut the Release` dispatch) triggers `publish.yml`: build,
+  `changeset publish --tag <dist-tag>`, verify the dist-tag, tag `vX.Y.Z` **only if something
+  actually shipped**, carry the back-merge to the line (when releasing through `main`), and
+  open a PR removing the consumed changesets from `next`.
+- A push with nothing new to publish ships nothing and creates no tag.
 
 > **Branch protection** (applied). `next` (`protect-next`): changes arrive by pull request with
-> the door checks required and the branch up to date, and **no approval required**. The App is a
-> `pull_request`-mode bypass actor, so the back-merge can merge the moment it opens. `main`
-> (`protect-main`): the `rr:` checks and `build` required, **one approval** with
-> dismiss-stale-reviews. Bypass: the Repository admin role, "for pull requests only", as the
-> override for a failure case (no second reviewer, a stuck check). Use it deliberately.
+> the door checks required and the branch up to date. The App is a `pull_request`-mode bypass
+> actor. `main` (`protect-main`): the `rr:` checks and `build` required, **one approval** with
+> dismiss-stale-reviews. `lts/*` (`protect-lts`): PR required, **one approval**, code-owner
+> review, the `lines:` checks, the door checks and `build`, with App `pull_request`-mode bypass
+> for the back-merge and an older line's release PR.
 
 ## npm authentication — OIDC (no NPM_TOKEN secret)
 

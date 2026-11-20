@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CompositeKey, Metadata, RunView } from '@memberjunction/core';
+
 import {
     MJCardGridComponent,
     MJCardComponent,
@@ -10,6 +11,15 @@ import {
 import { NavigationService } from '@memberjunction/ng-shared';
 import { BaseFormComponent } from '@memberjunction/ng-base-forms';
 import type { mjBizAppsIssuesIssueEntity } from '@mj-biz-apps/issues-entities';
+
+/**
+ * Escape a value for inlining into an ExtraFilter string literal (NUL-strip + quote doubling).
+ * Local mirror of @memberjunction/global's EscapeSQLString, which this repo's MJ floor
+ * (6.1.0-edge.4) predates; swap for the import when the floor is raised.
+ */
+function escapeFilterValue(value: string): string {
+    return value.replace(/\0/g, '').replace(/'/g, "''");
+}
 
 interface IssueCommentSummary {
     ID: string;
@@ -487,7 +497,7 @@ export class IssueOverviewComponent implements OnInit, OnChanges {
             const rv = new RunView();
             const res = await rv.RunView<Record<string, unknown>>({
                 EntityName: 'MJ_BizApps_Issues: Issue Comments',
-                ExtraFilter: `IssueID = '${this.Record.ID}'`,
+                ExtraFilter: `IssueID = '${escapeFilterValue(this.Record.ID)}'`,
                 OrderBy: '__mj_CreatedAt DESC',
                 MaxRows: 10,
                 ResultType: 'simple'

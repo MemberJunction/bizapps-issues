@@ -5,10 +5,15 @@
   },
   "directoryOrder": [
     "applications",
+    "application-roles",
     "issue-statuses",
     "issue-types",
     "entities",
-    "entity-relationships"
+    "entity-relationships",
+    "record-processes",
+    "ml-training-pipelines",
+    "ml-models",
+    "ml-model-scoring-bindings"
   ],
   "sqlLogging": {
     "enabled": true,

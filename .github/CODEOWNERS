@@ -1,0 +1,2 @@
+# Release line CODEOWNERS: protect-lts requires code-owner review on every PR into this line.
+* @bg-BC @rkihm-BC
