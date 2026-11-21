@@ -76,6 +76,7 @@ jobs:
         run: |
           ./.github/scripts/__tests__/validate-package-lock-case.test.sh
           ./.github/scripts/__tests__/check-bump-level.test.sh
+          ./.github/scripts/__tests__/check-pg-counterpart.test.sh
 
       # Specs for the migration guards (and any repo-specific *.spec.mjs placed next to them).
       # Plain node:test, no dependencies, so it runs before the install.
