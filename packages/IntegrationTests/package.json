@@ -2,7 +2,7 @@
   "name": "@mj-biz-apps/issues-integration-tests",
   "license": "BUSL-1.1",
   "type": "module",
-  "version": "1.4.0",
+  "version": "6.3.0-edge.1",
   "private": true,
   "description": "GraphQL-wire integration checks for BizApps Issues.",
   "main": "dist/index.js",
@@ -15,7 +15,7 @@
     "@memberjunction/global": "^6.3.0-edge.1",
     "@memberjunction/testing-integration": "^6.3.0-edge.1",
     "@mj-biz-apps/common-entities": ">=5.34.0 <6.0.0",
-    "@mj-biz-apps/issues-entities": "1.4.0"
+    "@mj-biz-apps/issues-entities": "6.3.0-edge.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

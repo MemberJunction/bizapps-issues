@@ -139,7 +139,7 @@ importers:
         specifier: ^6.3.0-edge.1
         version: 6.3.0-edge.1(f555aaaffc2013cbecd9ce8e8e312d81)
       '@mj-biz-apps/issues-entities':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Entities
     devDependencies:
       '@angular/animations':
@@ -185,7 +185,7 @@ importers:
         specifier: ^6.3.0-edge.1
         version: 6.3.0-edge.1(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.30.0(zod@4.6.7))(@smithy/signature-v4@5.7.5)(@types/node@25.9.5)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.23.0)(zod@4.6.7)
       '@mj-biz-apps/issues-entities':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Entities
     devDependencies:
       '@mj-biz-apps/common-entities':
@@ -228,10 +228,10 @@ importers:
         specifier: 6.3.0-edge.1
         version: 6.3.0-edge.1
       '@mj-biz-apps/issues-core':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Core
       '@mj-biz-apps/issues-entities':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Entities
     devDependencies:
       typescript:
@@ -278,7 +278,7 @@ importers:
         specifier: '>=5.34.0 <6.0.0'
         version: 5.34.0(@memberjunction/core@6.3.0-edge.1)(@memberjunction/global@6.3.0-edge.1)
       '@mj-biz-apps/issues-entities':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Entities
     devDependencies:
       '@types/node':
@@ -309,16 +309,16 @@ importers:
         specifier: ^6.3.0-edge.1
         version: 6.3.0-edge.1(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.5)(@types/node@22.20.1)(axios@1.19.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/issues-actions':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Actions
       '@mj-biz-apps/issues-core':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Core
       '@mj-biz-apps/issues-core-entities-server':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../CoreEntitiesServer
       '@mj-biz-apps/issues-entities':
-        specifier: 1.4.0
+        specifier: 6.3.0-edge.1
         version: link:../Entities
       class-validator:
         specifier: ^0.14.3
@@ -10552,23 +10552,6 @@ snapshots:
       - canvas
     optional: true
 
-  '@hyperframes/core@0.8.134(@types/node@25.9.5)':
-    dependencies:
-      '@chenglou/pretext': 0.0.5
-      '@hyperframes/lint': 0.8.134
-      '@hyperframes/parsers': 0.8.134
-      '@hyperframes/studio-server': 0.8.134(@types/node@25.9.5)
-      bpm-detective: 2.0.5
-      linkedom: 0.18.15
-      postcss: 8.5.26
-      wawoff2: 2.0.1
-    optionalDependencies:
-      esbuild: 0.25.12
-    transitivePeerDependencies:
-      - '@types/node'
-      - canvas
-    optional: true
-
   '@hyperframes/engine@0.8.134(@types/node@22.20.1)':
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
@@ -10591,24 +10574,6 @@ snapshots:
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
       '@hyperframes/core': 0.8.134(@types/node@24.10.11)
-      '@hyperframes/parsers': 0.8.134
-      hono: 4.13.1
-      linkedom: 0.18.15
-      puppeteer: 25.18.1
-      puppeteer-core: 25.18.1
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - canvas
-      - proxy-agent
-      - utf-8-validate
-      - yauzl
-    optional: true
-
-  '@hyperframes/engine@0.8.134(@types/node@25.9.5)':
-    dependencies:
-      '@hono/node-server': 2.1.0(hono@4.13.1)
-      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
       '@hyperframes/parsers': 0.8.134
       hono: 4.13.1
       linkedom: 0.18.15
@@ -10695,8 +10660,8 @@ snapshots:
   '@hyperframes/producer@0.8.134(@types/node@25.9.5)':
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
-      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
-      '@hyperframes/engine': 0.8.134(@types/node@25.9.5)
+      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/engine': 0.8.134(@types/node@24.10.11)
       '@hyperframes/lint': 0.8.134
       '@hyperframes/parsers': 0.8.134
       '@hyperframes/studio-server': 0.8.134(@types/node@25.9.5)
@@ -10744,7 +10709,7 @@ snapshots:
 
   '@hyperframes/studio-server@0.8.134(@types/node@25.9.5)':
     dependencies:
-      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
+      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
       '@hyperframes/parsers': 0.8.134
       hono: 4.13.1
       linkedom: 0.18.15
@@ -24416,8 +24381,8 @@ snapshots:
 
   '@memberjunction/video-studio-render-worker@6.3.0-edge.1(@types/node@25.9.5)':
     dependencies:
-      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
-      '@hyperframes/engine': 0.8.134(@types/node@25.9.5)
+      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/engine': 0.8.134(@types/node@24.10.11)
       '@hyperframes/lint': 0.8.134
       '@hyperframes/parsers': 0.8.134
       '@hyperframes/producer': 0.8.134(@types/node@25.9.5)
