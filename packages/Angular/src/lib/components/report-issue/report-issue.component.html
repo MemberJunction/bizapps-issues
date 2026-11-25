@@ -9,7 +9,7 @@
         <mj-loading text="Loading options..." size="medium"></mj-loading>
       </div>
     } @else {
-      <div class="ri-body">
+      <div class="ri-body" data-mj-tour-anchor="issues.report.body">
         @if (ErrorMessage) {
           <div class="ri-error" role="alert">
             <i class="fa-solid fa-triangle-exclamation"></i> {{ ErrorMessage }}
@@ -47,7 +47,7 @@
             [(ngModel)]="Description"></textarea>
         </label>
 
-        <label class="ri-field">
+        <label class="ri-field" data-mj-tour-anchor="issues.report.severity">
           <span class="ri-label">Severity</span>
           <mj-dropdown
             [Data]="SeverityOptions"
@@ -58,7 +58,7 @@
       </div>
     }
 
-    <mj-dialog-actions>
+    <mj-dialog-actions data-mj-tour-anchor="issues.report.actions">
       <!-- Confirm/submit on the LEFT, cancel on the RIGHT (MJ convention). -->
       <button mjButton variant="primary" [disabled]="!CanSubmit" (click)="Submit()">
         @if (IsSubmitting) { Submitting… } @else { Submit }
