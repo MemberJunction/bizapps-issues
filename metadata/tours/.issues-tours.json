@@ -1,0 +1,327 @@
+[
+  {
+    "fields": {
+      "Name": "Issue Intake, Queues & Threaded Updates",
+      "TourKey": "issues.intake-my-issues",
+      "Description": "Submit structured bug reports and feedback, manage Issues Kanban and List queues, track My Issues, and collaborate with threaded comments.",
+      "ApplicationID": "@lookup:MJ: Applications.Name=Issues",
+      "RunInAuthenticatedHosts": true,
+      "Status": "Draft",
+      "EstimatedMinutes": 2,
+      "Priority": 85,
+      "DefaultGuideMode": "Visual",
+      "AllowAgentActions": false,
+      "Goal": {
+        "Type": "Navigation",
+        "AppName": "Issues",
+        "NavItemKey": "IssuesSectionResource",
+        "Description": "User learns issue reporting, Kanban/List boards, My Issues queue, and detail panel comments."
+      },
+      "StartLocation": {
+        "Application": "Issues",
+        "NavItem": "IssuesSectionResource"
+      }
+    },
+    "primaryKey": {
+      "ID": "FC719878-1266-4F93-9602-F3463CCC69C9"
+    },
+    "relatedEntities": {
+      "MJ: Tour Steps": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-intake-welcome",
+            "Sequence": 1,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Unified Issue Tracking & Resolution",
+            "Body": "Capture customer feedback, bugs, and operational incidents in **Issues**, track status across Kanban and List views, and monitor personal queues in **My Issues**.",
+            "Configuration": {
+              "Variant": "welcome",
+              "PrimaryButtonText": "Explore Issues",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Prepare": {
+              "ApplicationName": "Issues",
+              "DriverClass": "IssuesSectionResource"
+            },
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "DEB98C2B-BDF3-444A-ABA8-E3BEF3BE2C5B"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-report-dialog",
+            "Sequence": 2,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Structured Issue Intake & Severity",
+            "Body": "Use **Report an Issue** from anywhere to capture the issue **Type**, **Title**, reproduction **Description**, and **Severity** before routing it straight into the backlog.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "issues.report.body"
+            },
+            "Placement": "Bottom",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "CA21EDB6-C360-45E8-99FA-FE9B68FB9050"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-queues-my-issues",
+            "Sequence": 3,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Issues Boards & My Issues Queue",
+            "Body": "Switch between Kanban and List views on the main **Issues** board, or open **My Issues** to focus exclusively on issues you reported or are assigned to resolve.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "NavItem",
+              "DriverClass": "MyIssuesSectionResource"
+            },
+            "Placement": "Bottom",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "ABB8BC70-4612-4016-850B-8760E8AEE1F6"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-intake-summary",
+            "Sequence": 4,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Threaded Updates & Next: Triage",
+            "Body": "Open any issue to post threaded comments, update status, and attach context. Continue to **Severity Triage, SLAs & Task Escalation** to manage critical incidents and response targets.",
+            "Configuration": {
+              "Variant": "summary",
+              "PrimaryButtonText": "Finish",
+              "NextTourKey": "issues.triage-workflows",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "10C10123-892A-4D2C-88C2-0CD64BA39671"
+          }
+        }
+      ],
+      "MJ: Tour Prerequisites": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "PrerequisiteType": "Tour",
+            "RequiredTourID": "@lookup:MJ: Tours.TourKey=common.directory",
+            "Strength": "Recommended",
+            "Sequence": 1
+          },
+          "primaryKey": {
+            "ID": "AC98B5E2-4DF9-4B53-94AC-C0EA3F6EE85A"
+          }
+        }
+      ],
+      "MJ: Tour Triggers": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "TriggerType": "FirstVisit",
+            "Configuration": {
+              "Application": "Issues"
+            },
+            "Delivery": "Offer",
+            "CooldownDays": 30,
+            "Priority": 85,
+            "Status": "Active"
+          },
+          "primaryKey": {
+            "ID": "2DDF7458-DB9F-417E-89AF-1927363C9D5C"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Severity Triage, SLAs & Task Escalation",
+      "TourKey": "issues.triage-workflows",
+      "Description": "Monitor Critical and High severity backlogs, track SLA compliance, configure issue types and routing workflows, and escalate defects into tasks.",
+      "ApplicationID": "@lookup:MJ: Applications.Name=Issues",
+      "RunInAuthenticatedHosts": true,
+      "Status": "Draft",
+      "EstimatedMinutes": 2,
+      "Priority": 80,
+      "DefaultGuideMode": "Visual",
+      "AllowAgentActions": false,
+      "Goal": {
+        "Type": "Navigation",
+        "AppName": "Issues",
+        "NavItemKey": "IssueTriageSectionResource",
+        "Description": "User learns Triage & SLAs command view, Issue Types & Workflows configuration, and task escalation."
+      },
+      "StartLocation": {
+        "Application": "Issues",
+        "NavItem": "IssueTriageSectionResource"
+      }
+    },
+    "primaryKey": {
+      "ID": "F25D4A61-C14B-4209-A970-D75EB1B3A8D4"
+    },
+    "relatedEntities": {
+      "MJ: Tour Steps": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-triage-welcome",
+            "Sequence": 1,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Triage Command, SLAs & Escalation",
+            "Body": "Prioritize urgent incidents in **Triage & SLAs**, govern issue categories and statuses in **Types & Workflows**, and escalate engineering work into actionable tasks.",
+            "Configuration": {
+              "Variant": "welcome",
+              "PrimaryButtonText": "Explore Triage",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Prepare": {
+              "ApplicationName": "Issues",
+              "DriverClass": "IssueTriageSectionResource"
+            },
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "6E92D364-EB27-4378-AF42-B5DDB4EA8839"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-triage-sla",
+            "Sequence": 2,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Critical Severity & SLA Backlog",
+            "Body": "Watch **Critical Severity**, **High Priority**, **Untriaged / New**, and **SLA Target Met** metrics in **Triage & SLAs**, and drill straight into the high-priority backlog list.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "NavItem",
+              "DriverClass": "IssueTriageSectionResource"
+            },
+            "Placement": "Bottom",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "63BEFCA4-14D6-4FDD-B32D-3A61EB0B8DC1"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-triage-types",
+            "Sequence": 3,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Issue Types, Statuses & Routing",
+            "Body": "Open **Types & Workflows** to define Issue Types, number sequences, and status progressions so incoming reports route cleanly to the right owners.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "NavItem",
+              "DriverClass": "IssueTypesSectionResource"
+            },
+            "Placement": "Bottom",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "8DA82D4D-13EE-4AD3-97F6-CEA79BD9CCB6"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "issues-triage-summary",
+            "Sequence": 4,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Escalate Triaged Issues to Tasks",
+            "Body": "When an issue requires multi-step engineering or operational follow-up, escalate it from the detail panel into **Tasks** while keeping issue status and SLA history linked.",
+            "Configuration": {
+              "Variant": "summary",
+              "PrimaryButtonText": "Finish",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "E30B7495-D203-47D4-9599-127089CBEDB5"
+          }
+        }
+      ],
+      "MJ: Tour Prerequisites": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "PrerequisiteType": "Tour",
+            "RequiredTourID": "@lookup:MJ: Tours.TourKey=issues.intake-my-issues",
+            "Strength": "Recommended",
+            "Sequence": 1
+          },
+          "primaryKey": {
+            "ID": "BF2986C8-D9F7-4272-A097-1B5AD3314C7A"
+          }
+        }
+      ]
+    }
+  }
+]

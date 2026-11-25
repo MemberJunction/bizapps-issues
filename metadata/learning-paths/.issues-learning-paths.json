@@ -1,0 +1,44 @@
+[
+  {
+    "fields": {
+      "Name": "Issue Tracking & Triage",
+      "PathKey": "issues.essentials",
+      "Description": "Master issue intake, Kanban and List queues, My Issues, severity triage, SLA compliance, and task escalation.",
+      "ApplicationID": "@lookup:MJ: Applications.Name=Issues",
+      "Status": "Active",
+      "Configuration": {
+        "AllowSkipOptional": true,
+        "ShowNextConcreteStep": true
+      }
+    },
+    "primaryKey": {
+      "ID": "347CA5A5-2D00-452E-AD98-ED4BD00C334D"
+    },
+    "relatedEntities": {
+      "MJ: Learning Path Tours": [
+        {
+          "fields": {
+            "LearningPathID": "@parent:ID",
+            "TourID": "@lookup:MJ: Tours.TourKey=issues.intake-my-issues",
+            "Sequence": 1,
+            "IsRequired": true
+          },
+          "primaryKey": {
+            "ID": "B6F1AAB4-866A-4D8B-8B00-05DC1E3F58FB"
+          }
+        },
+        {
+          "fields": {
+            "LearningPathID": "@parent:ID",
+            "TourID": "@lookup:MJ: Tours.TourKey=issues.triage-workflows",
+            "Sequence": 2,
+            "IsRequired": true
+          },
+          "primaryKey": {
+            "ID": "5A9092FB-773B-481E-AE72-D6284C6B2CBA"
+          }
+        }
+      ]
+    }
+  }
+]
