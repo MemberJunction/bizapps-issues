@@ -32,40 +32,102 @@ import {
  * const bug = engine.IssueTypeByName('Bug');
  * ```
  */
+const ISSUE_TYPES_ENTITY = 'MJ_BizApps_Issues: Issue Types';
+const ISSUE_STATUS_ENTITY = 'MJ_BizApps_Issues: Issue Status';
+
 @RegisterForStartup()
 export class IssueEngine extends BaseEngine<IssueEngine> {
   public static get Instance(): IssueEngine {
     return super.getInstance<IssueEngine>();
   }
 
+  private _activeProvider?: IMetadataProvider;
   private _IssueTypes: mjBizAppsIssuesIssueTypeEntity[] = [];
   private _IssueStatuses: mjBizAppsIssuesIssueStatusEntity[] = [];
 
   /**
+   * Returns the active provider explicitly supplied to {@link Config}, falling back to
+   * `BaseEngine`'s bound/global provider resolution.
+   */
+  public override get ProviderToUse(): IMetadataProvider {
+    return this._activeProvider ?? super.ProviderToUse;
+  }
+
+  /**
    * Loads Issue Types and Issue Statuses into the in-memory cache. Lazy and idempotent —
-   * callers invoke this at entry and it is a no-op once loaded.
+   * callers invoke this at entry and it is a no-op once loaded unless `forceRefresh` is true
+   * or the explicit provider changes.
+   *
+   * Both tables are global, non-RLS bounded lookup tables (`CacheLocal: true`).
    */
   public async Config(
     forceRefresh?: boolean,
     contextUser?: UserInfo,
     provider?: IMetadataProvider,
   ): Promise<void> {
-    const configs: Partial<BaseEnginePropertyConfig>[] = [
+    const providerChanged = Boolean(
+      provider && this._activeProvider && provider !== this._activeProvider,
+    );
+    if (provider !== undefined) {
+      this._activeProvider = provider;
+    }
+
+    const activeProvider = provider ?? this.ProviderToUse;
+    const effectiveForceRefresh = Boolean(forceRefresh || providerChanged);
+    const configs = this.buildPermittedConfigs(activeProvider, contextUser);
+
+    await super.Load(configs, provider, effectiveForceRefresh, contextUser);
+  }
+
+  protected buildPermittedConfigs(
+    provider: IMetadataProvider | undefined,
+    contextUser: UserInfo | undefined,
+  ): Partial<BaseEnginePropertyConfig>[] {
+    const candidates: Array<{ EntityName: string; PropertyName: string; CacheLocal: boolean }> = [
       {
-        Type: 'entity',
-        EntityName: 'MJ_BizApps_Issues: Issue Types',
+        EntityName: ISSUE_TYPES_ENTITY,
         PropertyName: '_IssueTypes',
         CacheLocal: true,
       },
       {
-        Type: 'entity',
-        EntityName: 'MJ_BizApps_Issues: Issue Status',
+        EntityName: ISSUE_STATUS_ENTITY,
         PropertyName: '_IssueStatuses',
         CacheLocal: true,
       },
     ];
 
-    await super.Load(configs, provider, forceRefresh, contextUser);
+    const configs: Partial<BaseEnginePropertyConfig>[] = [];
+    for (const candidate of candidates) {
+      if (this.canReadEntity(candidate.EntityName, provider, contextUser)) {
+        configs.push({
+          Type: 'entity',
+          EntityName: candidate.EntityName,
+          PropertyName: candidate.PropertyName,
+          CacheLocal: candidate.CacheLocal,
+        });
+      }
+    }
+    return configs;
+  }
+
+  protected canReadEntity(
+    entityName: string,
+    provider: IMetadataProvider | undefined,
+    contextUser: UserInfo | undefined,
+  ): boolean {
+    const entities = provider?.Entities;
+    if (!Array.isArray(entities) || entities.length === 0) {
+      return true;
+    }
+    const entityInfo = provider?.EntityByName?.(entityName);
+    if (!entityInfo) {
+      return false;
+    }
+    const user = contextUser ?? provider?.CurrentUser;
+    if (!user) {
+      return true;
+    }
+    return entityInfo.GetUserPermisions(user)?.CanRead ?? false;
   }
 
   // ========================================================================
@@ -89,6 +151,13 @@ export class IssueEngine extends BaseEngine<IssueEngine> {
   /** All cached Issue Types. */
   public get IssueTypes(): mjBizAppsIssuesIssueTypeEntity[] {
     return this._IssueTypes ?? [];
+  }
+
+  /** Active Issue Types sorted alphabetically by Name. */
+  public get ActiveIssueTypes(): mjBizAppsIssuesIssueTypeEntity[] {
+    return this.IssueTypes
+      .filter((t) => t.IsActive)
+      .sort((a, b) => a.Name.localeCompare(b.Name));
   }
 
   /** All cached Issue Statuses. */

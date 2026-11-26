@@ -3,11 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RunView, CompositeKey } from '@memberjunction/core';
 import { NavigationService } from '@memberjunction/ng-shared';
-import type { mjBizAppsIssuesIssueStatusEntity, mjBizAppsIssuesIssueTypeEntity } from '@mj-biz-apps/issues-entities';
+import {
+    IssueEngineBase,
+    type mjBizAppsIssuesIssueStatusEntity,
+    type mjBizAppsIssuesIssueTypeEntity,
+} from '@mj-biz-apps/issues-entities';
 import { IssueKanbanComponent, IssueCardItem } from '../components/issue-kanban/issue-kanban.component';
 import { IssueListComponent } from '../components/issue-list/issue-list.component';
 import { IssueDetailPanelComponent } from '../components/issue-detail-panel/issue-detail-panel.component';
 import { IssueEditPanelComponent } from '../components/issue-edit-panel/issue-edit-panel.component';
+import {
+    ISSUE_LIST_FIELDS,
+    MapIssueSimpleRowToCardItem,
+    type IssueSimpleRow,
+} from '../shared/issue-query-types';
 
 export type IssueViewMode = 'kanban' | 'list';
 
@@ -396,49 +405,22 @@ export class IssuesDashboardPageComponent implements OnInit {
     public async LoadData(): Promise<void> {
         try {
             const rv = new RunView();
+            const [, issueRes] = await Promise.all([
+                IssueEngineBase.Instance.Config(false),
+                rv.RunView<IssueSimpleRow>({
+                    EntityName: 'MJ_BizApps_Issues: Issues',
+                    OrderBy: '__mj_CreatedAt DESC',
+                    MaxRows: 100,
+                    Fields: [...ISSUE_LIST_FIELDS],
+                    ResultType: 'simple'
+                })
+            ]);
 
-            // Load statuses
-            const statusRes = await rv.RunView<mjBizAppsIssuesIssueStatusEntity>({
-                EntityName: 'MJ_BizApps_Issues: Issue Status',
-                OrderBy: 'Sequence ASC',
-                ResultType: 'entity_object'
-            });
-            if (statusRes?.Success && statusRes.Results) {
-                this.Statuses = statusRes.Results;
-            }
-
-            // Load issue types
-            const typeRes = await rv.RunView<mjBizAppsIssuesIssueTypeEntity>({
-                EntityName: 'MJ_BizApps_Issues: Issue Types',
-                ResultType: 'entity_object'
-            });
-            if (typeRes?.Success && typeRes.Results) {
-                this.IssueTypes = typeRes.Results;
-            }
-
-            // Load issues
-            const issueRes = await rv.RunView<Record<string, unknown>>({
-                EntityName: 'MJ_BizApps_Issues: Issues',
-                OrderBy: '__mj_CreatedAt DESC',
-                MaxRows: 100,
-                ResultType: 'simple'
-            });
+            this.Statuses = IssueEngineBase.Instance.OrderedStatuses;
+            this.IssueTypes = IssueEngineBase.Instance.IssueTypes;
 
             if (issueRes?.Success && issueRes.Results) {
-                this.AllIssues = issueRes.Results.map(r => ({
-                    ID: String(r['ID'] || ''),
-                    IssueNumber: String(r['IssueNumber'] || 'ISSUE'),
-                    Title: String(r['Title'] || 'Untitled Issue'),
-                    Description: String(r['Description'] || ''),
-                    Severity: (r['Severity'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    Priority: (r['Priority'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    StatusID: String(r['StatusID'] || ''),
-                    StatusName: String(r['Status'] || r['StatusName'] || 'Reported'),
-                    ReporterEmail: String(r['ReporterEmail'] || ''),
-                    AppScope: String(r['AppScope'] || 'Explorer'),
-                    CreatedAt: new Date(String(r['__mj_CreatedAt'] || Date.now())),
-                    ResolvedAt: r['ResolvedAt'] ? new Date(String(r['ResolvedAt'])) : null
-                }));
+                this.AllIssues = issueRes.Results.map(MapIssueSimpleRowToCardItem);
 
                 const scopes = new Set<string>();
                 this.AllIssues.forEach(i => { if (i.AppScope) scopes.add(i.AppScope); });

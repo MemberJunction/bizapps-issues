@@ -118,7 +118,7 @@ export class IssueCommentEntityServer extends mjBizAppsIssuesIssueCommentEntity 
     const escapedUserID = EscapeSQLString(user.ID);
     const trimmedEmail = user.Email?.trim() ?? '';
     const escapedEmail = EscapeSQLString(trimmedEmail);
-    const rv = new RunView();
+    const rv = new RunView(this.RunViewProviderToUse);
     const result = await rv.RunView<{ ID: string; LinkedUserID: string | null; Email: string | null }>(
       {
         EntityName: PEOPLE_ENTITY,

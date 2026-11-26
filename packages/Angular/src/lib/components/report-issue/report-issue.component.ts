@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { Metadata, RunView, LogError } from '@memberjunction/core';
+import { Metadata, LogError } from '@memberjunction/core';
 import {
   MJDialogComponent,
   MJDialogTitlebarComponent,
@@ -22,9 +22,9 @@ import {
 import { SharedGenericModule } from '@memberjunction/ng-shared-generic';
 
 import {
+  IssueEngineBase,
   mjBizAppsIssuesIssueEntity,
   mjBizAppsIssuesIssueTypeEntity,
-  mjBizAppsIssuesIssueStatusEntity,
 } from '@mj-biz-apps/issues-entities';
 
 /** Severity / Priority union (mirrors the Issue entity). */
@@ -147,34 +147,10 @@ export class ReportIssueComponent {
   }
 
   private async loadReferenceData(): Promise<void> {
-    const rv = new RunView();
-    const [typesResult, statusesResult] = await rv.RunViews([
-      {
-        EntityName: 'MJ_BizApps_Issues: Issue Types',
-        ExtraFilter: 'IsActive = 1',
-        OrderBy: 'Name',
-        ResultType: 'entity_object',
-      },
-      {
-        EntityName: 'MJ_BizApps_Issues: Issue Status',
-        ExtraFilter: 'IsDefault = 1',
-        ResultType: 'entity_object',
-      },
-    ]);
-
-    if (typesResult.Success) {
-      this.IssueTypes = typesResult.Results as mjBizAppsIssuesIssueTypeEntity[];
-      this.SelectedTypeID = this.IssueTypes[0]?.ID ?? null;
-    } else {
-      LogError(`ReportIssueComponent: failed to load Issue Types: ${typesResult.ErrorMessage}`);
-    }
-
-    if (statusesResult.Success) {
-      const statuses = statusesResult.Results as mjBizAppsIssuesIssueStatusEntity[];
-      this.defaultStatusID = statuses[0]?.ID ?? null;
-    } else {
-      LogError(`ReportIssueComponent: failed to load default status: ${statusesResult.ErrorMessage}`);
-    }
+    await IssueEngineBase.Instance.Config(false);
+    this.IssueTypes = IssueEngineBase.Instance.ActiveIssueTypes;
+    this.SelectedTypeID = this.IssueTypes[0]?.ID ?? null;
+    this.defaultStatusID = IssueEngineBase.Instance.DefaultStatus?.ID ?? null;
   }
 
   // ----------------------------------------------------------------

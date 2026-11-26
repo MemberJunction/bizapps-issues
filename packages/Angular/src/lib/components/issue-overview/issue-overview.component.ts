@@ -11,6 +11,7 @@ import {
 import { NavigationService } from '@memberjunction/ng-shared';
 import { BaseFormComponent } from '@memberjunction/ng-base-forms';
 import type { mjBizAppsIssuesIssueEntity } from '@mj-biz-apps/issues-entities';
+import { ISSUE_COMMENT_FIELDS, type IssueCommentSimpleRow } from '../../shared/issue-query-types';
 
 /**
  * Escape a value for inlining into an ExtraFilter string literal (NUL-strip + quote doubling).
@@ -495,20 +496,21 @@ export class IssueOverviewComponent implements OnInit, OnChanges {
 
         try {
             const rv = new RunView();
-            const res = await rv.RunView<Record<string, unknown>>({
+            const res = await rv.RunView<IssueCommentSimpleRow>({
                 EntityName: 'MJ_BizApps_Issues: Issue Comments',
                 ExtraFilter: `IssueID = '${escapeFilterValue(this.Record.ID)}'`,
                 OrderBy: '__mj_CreatedAt DESC',
                 MaxRows: 10,
+                Fields: [...ISSUE_COMMENT_FIELDS],
                 ResultType: 'simple'
             });
 
             if (res?.Success && res.Results) {
-                this.Comments = res.Results.map((c: Record<string, unknown>) => ({
-                    ID: String(c['ID'] || ''),
-                    Comment: String(c['Comment'] || c['Body'] || 'Comment posted'),
-                    CreatedAt: new Date(String(c['__mj_CreatedAt'] || Date.now())),
-                    User: String(c['User'] || 'Team Member')
+                this.Comments = res.Results.map((c) => ({
+                    ID: c.ID || '',
+                    Comment: c.Body || 'Comment posted',
+                    CreatedAt: new Date(c.__mj_CreatedAt ?? Date.now()),
+                    User: c.AuthorPerson || c.AuthorEmail || 'Team Member'
                 }));
             }
         } catch (e) {

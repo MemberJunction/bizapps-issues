@@ -1,8 +1,11 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RunView } from '@memberjunction/core';
-import type { mjBizAppsIssuesIssueTypeEntity, mjBizAppsIssuesIssueStatusEntity } from '@mj-biz-apps/issues-entities';
+import {
+    IssueEngineBase,
+    type mjBizAppsIssuesIssueTypeEntity,
+    type mjBizAppsIssuesIssueStatusEntity,
+} from '@mj-biz-apps/issues-entities';
 
 const TYPES_CSS = `
 .mji-types-page {
@@ -166,23 +169,9 @@ export class IssueTypesPageComponent implements OnInit {
 
     public async LoadData(): Promise<void> {
         try {
-            const rv = new RunView();
-            const typeRes = await rv.RunView<mjBizAppsIssuesIssueTypeEntity>({
-                EntityName: 'MJ_BizApps_Issues: Issue Types',
-                ResultType: 'entity_object'
-            });
-            if (typeRes?.Success && typeRes.Results) {
-                this.Types = typeRes.Results;
-            }
-
-            const statusRes = await rv.RunView<mjBizAppsIssuesIssueStatusEntity>({
-                EntityName: 'MJ_BizApps_Issues: Issue Status',
-                OrderBy: 'Sequence ASC',
-                ResultType: 'entity_object'
-            });
-            if (statusRes?.Success && statusRes.Results) {
-                this.Statuses = statusRes.Results;
-            }
+            await IssueEngineBase.Instance.Config(false);
+            this.Types = IssueEngineBase.Instance.IssueTypes;
+            this.Statuses = IssueEngineBase.Instance.OrderedStatuses;
         } catch (e) {
             console.error('[IssueTypes] Failed to load data:', e);
         } finally {

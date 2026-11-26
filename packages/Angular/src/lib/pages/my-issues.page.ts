@@ -6,6 +6,11 @@ import { EscapeSQLString } from '@memberjunction/global';
 import { IssueListComponent } from '../components/issue-list/issue-list.component';
 import { IssueDetailPanelComponent } from '../components/issue-detail-panel/issue-detail-panel.component';
 import type { IssueCardItem } from '../components/issue-kanban/issue-kanban.component';
+import {
+    ISSUE_LIST_FIELDS,
+    MapIssueSimpleRowToCardItem,
+    type IssueSimpleRow,
+} from '../shared/issue-query-types';
 
 const MY_ISSUES_CSS = `
 .mji-my-issues {
@@ -138,29 +143,17 @@ export class MyIssuesPageComponent implements OnInit {
             }
 
             const rv = new RunView();
-            const res = await rv.RunView<Record<string, unknown>>({
+            const res = await rv.RunView<IssueSimpleRow>({
                 EntityName: 'MJ_BizApps_Issues: Issues',
                 ExtraFilter: `ReporterEmail='${EscapeSQLString(currentUserEmail)}'`,
                 OrderBy: '__mj_CreatedAt DESC',
                 MaxRows: 50,
+                Fields: [...ISSUE_LIST_FIELDS],
                 ResultType: 'simple'
             });
 
             if (res?.Success && res.Results) {
-                const items: IssueCardItem[] = res.Results.map(r => ({
-                    ID: String(r['ID'] || ''),
-                    IssueNumber: String(r['IssueNumber'] || 'ISSUE'),
-                    Title: String(r['Title'] || 'Untitled Issue'),
-                    Description: String(r['Description'] || ''),
-                    Severity: (r['Severity'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    Priority: (r['Priority'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    StatusID: String(r['StatusID'] || ''),
-                    StatusName: String(r['Status'] || r['StatusName'] || 'Reported'),
-                    ReporterEmail: String(r['ReporterEmail'] || ''),
-                    AppScope: String(r['AppScope'] || 'Explorer'),
-                    CreatedAt: new Date(String(r['__mj_CreatedAt'] || Date.now())),
-                    ResolvedAt: r['ResolvedAt'] ? new Date(String(r['ResolvedAt'])) : null
-                }));
+                const items: IssueCardItem[] = res.Results.map(MapIssueSimpleRowToCardItem);
 
                 this.ReportedIssues = items;
                 this.OpenIssues = items.filter(i => !i.ResolvedAt);
