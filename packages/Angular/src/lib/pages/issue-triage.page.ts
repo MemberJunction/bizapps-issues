@@ -5,6 +5,11 @@ import { RunView } from '@memberjunction/core';
 import { IssueListComponent } from '../components/issue-list/issue-list.component';
 import { IssueDetailPanelComponent } from '../components/issue-detail-panel/issue-detail-panel.component';
 import type { IssueCardItem } from '../components/issue-kanban/issue-kanban.component';
+import {
+    ISSUE_LIST_FIELDS,
+    MapIssueSimpleRowToCardItem,
+    type IssueSimpleRow,
+} from '../shared/issue-query-types';
 
 const TRIAGE_CSS = `
 .mji-triage-page {
@@ -143,28 +148,16 @@ export class IssueTriagePageComponent implements OnInit {
     public async LoadData(): Promise<void> {
         try {
             const rv = new RunView();
-            const res = await rv.RunView<Record<string, unknown>>({
+            const res = await rv.RunView<IssueSimpleRow>({
                 EntityName: 'MJ_BizApps_Issues: Issues',
                 ExtraFilter: `Severity IN ('Critical', 'High') OR StatusID IS NULL`,
                 OrderBy: '__mj_CreatedAt DESC',
+                Fields: [...ISSUE_LIST_FIELDS],
                 ResultType: 'simple'
             });
 
             if (res?.Success && res.Results) {
-                this.TriageIssues = res.Results.map(r => ({
-                    ID: String(r['ID'] || ''),
-                    IssueNumber: String(r['IssueNumber'] || 'ISSUE'),
-                    Title: String(r['Title'] || 'Untitled Issue'),
-                    Description: String(r['Description'] || ''),
-                    Severity: (r['Severity'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    Priority: (r['Priority'] as 'Critical' | 'High' | 'Low' | 'Medium') || 'Medium',
-                    StatusID: String(r['StatusID'] || ''),
-                    StatusName: String(r['Status'] || r['StatusName'] || 'Reported'),
-                    ReporterEmail: String(r['ReporterEmail'] || ''),
-                    AppScope: String(r['AppScope'] || 'Explorer'),
-                    CreatedAt: new Date(String(r['__mj_CreatedAt'] || Date.now())),
-                    ResolvedAt: r['ResolvedAt'] ? new Date(String(r['ResolvedAt'])) : null
-                }));
+                this.TriageIssues = res.Results.map(MapIssueSimpleRowToCardItem);
 
                 this.CriticalCount = this.TriageIssues.filter(i => i.Severity === 'Critical' && !i.ResolvedAt).length;
                 this.HighCount = this.TriageIssues.filter(i => i.Severity === 'High' && !i.ResolvedAt).length;

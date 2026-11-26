@@ -256,6 +256,9 @@ importers:
         specifier: ^3.25.28
         version: 3.25.76
     devDependencies:
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@25.9.5)(typescript@5.9.3)
@@ -10552,6 +10555,23 @@ snapshots:
       - canvas
     optional: true
 
+  '@hyperframes/core@0.8.134(@types/node@25.9.5)':
+    dependencies:
+      '@chenglou/pretext': 0.0.5
+      '@hyperframes/lint': 0.8.134
+      '@hyperframes/parsers': 0.8.134
+      '@hyperframes/studio-server': 0.8.134(@types/node@25.9.5)
+      bpm-detective: 2.0.5
+      linkedom: 0.18.15
+      postcss: 8.5.26
+      wawoff2: 2.0.1
+    optionalDependencies:
+      esbuild: 0.25.12
+    transitivePeerDependencies:
+      - '@types/node'
+      - canvas
+    optional: true
+
   '@hyperframes/engine@0.8.134(@types/node@22.20.1)':
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
@@ -10574,6 +10594,24 @@ snapshots:
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
       '@hyperframes/core': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/parsers': 0.8.134
+      hono: 4.13.1
+      linkedom: 0.18.15
+      puppeteer: 25.18.1
+      puppeteer-core: 25.18.1
+    transitivePeerDependencies:
+      - '@types/node'
+      - bufferutil
+      - canvas
+      - proxy-agent
+      - utf-8-validate
+      - yauzl
+    optional: true
+
+  '@hyperframes/engine@0.8.134(@types/node@25.9.5)':
+    dependencies:
+      '@hono/node-server': 2.1.0(hono@4.13.1)
+      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
       '@hyperframes/parsers': 0.8.134
       hono: 4.13.1
       linkedom: 0.18.15
@@ -10660,8 +10698,8 @@ snapshots:
   '@hyperframes/producer@0.8.134(@types/node@25.9.5)':
     dependencies:
       '@hono/node-server': 2.1.0(hono@4.13.1)
-      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
-      '@hyperframes/engine': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
+      '@hyperframes/engine': 0.8.134(@types/node@25.9.5)
       '@hyperframes/lint': 0.8.134
       '@hyperframes/parsers': 0.8.134
       '@hyperframes/studio-server': 0.8.134(@types/node@25.9.5)
@@ -10709,7 +10747,7 @@ snapshots:
 
   '@hyperframes/studio-server@0.8.134(@types/node@25.9.5)':
     dependencies:
-      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
       '@hyperframes/parsers': 0.8.134
       hono: 4.13.1
       linkedom: 0.18.15
@@ -24381,8 +24419,8 @@ snapshots:
 
   '@memberjunction/video-studio-render-worker@6.3.0-edge.1(@types/node@25.9.5)':
     dependencies:
-      '@hyperframes/core': 0.8.134(@types/node@24.10.11)
-      '@hyperframes/engine': 0.8.134(@types/node@24.10.11)
+      '@hyperframes/core': 0.8.134(@types/node@25.9.5)
+      '@hyperframes/engine': 0.8.134(@types/node@25.9.5)
       '@hyperframes/lint': 0.8.134
       '@hyperframes/parsers': 0.8.134
       '@hyperframes/producer': 0.8.134(@types/node@25.9.5)

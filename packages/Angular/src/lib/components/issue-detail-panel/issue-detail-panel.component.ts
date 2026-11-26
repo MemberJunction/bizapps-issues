@@ -6,6 +6,7 @@ import { RunView, CompositeKey, Metadata } from '@memberjunction/core';
 import { NavigationService } from '@memberjunction/ng-shared';
 import type { IssueCardItem } from '../issue-kanban/issue-kanban.component';
 import type { mjBizAppsIssuesIssueStatusEntity, mjBizAppsIssuesIssueCommentEntity } from '@mj-biz-apps/issues-entities';
+import { ISSUE_COMMENT_FIELDS, type IssueCommentSimpleRow } from '../../shared/issue-query-types';
 
 /**
  * Escape a value for inlining into an ExtraFilter string literal (NUL-strip + quote doubling).
@@ -343,19 +344,20 @@ export class IssueDetailPanelComponent implements OnInit, OnChanges {
         if (!this.Issue?.ID) return;
         try {
             const rv = new RunView();
-            const res = await rv.RunView<Record<string, unknown>>({
+            const res = await rv.RunView<IssueCommentSimpleRow>({
                 EntityName: 'MJ_BizApps_Issues: Issue Comments',
                 ExtraFilter: `IssueID = '${escapeFilterValue(this.Issue.ID)}'`,
                 OrderBy: '__mj_CreatedAt ASC',
+                Fields: [...ISSUE_COMMENT_FIELDS],
                 ResultType: 'simple'
             });
 
             if (res?.Success && res.Results) {
                 this.Comments = res.Results.map(c => ({
-                    ID: String(c['ID'] || ''),
-                    Comment: String(c['Comment'] || c['Body'] || ''),
-                    User: String(c['User'] || 'Team Member'),
-                    CreatedAt: new Date(String(c['__mj_CreatedAt'] || Date.now()))
+                    ID: c.ID || '',
+                    Comment: c.Body || '',
+                    User: c.AuthorPerson || c.AuthorEmail || 'Team Member',
+                    CreatedAt: new Date(c.__mj_CreatedAt ?? Date.now())
                 }));
                 this.cdr.detectChanges();
             }

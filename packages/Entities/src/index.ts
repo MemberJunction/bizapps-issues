@@ -1,4 +1,5 @@
-export * from './generated/entity_subclasses'
+export * from './generated/entity_subclasses';
+export * from './engine/IssueEngineBase';
 
 /**
  * Forces the generated entity subclasses to be loaded. Because the entities

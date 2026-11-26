@@ -2061,3 +2061,29 @@ npx playwright-cli close
 - **Rows missing after a fresh install** usually mean a release shipped without its metadata migration. Hand that to the build engineer rather than changing the installer.
 
 The model, and the Open App steps that differ from core (`--schema`, the `${mjSchema}` substitution): [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md).
+
+---
+
+## 5-Rule BizApps Performance & Caching Standard
+
+All code in `bizapps-issues` (`@mj-biz-apps/issues-entities`, `issues-core`, `issues-ng`, `issues-core-entities-server`, `issues-actions`, `issues-server`) MUST follow these five rules:
+
+1. **Use `BaseEngine` for bounded taxonomy & config metadata (never unbounded transactional tables):**
+   - `IssueEngineBase` (`@mj-biz-apps/issues-entities`, shared client + server) and `IssueEngine` (`@mj-biz-apps/issues-core`, server) cache the bounded lookup tables `MJ_BizApps_Issues: Issue Types` and `MJ_BizApps_Issues: Issue Status` with `@RegisterForStartup()`, `BaseSingleton`, and `ObserveProperty` observables.
+   - Always call `await IssueEngineBase.Instance.Config(false, contextUser, provider)` lazily at entry points (idempotent once loaded) rather than issuing ad-hoc `RunView` queries against `Issue Types` or `Issue Status`.
+   - **Never** bulk-cache unbounded transactional entities (`MJ_BizApps_Issues: Issues`, `MJ_BizApps_Issues: Issue Comments`) inside a `BaseEngine`.
+2. **Multi-provider, impersonation, and RLS `CacheLocal` safety:**
+   - Override `public override get ProviderToUse(): IMetadataProvider` on `BaseEngine` subclasses so explicit per-call providers take precedence, and pass `provider` unchanged to `super.Load(configs, provider, forceRefresh, contextUser)` (never hardcode `provider ?? Metadata.Provider`, which permanently pins the first-wins base `_provider`).
+   - Force a refresh when the explicit provider instance changes so stale rows from a previous tenant/provider are never served.
+   - Set `CacheLocal: true` **only** on global, non-RLS bounded reference tables (`Issue Types`, `Issue Status`). Any future RLS-protected or user-scoped entity MUST use `CacheLocal: false`.
+   - Gate engine entity configs on metadata existence and `entityInfo.GetUserPermisions(user)?.CanRead` so restricted callers never fail startup or enter retry loops.
+   - In server entity subclasses (`IssueCommentEntityServer`, `IssueEntityServer`), pass `this.RunViewProviderToUse` to `new RunView(this.RunViewProviderToUse)` rather than relying on the global provider.
+3. **Collapse unbatched `RunView` waterfalls with `rv.RunViews([...])` + `ResultType: 'simple'` + `Fields`:**
+   - Never run sequential independent `await rv.RunView(...)` calls or `Promise.all([new RunView().RunView(...), ...])` — batch independent reads into a single `rv.RunViews([...])` GraphQL round trip (using `RunView.FromMetadataProvider(this.ProviderToUse)` when a provider is in scope).
+   - For read-only displays and projections, always specify `ResultType: 'simple'`, an explicit `Fields: [...]` list, and a strongly-typed row interface derived from the generated entity class (`mjBizAppsIssuesIssueEntity['Severity']`) — never `Record<string, unknown>` or `entity_object` when mutation isn't needed.
+4. **Bounded per-container caching (`ConversationEngine` pattern) — NEVER cache arbitrary filtered lists:**
+   - If caching child records for an open container (e.g., comments on a selected issue), use a bounded LRU container cache keyed by `(containerId, viewerUserId)` and invalidated automatically on `BaseEntity` save/delete events plus user/provider switches.
+   - Never cache arbitrary user-filtered search/list queries globally across sessions or users.
+5. **RLS-safe two-step entity reads (zero raw SQL subqueries):**
+   - When filtering records by membership, assignment, or cross-entity relationships where RLS may apply, issue a first-class `RunView` against the scoping/junction entity first, then query the target entity with chunked `ID IN (...)` predicates (with an empty fast-path when step 1 returns zero IDs). Never embed raw SQL subqueries against base views inside `ExtraFilter`.
+
