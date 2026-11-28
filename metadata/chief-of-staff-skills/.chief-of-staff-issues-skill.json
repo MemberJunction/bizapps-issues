@@ -1,0 +1,32 @@
+[
+  {
+    "fields": {
+      "Name": "Issues",
+      "Description": "Triage, track, summarize, and escalate support cases, bug reports, feature requests, and customer feedback in BizApps Issues using RunView with per-user RLS scoping. Installed by the Issues app.",
+      "Instructions": "@file:templates/issues-chief-of-staff.skill.md",
+      "Status": "Active",
+      "ActivationMode": "Auto",
+      "Category": "Operations",
+      "IconClass": "fa-solid fa-life-ring",
+      "Color": "#EAB308",
+      "CreatedByUserID": "@lookup:MJ: Users.Name=System"
+    },
+    "relatedEntities": {
+      "MJ: AI Agent Skills": [
+        {
+          "fields": {
+            "AgentID": "@lookup:MJ: AI Agents.Name=Chief of Staff",
+            "SkillID": "@parent:ID",
+            "Status": "Active"
+          },
+          "primaryKey": {
+            "ID": "1717DD64-BF0D-4DE8-A25B-B18BB3ADC527"
+          }
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "B3E925DC-0F57-44FA-8389-2B28BE748389"
+    }
+  }
+]
